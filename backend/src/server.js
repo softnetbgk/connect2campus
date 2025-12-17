@@ -17,6 +17,15 @@ const startServer = async () => {
         // Test DB connection
         const client = await pool.connect();
         console.log('✅ Connected to PostgreSQL database');
+
+        // Auto-run migrations if needed (simple check)
+        const check = await client.query("SELECT to_regclass('public.users')");
+        if (!check.rows[0].to_regclass) {
+            console.log('⚠️ Database seems empty. Running initialization...');
+            const { createTables } = require('./scripts/initDb');
+            await createTables(client);
+        }
+
         client.release();
 
         app.listen(PORT, () => {
