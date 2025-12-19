@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
     Users, Calendar, BarChart3, LogOut, Check, ChevronRight, ChevronDown, User, DollarSign,
-    LayoutDashboard, Settings, Bell, Search, Menu, Book, Home, Clock, Megaphone, Bus, UserPlus, Shield, ScanLine
+    LayoutDashboard, Settings, Bell, Search, Menu, Book, Home, Clock, Megaphone, Bus, UserPlus, Shield, ScanLine, X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -74,6 +74,7 @@ const SchoolAdminDashboard = () => {
     const [academicConfig, setAcademicConfig] = useState({ classes: [] });
     const [activeTab, setActiveTab] = useState('overview'); // Default to overview
     const [activeTabState, setActiveTabState] = useState(null); // Data passed between tabs
+    const [pendingLeavesCount, setPendingLeavesCount] = useState(0);
 
     // Sidebar Expansion States
     const [expandedSections, setExpandedSections] = useState({
@@ -97,7 +98,25 @@ const SchoolAdminDashboard = () => {
         }));
     };
 
-    useEffect(() => { fetchSchoolConfig(); }, []);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    useEffect(() => {
+        fetchSchoolConfig();
+        fetchPendingLeaves();
+
+        // Poll for pending leaves every minute
+        const interval = setInterval(fetchPendingLeaves, 60000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const fetchPendingLeaves = async () => {
+        try {
+            const res = await api.get('/leaves?status=Pending');
+            setPendingLeavesCount(Array.isArray(res.data) ? res.data.length : 0);
+        } catch (error) {
+            console.error("Failed to fetch pending leaves count", error);
+        }
+    };
 
     const fetchSchoolConfig = async () => {
         try {
@@ -112,18 +131,38 @@ const SchoolAdminDashboard = () => {
     const handleLogout = () => { logout(); navigate('/'); };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
+        <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900 relative">
+            {/* Mobile Sidebar Overlay */}
+            {isMobileMenuOpen && (
+                <div
+                    className="fixed inset-0 bg-slate-900/50 z-40 md:hidden backdrop-blur-sm"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
+
             {/* Sidebar - Vibrant Modern Design */}
-            <aside className="w-72 bg-[#0f172a] text-slate-300 flex flex-col shadow-2xl z-20 transition-all duration-300 hidden md:flex sticky top-0 h-screen overflow-y-auto custom-scrollbar print:hidden">
+            <aside className={`w-72 bg-[#0f172a] text-slate-300 flex flex-col shadow-2xl z-50 transition-transform duration-300 
+                fixed inset-y-0 left-0 h-screen overflow-y-auto custom-scrollbar print:hidden
+                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
+                md:translate-x-0 md:sticky md:top-0 md:flex`}>
                 {/* Brand Area */}
-                <div className="p-6 flex items-center gap-3 border-b border-slate-800/50">
-                    <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-2.5 rounded-xl shadow-lg shadow-indigo-500/20">
-                        <Users className="text-white w-6 h-6" />
+                <div className="p-6 flex items-center justify-between border-b border-slate-800/50">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-2.5 rounded-xl shadow-lg shadow-indigo-500/20">
+                            <Users className="text-white w-6 h-6" />
+                        </div>
+                        <div className="w-full">
+                            <h1 className="text-xl font-serif font-black italic text-white tracking-wide leading-tight drop-shadow-md">{academicConfig.name || 'School Admin'}</h1>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">Admin Portal</p>
+                        </div>
                     </div>
-                    <div className="w-full">
-                        <h1 className="text-xl font-serif font-black italic text-white tracking-wide leading-tight drop-shadow-md">{academicConfig.name || 'School Admin'}</h1>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">Admin Portal</p>
-                    </div>
+                    {/* Mobile Close Button */}
+                    <button
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="md:hidden text-slate-400 hover:text-white"
+                    >
+                        <X size={24} />
+                    </button>
                 </div>
 
                 {/* Navigation */}
@@ -271,6 +310,7 @@ const SchoolAdminDashboard = () => {
                             onClick={() => setActiveTab('leave-management')}
                             icon={Clock}
                             label="Leave Requests"
+                            badge={pendingLeavesCount}
                         />
                     </div>
 
@@ -329,6 +369,12 @@ const SchoolAdminDashboard = () => {
                 {/* Header */}
                 <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 h-16 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm print:hidden">
                     <div className="flex items-center gap-4">
+                        <button
+                            className="md:hidden text-slate-500 hover:text-indigo-600 mr-2"
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        >
+                            <Menu size={24} />
+                        </button>
                         <h2 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
                             {getTabTitle(activeTab)}
                         </h2>
@@ -402,7 +448,7 @@ const SchoolAdminDashboard = () => {
 };
 
 // UI Components for Sidebar
-const NavButton = ({ active, onClick, icon: Icon, label }) => (
+const NavButton = ({ active, onClick, icon: Icon, label, badge }) => (
     <button
         onClick={onClick}
         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${active
@@ -411,7 +457,12 @@ const NavButton = ({ active, onClick, icon: Icon, label }) => (
             }`}
     >
         <Icon size={18} className={`${active ? 'text-indigo-100' : 'text-slate-500 group-hover:text-indigo-400 px-0'}`} />
-        <span>{label}</span>
+        <span className="flex-1 text-left">{label}</span>
+        {badge > 0 && (
+            <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm animate-pulse">
+                {badge}
+            </span>
+        )}
         {active && <ChevronRight size={14} className="ml-auto opacity-50" />}
     </button>
 );

@@ -75,14 +75,18 @@ const StaffDashboard = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            {/* Header */}
-            <LinearGradient colors={['#43e97b', '#38f9d7']} style={styles.header}>
+            {/* Header - Matching Web Sidebar Theme */}
+            <LinearGradient colors={['#064e3b', '#059669']} style={styles.header}>
                 <View style={styles.headerContent}>
                     <View>
-                        <Text style={styles.greeting}>Welcome! 👋</Text>
-                        <Text style={styles.userName}>{user?.name || 'Staff Member'}</Text>
+                        <View style={styles.schoolBadge}>
+                            <Text style={styles.schoolName}>STAFF PORTAL</Text>
+                        </View>
+                        <Text style={styles.userName}>
+                            {user?.name || 'Staff Member'}
+                        </Text>
                         <Text style={styles.userDetails}>
-                            {user?.designation || 'Staff'}
+                            {user?.designation || 'Staff'} • ID: {user?.id || '...'}
                         </Text>
                     </View>
                     <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -91,35 +95,58 @@ const StaffDashboard = ({ navigation }) => {
                 </View>
             </LinearGradient>
 
-            {/* Quick Stats */}
-            <View style={styles.statsContainer}>
-                <View style={styles.statCard}>
-                    <Text style={styles.statValue}>
-                        {dashboardData.attendance?.attendancePercentage || '0'}%
-                    </Text>
-                    <Text style={styles.statLabel}>Attendance</Text>
-                </View>
-                <View style={styles.statCard}>
-                    <Text style={styles.statValue}>
-                        ₹{dashboardData.salary?.lastSalary || '0'}
-                    </Text>
-                    <Text style={styles.statLabel}>Last Salary</Text>
-                </View>
-                <View style={styles.statCard}>
-                    <Text style={styles.statValue}>
-                        {dashboardData.profile?.leavesLeft || '0'}
-                    </Text>
-                    <Text style={styles.statLabel}>Leaves Left</Text>
-                </View>
-            </View>
-
-            {/* Menu Grid */}
             <ScrollView
-                style={styles.menuContainer}
+                style={styles.scrollContainer}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#059669']} />
                 }
             >
+                {/* Stats Grid */}
+                <View style={styles.statsGrid}>
+                    {/* Attendance Card - Featured Gradient */}
+                    <LinearGradient
+                        colors={['#0d9488', '#0f766e']}
+                        style={[styles.statCard, styles.featuredCard]}
+                    >
+                        <View>
+                            <Text style={styles.featuredLabel}>Attendance</Text>
+                            <Text style={styles.featuredValue}>
+                                {dashboardData.attendance?.attendancePercentage || '0'}%
+                            </Text>
+                            <Text style={styles.featuredSub}>
+                                Present Today
+                            </Text>
+                        </View>
+                        <Text style={styles.cardIcon}>✅</Text>
+                    </LinearGradient>
+
+                    {/* Salary Card */}
+                    <View style={styles.statCard}>
+                        <View>
+                            <Text style={styles.statLabel}>Last Salary</Text>
+                            <Text style={[styles.statValue, { color: '#059669' }]}>
+                                ₹{dashboardData.salary?.lastSalary || '0'}
+                            </Text>
+                            <Text style={styles.statSub}>Credited</Text>
+                        </View>
+                        <Text style={styles.cardIcon}>💰</Text>
+                    </View>
+
+                    {/* Leaves Card */}
+                    <View style={styles.statCard}>
+                        <View>
+                            <Text style={styles.statLabel}>Leaves</Text>
+                            <Text style={styles.statValue}>
+                                {dashboardData.profile?.leavesLeft || '0'}
+                            </Text>
+                            <Text style={styles.statSub}>Days Remaining</Text>
+                        </View>
+                        <Text style={styles.cardIcon}>📝</Text>
+                    </View>
+                </View>
+
+                {/* Menu Grid */}
+                <Text style={styles.sectionTitle}>Dashboard Menu</Text>
                 <View style={styles.menuGrid}>
                     {menuItems.map((item) => (
                         <TouchableOpacity
@@ -127,26 +154,15 @@ const StaffDashboard = ({ navigation }) => {
                             style={styles.menuItem}
                             onPress={() => navigation.navigate(item.screen)}
                         >
-                            <LinearGradient
-                                colors={[item.color, `${item.color}dd`]}
-                                style={styles.menuGradient}
-                            >
-                                <Text style={styles.menuIcon}>{item.icon}</Text>
-                                <Text style={styles.menuTitle}>{item.title}</Text>
-                            </LinearGradient>
+                            <View style={[styles.iconContainer, { backgroundColor: `${item.color}15` }]}>
+                                <Text style={{ fontSize: 24 }}>{item.icon}</Text>
+                            </View>
+                            <Text style={styles.menuTitle}>{item.title}</Text>
                         </TouchableOpacity>
                     ))}
                 </View>
 
-                {/* Recent Activity */}
-                <View style={styles.activitySection}>
-                    <Text style={styles.sectionTitle}>Recent Activity</Text>
-                    <View style={styles.activityCard}>
-                        <Text style={styles.activityText}>
-                            No recent activity to display
-                        </Text>
-                    </View>
-                </View>
+                <View style={{ height: 40 }} />
             </ScrollView>
         </View>
     );
@@ -155,145 +171,185 @@ const StaffDashboard = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f7fa',
+        backgroundColor: '#f8fafc', // Slate 50
     },
     loaderContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#f5f7fa',
+        backgroundColor: '#f8fafc',
     },
     loaderText: {
         marginTop: 10,
-        color: '#667eea',
-        fontSize: 16,
+        color: '#059669',
     },
     header: {
-        paddingTop: 50,
+        paddingTop: 60,
         paddingBottom: 30,
-        paddingHorizontal: 20,
+        paddingHorizontal: 24,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        elevation: 10,
+        zIndex: 10,
     },
     headerContent: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
     },
-    greeting: {
-        fontSize: 16,
-        color: 'rgba(0, 0, 0, 0.7)',
-        marginBottom: 5,
+    schoolBadge: {
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+        alignSelf: 'flex-start',
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    schoolName: {
+        color: '#a7f3d0',
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 1,
     },
     userName: {
-        fontSize: 24,
-        fontWeight: 'bold',
+        fontSize: 26,
+        fontWeight: '800',
         color: '#fff',
-        marginBottom: 3,
+        letterSpacing: -0.5,
+        marginBottom: 4,
     },
     userDetails: {
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.9)',
+        color: '#d1fae5',
+        fontWeight: '500',
     },
     logoutButton: {
-        backgroundColor: 'rgba(255, 255, 255, 0.3)',
-        paddingHorizontal: 15,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        paddingHorizontal: 16,
         paddingVertical: 8,
-        borderRadius: 20,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.4)',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
     },
     logoutText: {
         color: '#fff',
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '600',
     },
-    statsContainer: {
-        flexDirection: 'row',
+    scrollContainer: {
+        flex: 1,
+        marginTop: -20, // Overlap header
         paddingHorizontal: 20,
-        marginTop: -20,
-        marginBottom: 20,
+    },
+    statsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        marginBottom: 30,
     },
     statCard: {
-        flex: 1,
+        width: '48%',
         backgroundColor: '#fff',
-        padding: 15,
-        marginHorizontal: 5,
-        borderRadius: 15,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        borderRadius: 20,
+        padding: 16,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        elevation: 2,
+        shadowColor: '#64748b',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        justifyContent: 'space-between',
+        height: 140,
     },
-    statValue: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 5,
+    featuredCard: {
+        borderWidth: 0,
+        elevation: 5,
+        shadowColor: '#0d9488',
+        shadowOpacity: 0.3,
+    },
+    featuredLabel: {
+        color: '#ccfbf1',
+        fontSize: 12,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    featuredValue: {
+        color: '#fff',
+        fontSize: 32,
+        fontWeight: '800',
+    },
+    featuredSub: {
+        color: '#99f6e4',
+        fontSize: 12,
+        marginTop: 4,
     },
     statLabel: {
+        color: '#64748b',
         fontSize: 12,
-        color: '#666',
+        fontWeight: '600',
+        marginBottom: 4,
     },
-    menuContainer: {
-        flex: 1,
+    statValue: {
+        color: '#0f172a',
+        fontSize: 24,
+        fontWeight: '800',
+    },
+    statSub: {
+        color: '#94a3b8',
+        fontSize: 11,
+        marginTop: 4,
+        fontWeight: '500',
+    },
+    cardIcon: {
+        fontSize: 20,
+        position: 'absolute',
+        bottom: 16,
+        right: 16,
+        opacity: 0.5,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#0f172a',
+        marginBottom: 16,
+        marginLeft: 4,
     },
     menuGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        paddingHorizontal: 15,
-        paddingBottom: 10,
+        justifyContent: 'space-between',
     },
     menuItem: {
-        width: '48%',
-        aspectRatio: 1.2,
-        marginHorizontal: '1%',
-        marginBottom: 15,
+        width: '31%',
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 16,
+        alignItems: 'center',
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+        elevation: 1,
     },
-    menuGradient: {
-        flex: 1,
-        borderRadius: 20,
+    iconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 5,
-    },
-    menuIcon: {
-        fontSize: 40,
-        marginBottom: 10,
+        marginBottom: 12,
     },
     menuTitle: {
-        fontSize: 15,
+        fontSize: 12,
         fontWeight: '600',
-        color: '#fff',
-        textAlign: 'center',
-    },
-    activitySection: {
-        paddingHorizontal: 20,
-        paddingBottom: 20,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 15,
-    },
-    activityCard: {
-        backgroundColor: '#fff',
-        padding: 20,
-        borderRadius: 15,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
-    },
-    activityText: {
-        fontSize: 14,
-        color: '#999',
+        color: '#475569',
         textAlign: 'center',
     },
 });

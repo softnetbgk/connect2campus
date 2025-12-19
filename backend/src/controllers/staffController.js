@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const bcrypt = require('bcrypt');
 
 // Add Staff
 exports.addStaff = async (req, res) => {
@@ -9,14 +10,7 @@ exports.addStaff = async (req, res) => {
 
         await client.query('BEGIN');
 
-        // 1. Generate 6-Digit Staff ID or S-YYYY-NNN format
-        // Using same random logic as Students/Teachers for consistency unless user asked for sequential "S-"
-        // User asked "create id automatically". Let's stick to the 6 digit random number as seen in Teacher controller in my previous view, 
-        // OR better, let's use the sequential S-YYYY-NNN format if we want to look professional, but the viewed Teacher controller used random 6 digits.
-        // Wait, looking back at step 2, I viewed lines 1-50 of teacherController.js and it showed:
-        // employee_id = Math.floor(100000 + Math.random() * 900000).toString();
-        // So I will stick to this 6-digit random format for Staff too to match Teachers.
-
+        // 1. Generate 6-Digit Staff ID
         let employee_id;
         let isUnique = false;
         while (!isUnique) {
@@ -31,6 +25,31 @@ exports.addStaff = async (req, res) => {
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
             [school_id, name, email, phone, role, gender, address, join_date || new Date(), employee_id, salary_per_day || 0]
         );
+
+        // Create User Login
+        let loginEmail = email || `${employee_id}@staff.school.com`;
+        const defaultPassword = await bcrypt.hash('123456', 10);
+
+        // Convert 'DRIVER' to 'STAFF' role for user table simplification, or keep DRIVER? 
+        // Logic in authController says: "Allow DRIVER to login as STAFF". 
+        // But if I create user as STAFF, it's safer. However, preserving specific role is better.
+        // Let's use the provided role if it matches enum, or default to STAFF. 
+        // Actually, users table 'role' column likely supports 'STAFF', 'DRIVER'.
+        // Let's just uppercase the role input.
+        const userRole = ['DRIVER', 'ACCOUNTANT', 'LIBRARIAN'].includes(role.toUpperCase()) ? role.toUpperCase() : 'STAFF';
+
+        let userCheck = await client.query('SELECT id FROM users WHERE email = $1', [loginEmail]);
+        if (userCheck.rows.length > 0) {
+            loginEmail = `${employee_id}@staff.school.com`;
+            userCheck = await client.query('SELECT id FROM users WHERE email = $1', [loginEmail]);
+        }
+
+        if (userCheck.rows.length === 0) {
+            await client.query(
+                `INSERT INTO users (email, password, role, school_id) VALUES ($1, $2, $3, $4)`,
+                [loginEmail, defaultPassword, userRole, school_id]
+            );
+        }
 
         await client.query('COMMIT');
         res.status(201).json(result.rows[0]);

@@ -270,29 +270,39 @@ exports.getStudentHostelDetails = async (req, res) => {
 exports.getMyHostelDetails = async (req, res) => {
     try {
         const school_id = req.user.schoolId;
-        const { email } = req.user;
+        const { email, linkedId } = req.user;
         let student_admission_no = null;
 
-        console.log(`[Hostel] Fetching details for ${email} (School: ${school_id})`);
+        console.log(`[Hostel] Fetching details for ${email} (School: ${school_id}, LinkedID: ${linkedId})`);
 
         // Resolve Student
-        let studentRes = await pool.query(
-            'SELECT admission_no FROM students WHERE school_id = $1 AND LOWER(email) = LOWER($2)',
-            [school_id, email]
-        );
-        if (studentRes.rows.length === 0) {
-            const emailParts = email.split('@');
-            if (emailParts.length === 2) {
-                studentRes = await pool.query(
-                    'SELECT admission_no FROM students WHERE school_id = $1 AND LOWER(admission_no) = LOWER($2)',
-                    [school_id, emailParts[0]]
-                );
+        if (linkedId) {
+            const sRes = await pool.query('SELECT admission_no FROM students WHERE id = $1', [linkedId]);
+            if (sRes.rows.length > 0) {
+                student_admission_no = sRes.rows[0].admission_no;
             }
         }
 
-        if (studentRes.rows.length > 0) {
-            student_admission_no = studentRes.rows[0].admission_no;
-        } else {
+        if (!student_admission_no) {
+            let studentRes = await pool.query(
+                'SELECT admission_no FROM students WHERE school_id = $1 AND LOWER(email) = LOWER($2)',
+                [school_id, email]
+            );
+            if (studentRes.rows.length === 0) {
+                const emailParts = email.split('@');
+                if (emailParts.length === 2) {
+                    studentRes = await pool.query(
+                        'SELECT admission_no FROM students WHERE school_id = $1 AND LOWER(admission_no) = LOWER($2)',
+                        [school_id, emailParts[0]]
+                    );
+                }
+            }
+            if (studentRes.rows.length > 0) {
+                student_admission_no = studentRes.rows[0].admission_no;
+            }
+        }
+
+        if (!student_admission_no) {
             console.log(`[Hostel] Student not found for email: ${email}`);
             return res.status(404).json({ error: 'Student profile not found' });
         }

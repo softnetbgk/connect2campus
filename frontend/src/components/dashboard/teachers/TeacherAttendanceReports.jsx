@@ -31,7 +31,10 @@ const TeacherAttendanceReports = () => {
                     totalL: 0
                 };
                 if (row.date) {
-                    const d = new Date(row.date).getDate();
+                    // Fix timezone issue
+                    const dateParts = row.date.split('T')[0].split('-');
+                    const d = parseInt(dateParts[2]);
+
                     processed[row.teacher_id].attendance[d] = row.status;
                     if (row.status === 'Present') processed[row.teacher_id].totalP++;
                     if (row.status === 'Absent') processed[row.teacher_id].totalA++;
@@ -55,8 +58,9 @@ const TeacherAttendanceReports = () => {
                     </select>
                     <div className="w-px h-4 bg-slate-300 mx-2"></div>
                     <select className="bg-transparent text-sm outline-none font-bold text-slate-700 cursor-pointer" value={year} onChange={e => setYear(parseInt(e.target.value))}>
-                        <option value={2024}>2024</option>
-                        <option value={2025}>2025</option>
+                        {Array.from({ length: 11 }, (_, i) => new Date().getFullYear() + i).map(year => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
                     </select>
                 </div>
             </div>

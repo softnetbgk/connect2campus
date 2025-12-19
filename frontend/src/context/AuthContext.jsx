@@ -34,11 +34,48 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setUser(null);
+    const logout = async (isAutoLogout = false) => {
+        try {
+            if (!isAutoLogout) {
+                // Only call API if it's a manual logout or we want to ensure server session is killed
+                // For auto-logout we definitely want to kill server session too, so we keep it.
+                // Actually, logic is same.
+            }
+            await api.post('/auth/logout');
+        } catch (error) {
+            console.error("Logout API failed", error);
+        } finally {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setUser(null);
+            if (isAutoLogout) alert("Session timed out due to inactivity.");
+        }
     };
+
+    // Auto-logout on inactivity
+    useEffect(() => {
+        if (!user) return;
+
+        const TIMEOUT_DURATION = 10 * 60 * 1000; // 10 minutes
+        let timeoutId;
+
+        const resetTimer = () => {
+            if (timeoutId) clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                logout(true);
+            }, TIMEOUT_DURATION);
+        };
+
+        const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'];
+        events.forEach(event => document.addEventListener(event, resetTimer));
+
+        resetTimer(); // Start timer
+
+        return () => {
+            if (timeoutId) clearTimeout(timeoutId);
+            events.forEach(event => document.removeEventListener(event, resetTimer));
+        };
+    }, [user]);
 
     return (
         <AuthContext.Provider value={{ user, login, logout, loading }}>

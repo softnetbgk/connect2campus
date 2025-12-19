@@ -159,20 +159,31 @@ const fetchSchoolDetails = async (id, res) => {
     console.log(`Getting details for school ID: ${id}`); // Debug log
 
     try {
-        // Fetch basic school info
-        const schoolRes = await pool.query('SELECT * FROM schools WHERE id = $1', [id]);
+        // Fetch basic school info with member counts
+        const schoolRes = await pool.query(`
+            SELECT 
+                s.*,
+                (SELECT COUNT(*) FROM students WHERE school_id = s.id) as student_count,
+                (SELECT COUNT(*) FROM teachers WHERE school_id = s.id) as teacher_count,
+                (SELECT COUNT(*) FROM staff WHERE school_id = s.id) as staff_count
+            FROM schools s
+            WHERE s.id = $1
+        `, [id]);
         if (schoolRes.rows.length === 0) {
             console.log(`School not found for ID: ${id}`);
             return res.status(404).json({ message: 'School not found' });
         }
         const school = schoolRes.rows[0];
 
+        // Calculate total members
+        school.total_members = parseInt(school.student_count || 0) + parseInt(school.teacher_count || 0) + parseInt(school.staff_count || 0);
+
         // Fetch Classes
         const classesRes = await pool.query(`
             SELECT 
                 c.id as class_id, c.name as class_name,
-                COALESCE(json_agg(DISTINCT jsonb_build_object('id', s.id, 'name', s.name)) FILTER (WHERE s.id IS NOT NULL), '[]') as sections,
-                COALESCE(json_agg(DISTINCT jsonb_build_object('id', sub.id, 'name', sub.name)) FILTER (WHERE sub.id IS NOT NULL), '[]') as subjects
+                COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id', s.id, 'name', s.name)) FILTER (WHERE s.id IS NOT NULL), '[]'::jsonb) as sections,
+                COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id', sub.id, 'name', sub.name)) FILTER (WHERE sub.id IS NOT NULL), '[]'::jsonb) as subjects
             FROM classes c
             LEFT JOIN sections s ON c.id = s.class_id
             LEFT JOIN subjects sub ON c.id = sub.class_id

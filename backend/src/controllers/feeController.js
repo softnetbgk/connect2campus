@@ -239,29 +239,38 @@ exports.getStudentFeeDetails = async (req, res) => {
 exports.getMyFeeStatus = async (req, res) => {
     try {
         const school_id = req.user.schoolId;
-        const { email } = req.user;
-        let student_id = null;
+        const { email, linkedId } = req.user;
+        let student_id = linkedId;
         let class_id = null;
 
         // Resolve Student ID
-        let studentRes = await pool.query(
-            'SELECT id, class_id FROM students WHERE school_id = $1 AND LOWER(email) = LOWER($2)',
-            [school_id, email]
-        );
-        if (studentRes.rows.length === 0) {
-            const emailParts = email.split('@');
-            if (emailParts.length === 2) {
-                studentRes = await pool.query(
-                    'SELECT id, class_id FROM students WHERE school_id = $1 AND LOWER(admission_no) = LOWER($2)',
-                    [school_id, emailParts[0]]
-                );
+        if (student_id) {
+            const sRes = await pool.query('SELECT class_id FROM students WHERE id = $1', [student_id]);
+            if (sRes.rows.length > 0) {
+                class_id = sRes.rows[0].class_id;
+            } else {
+                return res.status(404).json({ error: 'Student profile not found' });
             }
-        }
-        if (studentRes.rows.length > 0) {
-            student_id = studentRes.rows[0].id;
-            class_id = studentRes.rows[0].class_id;
         } else {
-            return res.status(404).json({ error: 'Student profile not found' });
+            let studentRes = await pool.query(
+                'SELECT id, class_id FROM students WHERE school_id = $1 AND LOWER(email) = LOWER($2)',
+                [school_id, email]
+            );
+            if (studentRes.rows.length === 0) {
+                const emailParts = email.split('@');
+                if (emailParts.length === 2) {
+                    studentRes = await pool.query(
+                        'SELECT id, class_id FROM students WHERE school_id = $1 AND LOWER(admission_no) = LOWER($2)',
+                        [school_id, emailParts[0]]
+                    );
+                }
+            }
+            if (studentRes.rows.length > 0) {
+                student_id = studentRes.rows[0].id;
+                class_id = studentRes.rows[0].class_id;
+            } else {
+                return res.status(404).json({ error: 'Student profile not found' });
+            }
         }
 
         // Logic from getStudentFeeDetails
@@ -303,19 +312,40 @@ exports.getMyFeeStatus = async (req, res) => {
 
 // Record Payment
 exports.recordPayment = async (req, res) => {
+    const client = await pool.connect();
     try {
+        await client.query('BEGIN');
+
         const school_id = req.user.schoolId;
         const { student_id, fee_structure_id, amount, method, remarks } = req.body;
 
-        const result = await pool.query(
-            `INSERT INTO fee_payments (school_id, student_id, fee_structure_id, amount_paid, payment_method, remarks)
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-            [school_id, student_id, fee_structure_id, amount, method, remarks]
+        // Generate Receipt Number: Format RC-YYYYMMDD-XXXX
+        const today = new Date();
+        const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+
+        // Get count of today's receipts for this school
+        const countRes = await client.query(
+            `SELECT COUNT(*) as count FROM fee_payments 
+             WHERE school_id = $1 AND DATE(created_at) = CURRENT_DATE`,
+            [school_id]
         );
+        const todayCount = parseInt(countRes.rows[0].count) + 1;
+        const receiptNo = `RC-${dateStr}-${String(todayCount).padStart(4, '0')}`;
+
+        const result = await client.query(
+            `INSERT INTO fee_payments (school_id, student_id, fee_structure_id, amount_paid, payment_method, remarks, receipt_no)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            [school_id, student_id, fee_structure_id, amount, method, remarks, receiptNo]
+        );
+
+        await client.query('COMMIT');
         res.status(201).json(result.rows[0]);
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error(error);
         res.status(500).json({ message: 'Error recording payment' });
+    } finally {
+        client.release();
     }
 };
 

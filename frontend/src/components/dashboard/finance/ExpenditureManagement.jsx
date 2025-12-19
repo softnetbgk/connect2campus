@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Plus, Trash2, Calendar, PieChart, TrendingUp, TrendingDown, ArrowUp } from 'lucide-react';
+import { DollarSign, Plus, Trash2, Calendar, PieChart, TrendingUp, TrendingDown, ArrowUp, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../../api/axios';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -110,19 +110,98 @@ const ExpenditureManagement = () => {
         'Other': 'bg-slate-100 text-slate-700'
     };
 
+    const handlePrint = () => {
+        const totalAmount = filteredExpenditures.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+        const filterTitle = filter === 'all' ? 'All Expenditures' :
+            filter === 'today' ? "Today's Expenditures" :
+                filter === 'month' ? "This Month's Expenditures" : "This Year's Expenditures";
+
+        const printContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Expenditure Report - ${filterTitle}</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: Arial, sans-serif; padding: 20px; background: white; }
+                    h1 { text-align: center; color: #333; font-size: 20px; margin-bottom: 5px; }
+                    h2 { text-align: center; color: #666; font-size: 16px; margin-bottom: 20px; }
+                    table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 20px; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #4f46e5; color: white; font-weight: bold; }
+                    .amount { color: #dc2626; font-weight: bold; text-align: right; }
+                    .footer { text-align: center; margin-top: 20px; padding-top: 15px; border-top: 2px dashed #ccc; font-size: 11px; color: #666; }
+                    @media print { body { padding: 10px; } @page { margin: 0.5cm; } }
+                </style>
+            </head>
+            <body>
+                <h1>Expenditure Report</h1>
+                <h2>${filterTitle}</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Title</th>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Payment Method</th>
+                            <th style="text-align: right;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredExpenditures.map(item => `
+                            <tr>
+                                <td>${new Date(item.expense_date).toLocaleDateString('en-GB')}</td>
+                                <td>${item.title}</td>
+                                <td>${item.category}</td>
+                                <td>${item.description || '-'}</td>
+                                <td>${item.payment_method}</td>
+                                <td class="amount">₹${parseFloat(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: #f5f5f5; font-weight: bold;">
+                            <td colspan="5" style="text-align: right; padding-right: 15px;">Total Expenditure</td>
+                            <td class="amount">₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <div class="footer">
+                    <p>Generated on: ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+                <script>window.onload = function() { window.print(); }</script>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center bg-white p-5 rounded-xl shadow-sm border border-slate-200">
                 <div>
                     <h2 className="text-2xl font-bold text-slate-800">Expenditure Management</h2>
                     <p className="text-slate-500">Track and manage school expenses</p>
                 </div>
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-all"
-                >
-                    <Plus size={20} /> Add New Expense
-                </button>
+                <div className="flex gap-3">
+                    <button
+                        onClick={handlePrint}
+                        className="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-all"
+                    >
+                        <Printer size={20} /> Print Report
+                    </button>
+                    <button
+                        onClick={() => setShowModal(true)}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-all"
+                    >
+                        <Plus size={20} /> Add New Expense
+                    </button>
+                </div>
             </div>
 
             {/* Stats Cards */}

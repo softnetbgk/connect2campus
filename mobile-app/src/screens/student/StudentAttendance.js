@@ -1,43 +1,119 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     ScrollView,
     ActivityIndicator,
-    TouchableOpacity,
+    RefreshControl
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { studentService } from '../../services/student.service';
+import { Calendar } from 'react-native-calendars';
+import { useFocusEffect } from '@react-navigation/native';
+// IMPROVED IMPORT: Pointing to api.service instead of config/api
+import api from '../../services/api.service';
+import { ENDPOINTS } from '../../config/api';
 
-const StudentAttendance = ({ navigation }) => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [attendanceData, setAttendanceData] = useState(null);
-    const [selectedDate, setSelectedDate] = useState(new Date());
-    const [showMonthPicker, setShowMonthPicker] = useState(false);
+const StudentAttendance = () => {
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({
+        percentage: 0,
+        totalDays: 0,
+        presentDays: 0,
+        absentDays: 0
+    });
+    const [markedDates, setMarkedDates] = useState({});
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('T')[0]);
 
-    useEffect(() => {
-        loadAttendance();
-    }, [selectedDate]);
+    const fetchAttendance = useCallback(async (date) => {
+        try {
+            // Ensure date is a valid Date object
+            const targetDate = new Date(date);
+            if (isNaN(targetDate.getTime())) {
+                console.warn('Invalid date passed to fetchAttendance');
+                return;
+            }
 
-    const loadAttendance = async () => {
-        setIsLoading(true);
-        const month = selectedDate.getMonth();
-        const year = selectedDate.getFullYear();
-        const result = await studentService.getAttendance(month, year);
-        if (result.success) {
-            setAttendanceData(result.data);
+            setLoading(true);
+            const month = targetDate.getMonth() + 1; // 1-12
+            const year = targetDate.getFullYear();
+
+            console.log(`Fetching attendance for ${month}/${year}`);
+            const response = await api.get(ENDPOINTS.STUDENT_ATTENDANCE, {
+                params: { month, year }
+            });
+
+            if (response.data) {
+                const data = response.data;
+                setStats({
+                    percentage: data.attendancePercentage || 0,
+                    totalDays: data.totalDays || 0,
+                    presentDays: data.presentDays || 0,
+                    absentDays: data.absentDays || 0
+                });
+
+                processAttendanceData(data.monthlyRecords || []);
+            }
+        } catch (error) {
+            console.error('Error fetching attendance:', error);
+            // Log full error for debugging
+            if (error.response) {
+                console.error('Response data:', error.response.data);
+                console.error('Response status:', error.response.status);
+            }
+        } finally {
+            setLoading(false);
         }
-        setIsLoading(false);
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchAttendance(currentDate);
+        }, [currentDate, fetchAttendance])
+    );
+
+    const processAttendanceData = (records) => {
+        const marked = {};
+        records.forEach(record => {
+            const dateStr = record.date.split('T')[0];
+            let color = '#ccc';
+            let status = record.status;
+
+            if (status === 'Present') color = '#4CAF50';
+            else if (status === 'Absent') color = '#F44336';
+            else if (status === 'Late') color = '#FFC107';
+            else if (status === 'Half Day') color = '#2196F3';
+            else if (status === 'Holiday') color = '#9C27B0';
+
+            marked[dateStr] = {
+                customStyles: {
+                    container: {
+                        backgroundColor: color,
+                        borderRadius: 8,
+                    },
+                    text: {
+                        color: 'white',
+                        fontWeight: 'bold'
+                    }
+                },
+                selected: true,
+                selectedColor: color // Fallback
+            };
+        });
+        setMarkedDates(marked);
     };
 
-    const changeMonth = (increment) => {
-        const newDate = new Date(selectedDate);
-        newDate.setMonth(newDate.getMonth() + increment);
-        setSelectedDate(newDate);
+    const handleMonthChange = (date) => {
+        // React-native-calendars returns { year, month, day, timestamp, dateString }
+        // Month is 1-12
+        if (date && date.year && date.month) {
+            const newDate = new Date(date.year, date.month - 1, 1);
+            setCurrentDate(newDate);
+            setSelectedMonth(`${date.year}-${String(date.month).padStart(2, '0')}-01`);
+        }
     };
 
-    if (isLoading) {
+    if (loading && !stats.totalDays && Object.keys(markedDates).length === 0) {
         return (
             <View style={styles.loaderContainer}>
                 <ActivityIndicator size="large" color="#667eea" />
@@ -45,104 +121,86 @@ const StudentAttendance = ({ navigation }) => {
         );
     }
 
-    const attendancePercentage = attendanceData?.attendancePercentage || 0;
-    const totalDays = attendanceData?.totalDays || 0;
-    const presentDays = attendanceData?.presentDays || 0;
-    const absentDays = attendanceData?.absentDays || 0;
-
-    const monthNames = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ];
-
     return (
-        <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backButton}>← Back</Text>
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>My Attendance</Text>
-                <View style={{ width: 60 }} />
-            </View>
-
-            <ScrollView>
-                {/* Month Selector */}
-                <View style={styles.monthSelector}>
-                    <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.arrowButton}>
-                        <Text style={styles.arrowText}>‹</Text>
-                    </TouchableOpacity>
-                    <View style={styles.monthDisplay}>
-                        <Text style={styles.monthText}>
-                            {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
-                        </Text>
-                    </View>
-                    <TouchableOpacity onPress={() => changeMonth(1)} style={styles.arrowButton}>
-                        <Text style={styles.arrowText}>›</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Attendance Circle */}
+        <ScrollView
+            style={styles.container}
+            refreshControl={
+                <RefreshControl refreshing={loading} onRefresh={() => fetchAttendance(currentDate)} />
+            }
+        >
+            <View style={styles.headerContainer}>
                 <View style={styles.circleContainer}>
-                    <LinearGradient
-                        colors={['#667eea', '#764ba2']}
-                        style={styles.circleGradient}
-                    >
+                    <View style={styles.circleGradient}>
                         <View style={styles.circleInner}>
-                            <Text style={styles.percentageText}>{attendancePercentage}%</Text>
+                            <Text style={styles.percentageText}>{stats.percentage}%</Text>
                             <Text style={styles.percentageLabel}>Attendance</Text>
                         </View>
-                    </LinearGradient>
+                    </View>
                 </View>
 
-                {/* Stats Cards */}
                 <View style={styles.statsGrid}>
-                    <View style={[styles.statBox, { backgroundColor: '#4facfe' }]}>
-                        <Text style={styles.statNumber}>{totalDays}</Text>
+                    <View style={[styles.statBox, { backgroundColor: '#667eea' }]}>
+                        <Text style={styles.statNumber}>{stats.totalDays}</Text>
                         <Text style={styles.statLabel}>Total Days</Text>
                     </View>
-                    <View style={[styles.statBox, { backgroundColor: '#43e97b' }]}>
-                        <Text style={styles.statNumber}>{presentDays}</Text>
+                    <View style={[styles.statBox, { backgroundColor: '#4CAF50' }]}>
+                        <Text style={styles.statNumber}>{stats.presentDays}</Text>
                         <Text style={styles.statLabel}>Present</Text>
                     </View>
-                    <View style={[styles.statBox, { backgroundColor: '#fa709a' }]}>
-                        <Text style={styles.statNumber}>{absentDays}</Text>
+                    <View style={[styles.statBox, { backgroundColor: '#F44336' }]}>
+                        <Text style={styles.statNumber}>{stats.absentDays}</Text>
                         <Text style={styles.statLabel}>Absent</Text>
                     </View>
                 </View>
+            </View>
 
-                {/* Monthly Record */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Daily Record</Text>
-                    {attendanceData?.monthlyRecords?.length > 0 ? (
-                        attendanceData.monthlyRecords.map((record, index) => (
-                            <View key={index} style={styles.recordCard}>
-                                <View style={styles.recordRow}>
-                                    <Text style={styles.recordDate}>{record.date}</Text>
-                                    <View
-                                        style={[
-                                            styles.statusBadge,
-                                            {
-                                                backgroundColor:
-                                                    record.status === 'Present' ? '#43e97b' : '#fa709a',
-                                            },
-                                        ]}
-                                    >
-                                        <Text style={styles.statusText}>{record.status}</Text>
-                                    </View>
-                                </View>
-                            </View>
-                        ))
-                    ) : (
-                        <View style={styles.emptyState}>
-                            <Text style={styles.emptyText}>
-                                📊 No attendance records found for this month
-                            </Text>
-                        </View>
-                    )}
+            <View style={styles.calendarContainer}>
+                <Text style={styles.sectionTitle}>Monthly Record</Text>
+                <View style={styles.calendarWrapper}>
+                    <Calendar
+                        current={selectedMonth}
+                        key={selectedMonth} // Force re-render on month change to avoid glitch
+                        onMonthChange={handleMonthChange}
+                        markingType={'custom'}
+                        markedDates={markedDates}
+                        theme={{
+                            todayTextColor: '#667eea',
+                            arrowColor: '#667eea',
+                            monthTextColor: '#333',
+                            textMonthFontWeight: 'bold',
+                            textDayHeaderFontWeight: '600',
+                            backgroundColor: '#ffffff',
+                            calendarBackground: '#ffffff',
+                        }}
+                        enableSwipeMonths={true}
+                    />
                 </View>
-            </ScrollView>
-        </View>
+            </View>
+
+            <View style={styles.legendContainer}>
+                <Text style={styles.legendTitle}>Legend</Text>
+                <View style={styles.legendRow}>
+                    <View style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: '#4CAF50' }]} />
+                        <Text style={styles.legendText}>Present</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: '#F44336' }]} />
+                        <Text style={styles.legendText}>Absent</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: '#FFC107' }]} />
+                        <Text style={styles.legendText}>Late</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                        <View style={[styles.legendDot, { backgroundColor: '#2196F3' }]} />
+                        <Text style={styles.legendText}>Half Day</Text>
+                    </View>
+                </View>
+            </View>
+
+            <View style={{ height: 50 }} />
+        </ScrollView>
     );
 };
 
@@ -155,183 +213,119 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: '#f5f7fa',
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingTop: 50,
-        paddingBottom: 20,
-        paddingHorizontal: 20,
+    headerContainer: {
         backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
-    },
-    backButton: {
-        fontSize: 16,
-        color: '#667eea',
-        fontWeight: '600',
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#333',
+        paddingVertical: 20,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+        marginBottom: 20,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
     },
     circleContainer: {
         alignItems: 'center',
-        paddingVertical: 40,
+        paddingVertical: 10,
     },
     circleGradient: {
-        width: 200,
-        height: 200,
-        borderRadius: 100,
+        width: 140,
+        height: 140,
+        borderRadius: 70,
+        backgroundColor: '#e0e7ff',
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 15,
-        elevation: 10,
+        borderWidth: 1,
+        borderColor: '#667eea'
     },
     circleInner: {
-        width: 170,
-        height: 170,
-        borderRadius: 85,
-        backgroundColor: '#fff',
-        justifyContent: 'center',
         alignItems: 'center',
     },
     percentageText: {
-        fontSize: 48,
+        fontSize: 32,
         fontWeight: 'bold',
         color: '#667eea',
     },
     percentageLabel: {
-        fontSize: 16,
+        fontSize: 14,
         color: '#666',
-        marginTop: 5,
     },
     statsGrid: {
         flexDirection: 'row',
         paddingHorizontal: 20,
-        marginBottom: 30,
+        marginTop: 20,
+        justifyContent: 'space-between',
     },
     statBox: {
-        flex: 1,
-        padding: 20,
-        borderRadius: 15,
+        width: '30%',
+        padding: 10,
+        borderRadius: 10,
         alignItems: 'center',
-        marginHorizontal: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 5,
-    },
-    statNumber: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#fff',
-        marginBottom: 5,
-    },
-    statLabel: {
-        fontSize: 12,
-        color: '#fff',
-        fontWeight: '600',
-    },
-    section: {
-        paddingHorizontal: 20,
-        paddingBottom: 30,
-    },
-    sectionTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 15,
-    },
-    recordCard: {
-        backgroundColor: '#fff',
-        padding: 15,
-        borderRadius: 12,
-        marginBottom: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
         elevation: 2,
     },
-    recordRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    recordDate: {
-        fontSize: 16,
-        color: '#333',
-        fontWeight: '500',
-    },
-    statusBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-    },
-    statusText: {
-        color: '#fff',
-        fontSize: 12,
+    statNumber: {
+        fontSize: 18,
         fontWeight: 'bold',
+        color: '#fff',
     },
-    emptyState: {
-        backgroundColor: '#fff',
-        padding: 40,
-        borderRadius: 15,
-        alignItems: 'center',
+    statLabel: {
+        fontSize: 10,
+        color: '#fff',
     },
-    emptyText: {
-        fontSize: 16,
-        color: '#999',
-    },
-    monthSelector: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+    calendarContainer: {
         paddingHorizontal: 20,
         marginBottom: 20,
     },
-    arrowButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#fff',
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    arrowText: {
-        fontSize: 24,
-        color: '#667eea',
-        fontWeight: 'bold',
-        marginTop: -2,
-    },
-    monthDisplay: {
-        backgroundColor: '#fff',
-        paddingVertical: 10,
-        paddingHorizontal: 25,
-        borderRadius: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    monthText: {
-        fontSize: 16,
+    sectionTitle: {
+        fontSize: 18,
         fontWeight: 'bold',
         color: '#333',
+        marginBottom: 10,
     },
+    calendarWrapper: {
+        backgroundColor: '#fff',
+        borderRadius: 15,
+        padding: 5,
+        elevation: 3,
+        overflow: 'hidden' // Ensure content doesn't spill
+    },
+    legendContainer: {
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+    },
+    legendTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#666',
+        marginBottom: 10,
+    },
+    legendRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        backgroundColor: '#fff',
+        padding: 15,
+        borderRadius: 12,
+        elevation: 2,
+    },
+    legendItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '50%',
+        marginBottom: 10,
+    },
+    legendDot: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        marginRight: 8,
+    },
+    legendText: {
+        fontSize: 14,
+        color: '#444',
+    }
 });
 
 export default StudentAttendance;

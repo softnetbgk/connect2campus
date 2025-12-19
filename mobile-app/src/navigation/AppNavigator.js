@@ -6,6 +6,7 @@ import { ActivityIndicator, View, Text, TouchableOpacity } from 'react-native';
 
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 
 // Student Screens
 import StudentDashboard from '../screens/student/StudentDashboard';
@@ -52,7 +53,10 @@ const AppNavigator = () => {
         <NavigationContainer>
             <Stack.Navigator screenOptions={{ headerShown: false }}>
                 {!isAuthenticated ? (
-                    <Stack.Screen name="Login" component={LoginScreen} />
+                    <>
+                        <Stack.Screen name="Login" component={LoginScreen} />
+                        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+                    </>
                 ) : (
                     <>
                         {/* Student Screens */}
@@ -91,7 +95,7 @@ const AppNavigator = () => {
                         )}
 
                         {/* Staff Screens */}
-                        {user?.role === 'STAFF' && (
+                        {['STAFF', 'DRIVER'].includes(user?.role) && (
                             <>
                                 <Stack.Screen name="StaffDashboard" component={StaffDashboard} />
                                 <Stack.Screen name="StaffMyAttendance" component={StaffMyAttendance} />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, CreditCard, History, CheckCircle, AlertCircle, Edit, Trash2, IndianRupee, Users } from 'lucide-react';
+import { Search, CreditCard, History, CheckCircle, AlertCircle, Edit, Trash2, IndianRupee, Users, Printer, Receipt } from 'lucide-react';
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
 
@@ -130,6 +130,134 @@ const FeeCollection = ({ config }) => {
         } catch (e) { toast.error('Payment failed'); }
     };
 
+    const generateReceiptHTML = (payment, student) => {
+        const school = config?.classes?.find(c => c.class_id == student.class_id)?.class_name || 'School';
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Fee Receipt - ${payment.receipt_no}</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: Arial, sans-serif; padding: 20px; background: white; }
+                    .receipt { max-width: 400px; margin: 0 auto; border: 2px solid #333; padding: 20px; }
+                    .header { text-align: center; border-bottom: 2px dashed #ccc; padding-bottom: 15px; margin-bottom: 15px; }
+                    h1 { font-size: 20px; margin-bottom: 5px; }
+                    .receipt-no { background: #4f46e5; color: white; padding: 5px 10px; font-size: 14px; font-weight: bold; display: inline-block; m
+
+argin: 10px 0; }
+                    .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+                    .label { font-weight: bold; color: #666; font-size: 12px; }
+                    .value { font-weight: bold; color: #333; font-size: 14px; }
+                    .amount-row { background: #f0fdf4; padding: 12px; margin: 15px 0; border-radius: 8px; }
+                    .amount { font-size: 24px; color: #16a34a; font-weight: bold; }
+                    .footer { text-align: center; margin-top: 20px; padding-top: 15px; border-top: 2px dashed #ccc; font-size: 11px; color: #666; }
+                    @media print {
+                        body { padding: 0; }
+                        @page { margin: 0.5cm; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="receipt">
+                    <div class="header">
+                        <h1>Fee Payment Receipt</h1>
+                        <div class="receipt-no">RECEIPT #${payment.receipt_no}</div>
+                    </div>
+                    <div class="row"><span class="label">Date:</span> <span class="value">${new Date(payment.payment_date).toLocaleDateString('en-GB')}</span></div>
+                    <div class="row"><span class="label">Student:</span> <span class="value">${student.name}</span></div>
+                    <div class="row"><span class="label">Admission No:</span> <span class="value">${student.admission_no}</span></div>
+                    <div class="row"><span class="label">Class:</span> <span class="value">${school}</span></div>
+                    <div class="row"><span class="label">Fee Type:</span> <span class="value">${payment.fee_title}</span></div>
+                    <div class="row"><span class="label">Payment Method:</span> <span class="value">${payment.payment_method}</span></div>
+                    ${payment.remarks ? `<div class="row"><span class="label">Remarks:</span> <span class="value">${payment.remarks}</span></div>` : ''}
+             
+       <div class="amount-row">
+                        <div class="row" style="border: none;"><span class="label">Amount Paid:</span> <span class="amount">₹${parseFloat(payment.amount_paid).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+                    </div>
+                    <div class="footer">
+                        <p>This is a computer-generated receipt.</p>
+                        <p>Generated on: ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+                </div>
+                <script>window.onload = function() { window.print(); }</script>
+            </body>
+            </html>
+        `;
+    };
+
+    const handlePrintOverview = () => {
+        const className = config?.classes?.find(c => c.class_id === parseInt(selectedClass))?.class_name || 'All Classes';
+        const sectionName = sections.find(s => s.id === parseInt(selectedSection))?.name || 'All Sections';
+        const filteredStudents = overview.students.filter(s => statusFilter === 'All' || s.status === statusFilter);
+
+        const printContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Fee Collection Report - ${className} ${sectionName}</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: Arial, sans-serif; padding: 20px; background: white; }
+                    h1 { text-align: center; color: #333; font-size: 20px; margin-bottom: 5px; }
+                    h2 { text-align: center; color: #666; font-size: 16px; margin-bottom: 20px; }
+                    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #4f46e5; color: white; font-weight: bold; }
+                    .status-paid { background-color: #d1fae5; color: #065f46; font-weight: bold; padding: 4px 8px; border-radius: 4px; }
+                    .status-partial { background-color: #fef3c7; color: #92400e; font-weight: bold; padding: 4px 8px; border-radius: 4px; }
+                    .status-unpaid { background-color: #fee2e2; color: #991b1b; font-weight: bold; padding: 4px 8px; border-radius: 4px; }
+                    @media print { body { padding: 10px; } @page { margin: 0.5cm; } }
+                </style>
+            </head>
+            <body>
+                <h1>Fee Collection Report</h1>
+                <h2>${className} - ${sectionName} | Filter: ${statusFilter}</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Admission No.</th>
+                            <th>Total Fee</th>
+                            <th>Paid</th>
+                            <th>Balance</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredStudents.map(s => `
+                            <tr>
+                                <td>${s.name}</td>
+                                <td>${s.admission_no}</td>
+                                <td>₹${formatCurrency(s.total_fee)}</td>
+                                <td>₹${formatCurrency(s.paid)}</td>
+                                <td>₹${formatCurrency(s.balance)}</td>
+                                <td><span class="status-${s.status.toLowerCase()}">${s.status}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: #f5f5f5; font-weight: bold;">
+                            <td colspan="2">Total (${filteredStudents.length} students)</td>
+                            <td>₹${formatCurrency(overview.summary.total_expected)}</td>
+                            <td>₹${formatCurrency(overview.summary.total_collected)}</td>
+                            <td>₹${formatCurrency(overview.summary.total_pending)}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <script>window.onload = function() { window.print(); }</script>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+    };
+
     if (selectedStudent) {
         return (
             <div className="space-y-6 animate-in fade-in">
@@ -164,7 +292,7 @@ const FeeCollection = ({ config }) => {
                                         {feeDetails.map(f => (
                                             <tr key={f.fee_structure_id}>
                                                 <td className="p-4 font-bold text-gray-700">{f.title}</td>
-                                                <td className="p-4 text-gray-500">{new Date(f.due_date).toLocaleDateString()}</td>
+                                                <td className="p-4 text-gray-500">{new Date(f.due_date).toLocaleDateString('en-GB')}</td>
                                                 <td className="p-4 font-mono">₹{formatCurrency(f.total_amount)}</td>
                                                 <td className="p-4 text-green-600 font-mono">₹{formatCurrency(f.paid_amount)}</td>
                                                 <td className="p-4 text-red-600 font-bold font-mono">₹{formatCurrency(f.balance)}</td>
@@ -183,27 +311,31 @@ const FeeCollection = ({ config }) => {
                             ) : (
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
-                                        <tr><th>Date</th><th>Fee</th><th>Amount</th><th>Method</th><th>Remarks</th><th className="text-right">Action</th></tr>
+                                        <tr><th>Date</th><th>Receipt#</th><th>Fee</th><th>Amount</th><th>Method</th><th>Remarks</th><th className="text-right">Action</th></tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
                                         {history.map(h => (
                                             <tr key={h.id}>
-                                                <td className="p-4 text-gray-500">{new Date(h.payment_date).toLocaleDateString()}</td>
-                                                <td className="p-4 font-bold text-gray-700">{h.title}</td>
+                                                <td className="p-4 text-gray-500 text-xs">{new Date(h.payment_date).toLocaleDateString('en-GB')}</td>
+                                                <td className="p-4"><span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-mono font-bold">{h.receipt_no || 'N/A'}</span></td>
+                                                <td className="p-4 font-bold text-gray-700 text-xs">{h.fee_title}</td>
                                                 <td className="p-4 text-green-600 font-bold font-mono">₹{formatCurrency(h.amount_paid)}</td>
-                                                <td className="p-4">{h.payment_method}</td>
-                                                <td className="p-4 text-gray-400 italic">{h.remarks || '-'}</td>
-                                                <td className="p-4 text-right flex justify-end">
+                                                <td className="p-4 text-xs">{h.payment_method}</td>
+                                                <td className="p-4 text-gray-400 italic text-xs">{h.remarks || '-'}</td>
+                                                <td className="p-4 text-right flex justify-end gap-1">
+                                                    <button onClick={() => window.open(`javascript:void(0)`, '_blank', 'width=400,height=600').document.write(generateReceiptHTML(h, selectedStudent))} className="bg-green-50 text-green-600 p-1.5 rounded-lg hover:bg-green-100" title="Print Receipt">
+                                                        <Receipt size={14} />
+                                                    </button>
                                                     <button onClick={() => setEditModal({ type: 'payment', data: h })} className="bg-blue-50 text-blue-600 p-1.5 rounded-lg hover:bg-blue-100">
                                                         <Edit size={14} />
                                                     </button>
-                                                    <button onClick={() => setDeleteConfirm({ id: h.id })} className="bg-red-50 text-red-600 p-1.5 rounded-lg hover:bg-red-100 ml-2">
+                                                    <button onClick={() => setDeleteConfirm({ id: h.id })} className="bg-red-50 text-red-600 p-1.5 rounded-lg hover:bg-red-100">
                                                         <Trash2 size={14} />
                                                     </button>
                                                 </td>
                                             </tr>
                                         ))}
-                                        {history.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-400">No payment history</td></tr>}
+                                        {history.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-gray-400">No payment history</td></tr>}
                                     </tbody>
                                 </table>
                             )}
@@ -341,6 +473,14 @@ const FeeCollection = ({ config }) => {
                         <option value="No Fees">No Fees</option>
                     </select>
                 </div>
+                {overview && (
+                    <button
+                        onClick={handlePrintOverview}
+                        className="bg-slate-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-slate-500/20 hover:bg-slate-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                    >
+                        <Printer size={20} /> Print Report
+                    </button>
+                )}
             </div>
 
             {loading && <div className="p-8 text-center text-gray-500 animate-pulse">Loading fee data...</div>}

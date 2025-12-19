@@ -19,6 +19,13 @@ const StaffManagement = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validation
+        if (formData.phone && !/^\d{10}$/.test(formData.phone)) return toast.error('Phone must be 10 digits');
+
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (formData.email && !emailRegex.test(formData.email)) return toast.error('Invalid email format');
+
         try {
             if (isEditing) { await api.put(`/staff/${selectedId}`, formData); toast.success('Staff updated'); }
             else { await api.post('/staff', formData); toast.success('Staff added'); }
@@ -110,26 +117,114 @@ const StaffManagement = () => {
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
-                                <input className="input" placeholder="Full Name" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                                <input className="input" placeholder="Role (e.g., Clerk, Peon)" required value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} />
+                                <div>
+                                    <label className="label">Full Name <span className="text-red-500">*</span></label>
+                                    <input
+                                        className="input"
+                                        placeholder="Full Name"
+                                        required
+                                        pattern="[A-Za-z\s]+"
+                                        title="Letters and spaces only"
+                                        value={formData.name}
+                                        onCopy={e => e.preventDefault()}
+                                        onPaste={e => e.preventDefault()}
+                                        onChange={e => {
+                                            if (/^[A-Za-z\s]*$/.test(e.target.value)) {
+                                                setFormData({ ...formData, name: e.target.value });
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label">Role <span className="text-red-500">*</span></label>
+                                    <input
+                                        className="input"
+                                        placeholder="Role (e.g., Clerk, Peon)"
+                                        required
+                                        pattern="[A-Za-z\s]+"
+                                        title="Letters and spaces only"
+                                        value={formData.role}
+                                        onCopy={e => e.preventDefault()}
+                                        onPaste={e => e.preventDefault()}
+                                        onChange={e => {
+                                            if (/^[A-Za-z\s]*$/.test(e.target.value)) {
+                                                setFormData({ ...formData, role: e.target.value });
+                                            }
+                                        }}
+                                    />
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                <input className="input" placeholder="Phone" required maxLength={10} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })} />
-                                <input className="input" placeholder="Email" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                                <div>
+                                    <label className="label">Phone <span className="text-red-500">*</span></label>
+                                    <input
+                                        className="input"
+                                        placeholder="Phone"
+                                        required
+                                        maxLength={10}
+                                        value={formData.phone}
+                                        onCopy={e => e.preventDefault()}
+                                        onPaste={e => e.preventDefault()}
+                                        onChange={e => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label">Email</label>
+                                    <input
+                                        className="input"
+                                        placeholder="Email"
+                                        type="email"
+                                        value={formData.email}
+                                        onCopy={e => e.preventDefault()}
+                                        onPaste={e => e.preventDefault()}
+                                        onChange={e => setFormData({ ...formData, email: e.target.value.replace(/\s/g, '') })}
+                                    />
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                <select className="input" value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
-                                    <option value="">Gender</option><option value="Male">Male</option><option value="Female">Female</option>
-                                </select>
-                                <input className="input" type="date" value={formData.join_date} onChange={e => setFormData({ ...formData, join_date: e.target.value })} />
+                                <div>
+                                    <label className="label">Gender <span className="text-red-500">*</span></label>
+                                    <select className="input" required value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
+                                        <option value="">Select Gender</option><option value="Male">Male</option><option value="Female">Female</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="label">Date of Joining <span className="text-red-500">*</span></label>
+                                    <input
+                                        className="input"
+                                        required
+                                        type="date"
+                                        max={new Date().toISOString().split('T')[0]}
+                                        value={formData.join_date}
+                                        onChange={e => setFormData({ ...formData, join_date: e.target.value })}
+                                    />
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="col-span-1">
-                                    <label className="label">Salary Per Day</label>
-                                    <input className="input" type="number" min="0" placeholder="0.00" value={formData.salary_per_day} onChange={e => setFormData({ ...formData, salary_per_day: e.target.value })} />
+                                    <label className="label">Salary Per Day <span className="text-red-500">*</span></label>
+                                    <input
+                                        className="input"
+                                        type="number"
+                                        min="0"
+                                        required
+                                        placeholder="0.00"
+                                        value={formData.salary_per_day}
+                                        onCopy={e => e.preventDefault()}
+                                        onPaste={e => e.preventDefault()}
+                                        onChange={e => setFormData({ ...formData, salary_per_day: e.target.value })}
+                                    />
                                 </div>
                             </div>
-                            <textarea className="input" placeholder="Address" rows="2" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })}></textarea>
+                            <textarea
+                                className="input"
+                                placeholder="Address"
+                                rows="2"
+                                value={formData.address}
+                                onCopy={e => e.preventDefault()}
+                                onPaste={e => e.preventDefault()}
+                                onChange={e => setFormData({ ...formData, address: e.target.value })}>
+                            </textarea>
 
                             <div className="flex justify-end gap-2 mt-4">
                                 <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>

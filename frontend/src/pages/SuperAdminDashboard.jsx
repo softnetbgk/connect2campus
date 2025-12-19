@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
-import { Plus, School, LogOut, ChevronDown, Check, Trash2, X, Eye, Edit2, Search, Filter, Shield, Info, MapPin, Phone, Mail } from 'lucide-react';
+import { Plus, School, LogOut, ChevronDown, Check, Trash2, X, Eye, Edit2, Search, Filter, Shield, Info, MapPin, Phone, Mail, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -55,6 +55,8 @@ const SuperAdminDashboard = () => {
         subjects: []
     });
 
+    const classConfigRef = useRef(null);
+
     useEffect(() => {
         fetchSchools();
     }, []);
@@ -69,11 +71,15 @@ const SuperAdminDashboard = () => {
     };
 
     const handleViewDetails = async (id) => {
+        console.log("handleViewDetails called with ID:", id);
         try {
+            console.log("Fetching school details...");
             const res = await api.get(`/schools/${id}`);
+            console.log("School details response:", res.data);
             setViewSchool(res.data);
+            console.log("Set viewSchool state.");
         } catch (error) {
-            console.error(error);
+            console.error("Error fetching details:", error);
             toast.error(error.response?.data?.message || 'Failed to load details');
         }
     };
@@ -569,7 +575,7 @@ const SuperAdminDashboard = () => {
                                         </div>
                                     )}
 
-                                    <div className="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 mb-6 space-y-6">
+                                    <div ref={classConfigRef} className="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 mb-6 space-y-6">
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                             {/* Class Selector */}
                                             <div className="space-y-2">
@@ -771,6 +777,12 @@ const SuperAdminDashboard = () => {
                                                                         setCustomOptions(prev => ({ ...prev, subjects: [...prev.subjects, ...missingSubjects] }));
                                                                     }
 
+                                                                    // Scroll to the top of configuration section
+                                                                    if (classConfigRef.current) {
+                                                                        classConfigRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                                        // Optional: focus the input if it's in custom mode, or just highlight the area
+                                                                    }
+
                                                                     toast('Loaded configuration for editing', { icon: '📝' });
                                                                 }}
                                                                 className="p-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors"
@@ -900,7 +912,7 @@ const SuperAdminDashboard = () => {
                                                 <div className="flex items-baseline gap-2">
                                                     <span className="text-xs font-bold text-slate-500 w-16 px-1">SECTIONS</span>
                                                     <div className="flex flex-wrap gap-1">
-                                                        {cls.sections && cls.sections.length > 0 ? cls.sections.map(s => (
+                                                        {Array.isArray(cls.sections) && cls.sections.length > 0 ? cls.sections.map(s => (
                                                             <span key={s.id} className="px-1.5 py-0.5 bg-slate-900 text-slate-300 rounded text-xs border border-slate-800">{s.name}</span>
                                                         )) : <span className="text-slate-600 italic">None</span>}
                                                     </div>
@@ -908,7 +920,7 @@ const SuperAdminDashboard = () => {
                                                 <div className="flex items-baseline gap-2">
                                                     <span className="text-xs font-bold text-slate-500 w-16 px-1">SUBJECTS</span>
                                                     <div className="flex flex-wrap gap-1">
-                                                        {cls.subjects && cls.subjects.length > 0 ? cls.subjects.map(s => (
+                                                        {Array.isArray(cls.subjects) && cls.subjects.length > 0 ? cls.subjects.map(s => (
                                                             <span key={s.id} className="px-1.5 py-0.5 bg-slate-900 text-slate-300 rounded text-xs border border-slate-800">{s.name}</span>
                                                         )) : <span className="text-slate-600 italic">None</span>}
                                                     </div>

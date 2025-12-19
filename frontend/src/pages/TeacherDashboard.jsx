@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, Users, Calendar,
     LogOut, Bell, GraduationCap,
-    CheckSquare, Clock, Bus, MessageSquare, MapPin, BookOpen
+    CheckSquare, Clock, Bus, MessageSquare, MapPin, BookOpen, Menu, X
 } from 'lucide-react';
 import api from '../api/axios';
 import StudentAttendanceMarking from '../components/dashboard/students/StudentAttendanceMarking';
@@ -22,6 +22,7 @@ import ViewAnnouncements from '../components/dashboard/calendar/ViewAnnouncement
 const TeacherDashboard = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('overview');
     const [teacherProfile, setTeacherProfile] = useState(null);
     const [schoolName, setSchoolName] = useState('');
@@ -67,24 +68,43 @@ const TeacherDashboard = () => {
     } : { classes: [] };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
+        <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900 relative">
+            {/* Mobile Sidebar Overlay */}
+            {isMobileMenuOpen && (
+                <div
+                    className="fixed inset-0 bg-slate-900/50 z-40 md:hidden backdrop-blur-sm"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col fixed h-full z-20">
-                <div className="p-6 flex items-center gap-3 border-b border-slate-800">
-                    <div className="bg-emerald-600 p-2 rounded-lg">
-                        <GraduationCap className="text-white w-6 h-6" />
-                    </div>
-                    <div>
-                        <div className="w-full">
-                            <h1 className="text-xl font-serif font-black italic text-white tracking-wide leading-tight drop-shadow-md">{schoolName || 'Teacher Portal'}</h1>
+            <aside className={`w-64 bg-slate-900 text-slate-300 flex flex-col fixed inset-y-0 left-0 z-50 h-full transition-transform duration-300 
+                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+                <div className="p-6 flex items-center justify-between border-b border-slate-800">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-emerald-600 p-2 rounded-lg">
+                            <GraduationCap className="text-white w-6 h-6" />
                         </div>
-                        <div className="flex flex-col">
-                            <p className="text-xs font-medium text-slate-500">Welcome, {teacherProfile?.name || user?.name}</p>
-                            {teacherProfile?.employee_id && (
-                                <p className="text-[10px] text-emerald-500 font-mono mt-0.5">ID: {teacherProfile.employee_id}</p>
-                            )}
+                        <div>
+                            <div className="w-full">
+                                <h1 className="text-xl font-serif font-black italic text-white tracking-wide leading-tight drop-shadow-md">{schoolName || 'Teacher Portal'}</h1>
+                            </div>
+                            <div className="flex flex-col">
+                                <p className="text-xs font-medium text-slate-500">Welcome, {teacherProfile?.name || user?.name}</p>
+                                {teacherProfile?.employee_id && (
+                                    <p className="text-[10px] text-emerald-500 font-mono mt-0.5">ID: {teacherProfile.employee_id}</p>
+                                )}
+                            </div>
                         </div>
                     </div>
+
+                    {/* Close Button */}
+                    <button
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="md:hidden text-slate-400 hover:text-white"
+                    >
+                        <X size={24} />
+                    </button>
                 </div>
 
                 <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
@@ -109,11 +129,19 @@ const TeacherDashboard = () => {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 ml-64 p-8 overflow-y-auto h-screen">
+            <main className="flex-1 md:ml-64 ml-0 p-8 overflow-y-auto h-screen">
                 <header className="flex justify-between items-center mb-8">
-                    <div>
-                        <h2 className="text-2xl font-bold text-slate-800">{getTabTitle(activeTab)}</h2>
-                        <p className="text-slate-500 text-sm">Manage your class and academic activities</p>
+                    <div className="flex items-center gap-4">
+                        <button
+                            className="md:hidden text-slate-500 hover:text-emerald-600"
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        >
+                            <Menu size={24} />
+                        </button>
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-800">{getTabTitle(activeTab)}</h2>
+                            <p className="text-slate-500 text-sm hidden md:block">Manage your class and academic activities</p>
+                        </div>
                     </div>
                     <div className="flex gap-4">
                         <button className="p-2 bg-white border border-slate-200 rounded-full text-slate-500 hover:text-emerald-600 hover:border-emerald-200 transition-all relative">
@@ -156,8 +184,8 @@ const TeacherDashboard = () => {
                         </>
                     )}
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
     );
 };
 

@@ -3,7 +3,7 @@ export const API_CONFIG = {
     // For Android Emulator: use 10.0.2.2
     // For iOS Simulator: use localhost
     // For Physical Device: use your computer's IP address (e.g., 192.168.x.x)
-    BASE_URL: 'http://172.23.101.164:5000/api',
+    BASE_URL: 'http://10.60.101.164:5000/api',
     TIMEOUT: 30000,
 };
 

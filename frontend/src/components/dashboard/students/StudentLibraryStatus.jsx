@@ -14,7 +14,9 @@ const StudentLibraryStatus = () => {
     const fetchBooks = async () => {
         try {
             const res = await api.get('/library/my-books');
-            setBooks(res.data);
+            // Support both array and wrapped object formats
+            const data = res.data;
+            setBooks(Array.isArray(data) ? data : (data.books || []));
         } catch (error) {
             console.error(error);
             toast.error('Failed to fetch library books');

@@ -2,17 +2,34 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const path = require('path');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 
 const authRoutes = require('./routes/authRoutes');
 const schoolRoutes = require('./routes/schoolRoutes');
 
 const app = express();
 
+// Trust Proxy (Required for Rate Limiting behind Render/Vercel Load Balancers)
+app.set('trust proxy', 1);
+
 // Middleware
+app.use(compression()); // Gzip compression (Faster Response)
 app.use(helmet()); // Security headers
 app.use(cors()); // Enable CORS
 app.use(morgan('dev')); // Logger
 app.use(express.json()); // Parse JSON bodies
+
+// Rate Limiter (Prevent Crashing from DoS/Spam)
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 300, // Limit each IP to 300 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use(limiter);
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -36,6 +53,17 @@ app.use('/api/certificates', require('./routes/certificateRoutes'));
 app.use('/api/admissions', require('./routes/admissionsRoutes'));
 app.use('/api/biometric', require('./routes/biometricRoutes'));
 app.use('/api/doubts', require('./routes/doubtRoutes'));
+
+// Download App Route
+app.get('/download-app', (req, res) => {
+    const file = path.join(__dirname, '../public/app.apk');
+    res.download(file, 'SchoolApp.apk', (err) => {
+        if (err) {
+            console.error('Error downloading file:', err);
+            res.status(404).send('App file not found on server.');
+        }
+    });
+});
 
 // Basic Health Check Route
 app.get('/', (req, res) => {

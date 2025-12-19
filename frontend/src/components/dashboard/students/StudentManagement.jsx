@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Filter, Plus, SortAsc, Edit2, Trash2, X } from 'lucide-react';
+import { Filter, Plus, SortAsc, Edit2, Trash2, X, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../../api/axios';
 
@@ -13,7 +13,9 @@ const StudentManagement = ({ config, prefillData }) => {
 
     const [formData, setFormData] = useState({
         admission_no: '',
-        name: '',
+        first_name: '',
+        middle_name: '',
+        last_name: '',
         gender: '',
         dob: '',
         age: '',
@@ -37,9 +39,17 @@ const StudentManagement = ({ config, prefillData }) => {
             const foundClass = config.classes?.find(c => c.class_name === data.class_name); // Note: Assuming exact name match
             const classId = foundClass ? foundClass.class_id : '';
 
+            // Split name if present
+            const nameParts = (data.student_name || data.first_name || '').split(' ');
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+            const middleName = nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '';
+
             setFormData(prev => ({
                 ...prev,
-                name: data.first_name || '',
+                first_name: firstName,
+                middle_name: middleName,
+                last_name: lastName,
                 father_name: data.guardian_name || '',
                 contact_number: data.guardian_phone || '',
                 email: data.email || '',
@@ -114,9 +124,18 @@ const StudentManagement = ({ config, prefillData }) => {
     const handleEdit = (student) => {
         setIsEditing(true);
         setSelectedStudent(student);
+
+        // Split Name logic
+        const nameParts = (student.name || '').split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+        const middleName = nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '';
+
         setFormData({
             admission_no: student.admission_no || '',
-            name: student.name,
+            first_name: firstName,
+            middle_name: middleName,
+            last_name: lastName,
             gender: student.gender || '',
             dob: student.dob ? student.dob.split('T')[0] : '',
             age: student.age || '',
@@ -141,7 +160,9 @@ const StudentManagement = ({ config, prefillData }) => {
 
         setFormData({
             admission_no: '',
-            name: '',
+            first_name: '',
+            middle_name: '',
+            last_name: '',
             gender: '',
             dob: '',
             age: '',
@@ -158,6 +179,106 @@ const StudentManagement = ({ config, prefillData }) => {
         setShowModal(true);
     };
 
+    const handlePrint = () => {
+        const className = config.classes?.find(c => c.class_id === parseInt(filterClass))?.class_name || 'All Classes';
+        const sectionName = config.classes?.find(c => c.class_id === parseInt(filterClass))?.sections?.find(s => s.id === parseInt(filterSection))?.name || 'All Sections';
+
+        const printContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Student List - ${className} ${sectionName !== 'All Sections' ? '- ' + sectionName : ''}</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { 
+                        font-family: Arial, sans-serif; 
+                        padding: 20px; 
+                        background: white;
+                    }
+                    h1 { 
+                        text-align: center; 
+                        color: #333; 
+                        font-size: 24px; 
+                        margin-bottom: 5px; 
+                    }
+                    h2 { 
+                        text-align: center; 
+                        color: #666; 
+                        font-size: 18px; 
+                        margin-top: 0; 
+                        margin-bottom: 20px; 
+                    }
+                    table { 
+                        width: 100%; 
+                        border-collapse: collapse; 
+                        margin-top: 20px; 
+                    }
+                    th, td { 
+                        border: 1px solid #ddd; 
+                        padding: 12px; 
+                        text-align: left; 
+                    }
+                    th { 
+                        background-color: #4f46e5; 
+                        color: white; 
+                        font-weight: bold; 
+                    }
+                    tr:nth-child(even) { 
+                        background-color: #f9f9f9; 
+                    }
+                    .footer { 
+                        text-align: center; 
+                        margin-top: 30px; 
+                        font-size: 12px; 
+                        color: #666; 
+                    }
+                    @media print {
+                        body { padding: 10px; }
+                        @page { margin: 1cm; }
+                    }
+                </style>
+            </head>
+            <body>
+                <h1>Student List</h1>
+                <h2>${className}${sectionName !== 'All Sections' ? ' - ' + sectionName : ''}</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">Roll No.</th>
+                            <th style="width: 30%;">Student Name</th>
+                            <th style="width: 30%;">Father's Name</th>
+                            <th style="width: 30%;">Mother's Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${students.map(student => `
+                            <tr>
+                                <td>${student.roll_number || '-'}</td>
+                                <td>${student.name}</td>
+                                <td>${student.father_name || '-'}</td>
+                                <td>${student.mother_name || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <div class="footer">
+                    <p>Printed on: ${new Date().toLocaleDateString('en-GB')} at ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+                <script>
+                    window.onload = function() {
+                        window.print();
+                    }
+                </script>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -165,12 +286,30 @@ const StudentManagement = ({ config, prefillData }) => {
             return toast.error('Mobile number must be 10 digits');
         }
 
+        // Email Validation
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (formData.email && !emailRegex.test(formData.email)) {
+            return toast.error('Please enter a valid email address');
+        }
+
+        // Combine Names
+        const finalName = [formData.first_name, formData.middle_name, formData.last_name]
+            .filter(Boolean)
+            .join(' ')
+            .trim();
+
+        if (!finalName) {
+            return toast.error('First Name and Last Name are required');
+        }
+
+        const payload = { ...formData, name: finalName };
+
         try {
             if (isEditing) {
-                await api.put(`/students/${selectedStudent.id}`, formData);
+                await api.put(`/students/${selectedStudent.id}`, payload);
                 toast.success('Student updated');
             } else {
-                await api.post('/students', formData);
+                await api.post('/students', payload);
                 toast.success('Student added successfully');
             }
             setShowModal(false);
@@ -211,9 +350,18 @@ const StudentManagement = ({ config, prefillData }) => {
                         </div>
                     )}
                 </div>
-                <button onClick={handleAdd} className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
-                    <Plus size={20} /> Add Student
-                </button>
+                <div className="flex gap-3">
+                    <button
+                        onClick={handlePrint}
+                        disabled={students.length === 0}
+                        className="bg-slate-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-slate-500/20 hover:bg-slate-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    >
+                        <Printer size={20} /> Print List
+                    </button>
+                    <button onClick={handleAdd} className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+                        <Plus size={20} /> Add Student
+                    </button>
+                </div>
             </div>
 
             {filterClass && filterSection && (
@@ -318,39 +466,92 @@ const StudentManagement = ({ config, prefillData }) => {
                             {/* Personal Details */}
                             <div className="col-span-2">
                                 <h3 className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-3">Personal Details</h3>
+                                <p className="text-[11px] text-slate-400 mb-2 italic">* Student ID will be automatically generated by the system.</p>
                             </div>
-                            <div className="col-span-1">
-                                <label className="label">Student ID (Format: AA1234)</label>
-                                <input
-                                    className="input"
-                                    placeholder="Auto-generates (e.g. SC1234) if empty"
-                                    value={formData.admission_no}
-                                    onChange={e => setFormData({ ...formData, admission_no: e.target.value })}
-                                />
+
+                            {/* Name Fields Split */}
+                            <div className="col-span-2 grid grid-cols-3 gap-3">
+                                <div className="col-span-1">
+                                    <label className="label">First Name <span className="text-red-500">*</span></label>
+                                    <input
+                                        className="input"
+                                        required
+                                        placeholder="First Name"
+                                        pattern="[A-Za-z]+"
+                                        title="Only letters allowed"
+                                        value={formData.first_name || ''}
+                                        onCopy={e => e.preventDefault()}
+                                        onPaste={e => e.preventDefault()}
+                                        onChange={e => {
+                                            if (/^[A-Za-z]*$/.test(e.target.value)) {
+                                                setFormData({ ...formData, first_name: e.target.value });
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="label">Middle Name</label>
+                                    <input
+                                        className="input"
+                                        placeholder="Middle Name"
+                                        pattern="[A-Za-z]*"
+                                        title="Only letters allowed"
+                                        value={formData.middle_name || ''}
+                                        onCopy={e => e.preventDefault()}
+                                        onPaste={e => e.preventDefault()}
+                                        onChange={e => {
+                                            if (/^[A-Za-z]*$/.test(e.target.value)) {
+                                                setFormData({ ...formData, middle_name: e.target.value });
+                                            }
+                                        }}
+                                    />
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="label">Last Name <span className="text-red-500">*</span></label>
+                                    <input
+                                        className="input"
+                                        required
+                                        placeholder="Last Name"
+                                        pattern="[A-Za-z]+"
+                                        title="Only letters allowed"
+                                        value={formData.last_name || ''}
+                                        onCopy={e => e.preventDefault()}
+                                        onPaste={e => e.preventDefault()}
+                                        onChange={e => {
+                                            if (/^[A-Za-z]*$/.test(e.target.value)) {
+                                                setFormData({ ...formData, last_name: e.target.value });
+                                            }
+                                        }}
+                                    />
+                                </div>
                             </div>
+
                             <div className="col-span-1">
-                                <label className="label">Full Name</label>
-                                <input className="input" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                            </div>
-                            <div className="col-span-1">
-                                <label className="label">Gender</label>
-                                <select className="input" value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
+                                <label className="label">Gender <span className="text-red-500">*</span></label>
+                                <select className="input" required value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
                                     <option value="">Select Gender</option>
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
                                 </select>
                             </div>
                             <div className="col-span-1">
-                                <label className="label">Date of Birth</label>
-                                <input type="date" className="input" value={formData.dob} onChange={e => setFormData({ ...formData, dob: e.target.value })} />
+                                <label className="label">Date of Birth <span className="text-red-500">*</span></label>
+                                <input
+                                    type="date"
+                                    className="input"
+                                    required
+                                    max={new Date().toISOString().split('T')[0]}
+                                    value={formData.dob}
+                                    onChange={e => setFormData({ ...formData, dob: e.target.value })}
+                                />
                             </div>
                             <div className="col-span-1">
                                 <label className="label">Age</label>
                                 <input className="input bg-gray-50" readOnly value={formData.age} placeholder="Auto-calculated" />
                             </div>
                             <div className="col-span-1">
-                                <label className="label">Admission Date</label>
-                                <input type="date" className="input" value={formData.admission_date} onChange={e => setFormData({ ...formData, admission_date: e.target.value })} />
+                                <label className="label">Admission Date <span className="text-red-500">*</span></label>
+                                <input type="date" className="input" required value={formData.admission_date} onChange={e => setFormData({ ...formData, admission_date: e.target.value })} />
                             </div>
 
                             {/* Academic Details */}
@@ -358,14 +559,14 @@ const StudentManagement = ({ config, prefillData }) => {
                                 <h3 className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-3">Academic Details</h3>
                             </div>
                             <div className="col-span-1">
-                                <label className="label">Class</label>
+                                <label className="label">Class <span className="text-red-500">*</span></label>
                                 <select className="input" required value={formData.class_id} onChange={e => setFormData({ ...formData, class_id: e.target.value, section_id: '' })}>
                                     <option value="">Select Class</option>
                                     {config.classes?.map(c => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
                                 </select>
                             </div>
                             <div className="col-span-1">
-                                <label className="label">Section</label>
+                                <label className="label">Section <span className="text-red-500">*</span></label>
                                 <select
                                     className="input disabled:bg-gray-100 disabled:text-gray-400"
                                     required={formSections.length > 0}
@@ -377,25 +578,47 @@ const StudentManagement = ({ config, prefillData }) => {
                                     {formSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                 </select>
                             </div>
-                            {/* <div className="col-span-1">
-                                <label className="label">Attendance ID (Auto)</label>
-                                <input className="input bg-gray-50 font-mono text-indigo-600 font-bold" readOnly value={formData.attendance_id} />
-                            </div> */}
 
                             {/* Guardian & Contact */}
                             <div className="col-span-2 mt-2">
                                 <h3 className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-3">Guardian & Contact</h3>
                             </div>
                             <div className="col-span-1">
-                                <label className="label">Father's Name</label>
-                                <input className="input" required value={formData.father_name} onChange={e => setFormData({ ...formData, father_name: e.target.value })} />
+                                <label className="label">Father's Name <span className="text-red-500">*</span></label>
+                                <input
+                                    className="input"
+                                    required
+                                    pattern="[A-Za-z\s]+"
+                                    title="Only letters and spaces allowed"
+                                    value={formData.father_name}
+                                    onCopy={e => e.preventDefault()}
+                                    onPaste={e => e.preventDefault()}
+                                    onChange={e => {
+                                        if (/^[A-Za-z\s]*$/.test(e.target.value)) {
+                                            setFormData({ ...formData, father_name: e.target.value });
+                                        }
+                                    }}
+                                />
                             </div>
                             <div className="col-span-1">
-                                <label className="label">Mother's Name</label>
-                                <input className="input" required value={formData.mother_name} onChange={e => setFormData({ ...formData, mother_name: e.target.value })} />
+                                <label className="label">Mother's Name <span className="text-red-500">*</span></label>
+                                <input
+                                    className="input"
+                                    required
+                                    pattern="[A-Za-z\s]+"
+                                    title="Only letters and spaces allowed"
+                                    value={formData.mother_name}
+                                    onCopy={e => e.preventDefault()}
+                                    onPaste={e => e.preventDefault()}
+                                    onChange={e => {
+                                        if (/^[A-Za-z\s]*$/.test(e.target.value)) {
+                                            setFormData({ ...formData, mother_name: e.target.value });
+                                        }
+                                    }}
+                                />
                             </div>
                             <div className="col-span-1">
-                                <label className="label">Mobile Number</label>
+                                <label className="label">Mobile Number <span className="text-red-500">*</span></label>
                                 <input
                                     className="input"
                                     type="tel"
@@ -403,6 +626,8 @@ const StudentManagement = ({ config, prefillData }) => {
                                     maxLength="10"
                                     placeholder="10 Digits"
                                     value={formData.contact_number}
+                                    onCopy={e => e.preventDefault()}
+                                    onPaste={e => e.preventDefault()}
                                     onChange={e => {
                                         const re = /^[0-9\b]+$/;
                                         if (e.target.value === '' || re.test(e.target.value)) {
@@ -412,12 +637,32 @@ const StudentManagement = ({ config, prefillData }) => {
                                 />
                             </div>
                             <div className="col-span-1">
-                                <label className="label">Email Address</label>
-                                <input className="input" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                                <label className="label">Email Address <span className="text-red-500">*</span></label>
+                                <input
+                                    className="input"
+                                    type="email"
+                                    required
+                                    placeholder="example@domain.com"
+                                    value={formData.email}
+                                    onCopy={e => e.preventDefault()}
+                                    onPaste={e => e.preventDefault()}
+                                    onChange={e => {
+                                        // Remove spaces and allow only valid email characters (basic check)
+                                        const val = e.target.value.replace(/\s/g, '');
+                                        setFormData({ ...formData, email: val });
+                                    }}
+                                />
                             </div>
                             <div className="col-span-2">
                                 <label className="label">Address</label>
-                                <textarea className="input" rows="2" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })}></textarea>
+                                <textarea
+                                    className="input"
+                                    rows="2"
+                                    value={formData.address}
+                                    onCopy={e => e.preventDefault()}
+                                    onPaste={e => e.preventDefault()}
+                                    onChange={e => setFormData({ ...formData, address: e.target.value })}>
+                                </textarea>
                             </div>
 
                             <div className="col-span-2 flex justify-end gap-3 mt-4">

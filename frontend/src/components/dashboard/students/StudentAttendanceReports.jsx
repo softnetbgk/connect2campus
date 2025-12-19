@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, Printer } from 'lucide-react';
 import api from '../../../api/axios';
 
 const StudentAttendanceReports = ({ config }) => {
@@ -48,7 +48,9 @@ const StudentAttendanceReports = ({ config }) => {
                     workingDays: 0
                 };
                 if (row.date) {
-                    const d = new Date(row.date).getDate();
+                    // Fix timezone issue by parsing YYYY-MM-DD directly
+                    const dateParts = row.date.split('T')[0].split('-');
+                    const d = parseInt(dateParts[2]);
                     processed[row.student_id].attendance[d] = row.status;
                     if (row.status === 'Present') processed[row.student_id].totalP++;
                     if (row.status === 'Absent') processed[row.student_id].totalA++;
@@ -61,6 +63,80 @@ const StudentAttendanceReports = ({ config }) => {
         }
     };
 
+    const handlePrint = () => {
+        const className = config.classes?.find(c => c.class_id === parseInt(filterClass))?.class_name || '';
+        const sectionName = availableSections.find(s => s.id === parseInt(filterSection))?.name || '';
+        const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+
+        const printContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Attendance Report - ${className} ${sectionName} - ${monthName} ${year}</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: Arial, sans-serif; padding: 20px; background: white; }
+                    h1 { text-align: center; color: #333; font-size: 20px; margin-bottom: 5px; }
+                    h2 { text-align: center; color: #666; font-size: 16px; margin-bottom: 20px; }
+                    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+                    th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+                    th { background-color: #4f46e5; color: white; font-weight: bold; }
+                    th.name { text-align: left; min-width: 150px; }
+                    .p { background-color: #d1fae5; color: #065f46; font-weight: bold; }
+                    .a { background-color: #fee2e2; color: #991b1b; font-weight: bold; }
+                    .l { background-color: #fef3c7; color: #92400e; font-weight: bold; }
+                    .total-p { background-color: #d1fae5; font-weight: bold; }
+                    .total-a { background-color: #fee2e2; font-weight: bold; }
+                    @media print {
+                        body { padding: 10px; }
+                        @page { margin: 0.5cm; size: landscape; }
+                    }
+                </style>
+            </head>
+            <body>
+                <h1>Attendance Report</h1>
+                <h2>${className} - ${sectionName} | ${monthName} ${year}</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="name">Student Name</th>
+                            ${dates.map(d => `<th>${d}</th>`).join('')}
+                            <th class="total-p">P</th>
+                            <th class="total-a">A</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${report.map(student => `
+                            <tr>
+                                <td style="text-align: left;">${student.name}</td>
+                                ${dates.map(d => {
+            const status = student.attendance[d];
+            let cls = '';
+            let content = '-';
+            if (status === 'Present') { cls = 'p'; content = 'P'; }
+            else if (status === 'Absent') { cls = 'a'; content = 'A'; }
+            else if (status === 'Late') { cls = 'l'; content = 'L'; }
+            return `<td class="${cls}">${content}</td>`;
+        }).join('')}
+                                <td class="total-p">${student.totalP}</td>
+                                <td class="total-a">${student.totalA}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <script>
+                    window.onload = function() { window.print(); }
+                </script>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in">
             <div className="flex flex-wrap items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
@@ -71,8 +147,9 @@ const StudentAttendanceReports = ({ config }) => {
                     </select>
                     <div className="w-px h-4 bg-slate-300 mx-2"></div>
                     <select className="bg-transparent text-sm outline-none font-bold text-slate-700 cursor-pointer" value={year} onChange={e => setYear(parseInt(e.target.value))}>
-                        <option value={2024}>2024</option>
-                        <option value={2025}>2025</option>
+                        {Array.from({ length: 11 }, (_, i) => new Date().getFullYear() + i).map(year => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
                     </select>
                 </div>
 
@@ -89,6 +166,14 @@ const StudentAttendanceReports = ({ config }) => {
                     <option value="">{availableSections.length === 0 ? 'No Sections' : 'Select Section'}</option>
                     {availableSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
+                {report.length > 0 && (
+                    <button
+                        onClick={handlePrint}
+                        className="bg-slate-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-slate-500/20 hover:bg-slate-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                    >
+                        <Printer size={20} /> Print Report
+                    </button>
+                )}
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">

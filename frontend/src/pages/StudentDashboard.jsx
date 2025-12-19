@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, BookOpen, Home, Bus, FileText, Calendar, DollarSign,
-    LogOut, User, Bell, GraduationCap, Clock, Award, MessageSquare
+    LogOut, User, Bell, GraduationCap, Clock, Award, MessageSquare, Menu, X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -23,6 +23,7 @@ import ViewAnnouncements from '../components/dashboard/calendar/ViewAnnouncement
 const StudentDashboard = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('overview');
     const [studentData, setStudentData] = useState(null);
     const [schoolName, setSchoolName] = useState('');
@@ -53,54 +54,91 @@ const StudentDashboard = () => {
         };
 
         const fetchData = async () => {
+            const today = new Date();
+            const month = today.getMonth() + 1;
+            const year = today.getFullYear();
+
+            // Default Stats
+            let newStats = {
+                attendance: { percentage: 0, present: 0, total: 0 },
+                library: { active: 0, overdue: 0 },
+                fees: { totalDue: 0, status: 'Paid' },
+                hostel: { isAllocated: false, room: 'N/A', pendingBills: 0 },
+                bus: { route: 'Not Assigned', status: 'N/A' }
+            };
+
             try {
-                const today = new Date();
-                const month = today.getMonth() + 1;
-                const year = today.getFullYear();
+                const [attResult, libResult, feeResult, hostelResult, busResult] = await Promise.allSettled([
+                    // remove params to get overall attendance stats (Academic Year)
+                    api.get('/students/attendance/my-report'),
+                    api.get('/library/my-books'),
+                    api.get('/fees/my-status'),
+                    api.get('/hostel/my-details'),
+                    api.get('/transport/my-route')
+                ]);
 
-                // 1. Fetch Attendance
-                const attRes = await api.get('/students/attendance/my-report', { params: { month, year } });
-                const attStats = attRes.data.stats;
+                // 1. Attendance
+                if (attResult.status === 'fulfilled' && attResult.value.data) {
+                    // Backend returns flat object: { attendancePercentage, totalDays, presentDays, ... }
+                    // OR { stats: { ... } } depending on version?
+                    // Checked studentController.js: It returns flat object { attendancePercentage, totalDays, presentDays, ... }
+                    // Logic below handles flat structure.
+                    const data = attResult.value.data;
+                    const present = data.presentDays || data.stats?.present || 0;
+                    const total = data.totalDays || data.stats?.total || 0;
+                    const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+                    newStats.attendance = { percentage, present, total };
+                }
 
-                // Calculate percentage (avoid division by zero)
-                const attPct = attStats.total > 0
-                    ? Math.round((attStats.present / attStats.total) * 100)
-                    : 0;
+                // 2. Library
+                if (libResult.status === 'fulfilled') {
+                    // Checked libraryController.js: Returns { books: [...] }
+                    const data = libResult.value.data;
+                    const books = Array.isArray(data) ? data : (data.books || []);
 
-                // 2. Fetch Library Books
-                const libRes = await api.get('/library/my-books');
-                const activeBooks = libRes.data.length;
-                const overdueBooks = libRes.data.filter(b => new Date(b.due_date) < new Date() && b.status === 'Issued').length;
-
-                // 3. Fetch Fees
-                const feeRes = await api.get('/fees/my-status');
-                const totalDue = feeRes.data.reduce((sum, f) => sum + parseFloat(f.balance), 0);
-                const feeStatus = totalDue > 0 ? 'Pending' : 'Paid';
-
-                // 4. Fetch Hostel
-                let hostelStats = { isAllocated: false, room: 'N/A', pendingBills: 0 };
-                try {
-                    const hostelRes = await api.get('/hostel/my-details');
-                    if (hostelRes.data.is_allocated) {
-                        const pendingBills = hostelRes.data.bills ? hostelRes.data.bills.filter(b => b.status === 'Pending').length : 0;
-                        hostelStats = {
-                            isAllocated: true,
-                            room: hostelRes.data.room_number,
-                            pendingBills: pendingBills
+                    if (Array.isArray(books)) {
+                        newStats.library = {
+                            active: books.length,
+                            overdue: books.filter(b => new Date(b.due_date) < new Date() && b.status === 'Issued').length
                         };
                     }
-                } catch (e) { /* Not allocated or error */ }
+                }
 
-                setOverviewStats({
-                    attendance: { percentage: attPct, present: attStats.present, total: attStats.total },
-                    library: { active: activeBooks, overdue: overdueBooks },
-                    fees: { totalDue: totalDue, status: feeStatus },
-                    hostel: hostelStats,
-                    bus: { route: 'Route 12-A', status: 'On Time' } // Placeholder for now
-                });
+                // 3. Fees
+                if (feeResult.status === 'fulfilled' && Array.isArray(feeResult.value.data)) {
+                    const totalDue = feeResult.value.data.reduce((sum, f) => sum + parseFloat(f.balance), 0);
+                    newStats.fees = { totalDue, status: totalDue > 0 ? 'Pending' : 'Paid' };
+                } else if (feeResult.status === 'rejected') {
+                    // Keep default or set to 'Error'
+                    console.error("Fees fetch failed", feeResult.reason);
+                }
+
+                // 4. Hostel
+                if (hostelResult.status === 'fulfilled') {
+                    const hData = hostelResult.value.data;
+                    if (hData.is_allocated || hData.allocation_id) {
+                        const pendingBills = hData.bills ? hData.bills.filter(b => b.status === 'Pending').length : 0;
+                        newStats.hostel = {
+                            isAllocated: true,
+                            room: hData.room_number,
+                            pendingBills
+                        };
+                    }
+                }
+
+                // 5. Transport
+                if (busResult.status === 'fulfilled') {
+                    const bData = busResult.value.data;
+                    newStats.bus = {
+                        route: bData.route_name || 'Assigned',
+                        status: bData.vehicle_status || 'Active'
+                    };
+                }
+
+                setOverviewStats(newStats);
 
             } catch (err) {
-                console.error("Failed to load overview stats", err);
+                console.error("Unexpected error in dashboard fetch", err);
             }
         };
         fetchSchoolInfo();
@@ -111,20 +149,39 @@ const StudentDashboard = () => {
     const handleLogout = () => { logout(); navigate('/'); };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
+        <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900 relative">
+            {/* Mobile Sidebar Overlay */}
+            {isMobileMenuOpen && (
+                <div
+                    className="fixed inset-0 bg-slate-900/50 z-40 md:hidden backdrop-blur-sm"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col fixed h-full z-20">
-                <div className="p-6 flex items-center gap-3 border-b border-slate-800">
-                    <div className="bg-indigo-600 p-2 rounded-lg">
-                        <GraduationCap className="text-white w-6 h-6" />
-                    </div>
-                    <div>
-                        <div className="w-full">
-                            <h1 className="text-xl font-serif font-black italic text-white tracking-wide leading-tight drop-shadow-md">{schoolName || 'Student Portal'}</h1>
+            <aside className={`w-64 bg-slate-900 text-slate-300 flex flex-col fixed inset-y-0 left-0 z-50 h-full transition-transform duration-300 
+                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+                <div className="p-6 flex items-center justify-between border-b border-slate-800">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-indigo-600 p-2 rounded-lg">
+                            <GraduationCap className="text-white w-6 h-6" />
                         </div>
-                        <p className="text-sm font-medium text-white">{studentData?.name || user?.name}</p>
-                        <p className="text-xs text-slate-500 font-bold">ID: {studentData?.admission_no || 'Pending'}</p>
+                        <div>
+                            <div className="w-full">
+                                <h1 className="text-xl font-serif font-black italic text-white tracking-wide leading-tight drop-shadow-md">{schoolName || 'Student Portal'}</h1>
+                            </div>
+                            <p className="text-sm font-medium text-white">{studentData?.name || user?.name}</p>
+                            <p className="text-xs text-slate-500 font-bold">ID: {studentData?.admission_no || 'Pending'}</p>
+                        </div>
                     </div>
+
+                    {/* Close Button */}
+                    <button
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="md:hidden text-slate-400 hover:text-white"
+                    >
+                        <X size={24} />
+                    </button>
                 </div>
 
                 <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
@@ -150,11 +207,19 @@ const StudentDashboard = () => {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 ml-64 p-8 overflow-y-auto h-screen">
+            <main className="flex-1 md:ml-64 ml-0 p-8 overflow-y-auto h-screen">
                 <header className="flex justify-between items-center mb-8">
-                    <div>
-                        <h2 className="text-2xl font-bold text-slate-800">{getTabTitle(activeTab)}</h2>
-                        <p className="text-slate-500 text-sm">Manage your academic journey here</p>
+                    <div className="flex items-center gap-4">
+                        <button
+                            className="md:hidden text-slate-500 hover:text-indigo-600"
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        >
+                            <Menu size={24} />
+                        </button>
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-800">{getTabTitle(activeTab)}</h2>
+                            <p className="text-slate-500 text-sm hidden md:block">Manage your academic journey here</p>
+                        </div>
                     </div>
                     <div className="flex gap-4">
                         <button className="p-2 bg-white border border-slate-200 rounded-full text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all relative">
@@ -174,7 +239,7 @@ const StudentDashboard = () => {
                     {activeTab === 'transport' && <StudentTransport />}
                     {activeTab === 'library' && <StudentLibraryStatus />}
                     {activeTab === 'hostel' && <StudentHostel />}
-                    {activeTab === 'fees' && <StudentFees />}
+                    {activeTab === 'fees' && <StudentFees student={studentData} schoolName={schoolName} />}
                     {activeTab === 'certificates' && <StudentCertificates student={studentData} schoolName={schoolName} />}
                     {activeTab === 'academics' && <StudentAcademics />}
                     {activeTab === 'attendance' && <StudentMyAttendance />}
@@ -210,12 +275,18 @@ const StudentOverview = ({ schoolName, stats }) => (
         </div>
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
             <h3 className="font-bold text-slate-500 mb-1">Fees</h3>
-            <div className={`text-2xl font-black ${stats?.fees?.totalDue > 0 ? 'text-rose-600' : 'text-emerald-500'}`}>
-                {stats?.fees?.totalDue > 0 ? `₹${stats?.fees?.totalDue / 1000}k` : 'Paid'}
-            </div>
-            <div className={`text-xs mt-2 font-bold ${stats?.fees?.totalDue > 0 ? 'text-rose-400' : 'text-emerald-500'}`}>
-                {stats?.fees?.totalDue > 0 ? `₹${stats?.fees?.totalDue} Due` : 'No Dues'}
-            </div>
+            {stats?.fees?.status === 'Checking' ? (
+                <div className="text-sm text-slate-400 font-medium animate-pulse mt-2">Syncing records...</div>
+            ) : (
+                <>
+                    <div className={`text-2xl font-black ${stats?.fees?.totalDue > 0 ? 'text-rose-600' : 'text-emerald-500'}`}>
+                        {stats?.fees?.totalDue > 0 ? `₹${stats?.fees?.totalDue.toLocaleString()}` : 'Paid'}
+                    </div>
+                    <div className={`text-xs mt-2 font-bold ${stats?.fees?.totalDue > 0 ? 'text-rose-400' : 'text-emerald-500'}`}>
+                        {stats?.fees?.totalDue > 0 ? `Total Dues` : 'No Dues'}
+                    </div>
+                </>
+            )}
         </div>
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
             <h3 className="font-bold text-slate-500 mb-1">Hostel</h3>

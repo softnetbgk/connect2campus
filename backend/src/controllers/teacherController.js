@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const bcrypt = require('bcrypt');
 
 // Add Teacher
 exports.addTeacher = async (req, res) => {
@@ -26,7 +27,24 @@ exports.addTeacher = async (req, res) => {
         );
         const newTeacher = result.rows[0];
 
-        // 3. Assign as Class Teacher (if selected)
+        // 3. Create Login for Teacher
+        let loginEmail = email || `${employee_id}@teacher.school.com`;
+        const defaultPassword = await bcrypt.hash('123456', 10);
+
+        let userCheck = await client.query('SELECT id FROM users WHERE email = $1', [loginEmail]);
+        if (userCheck.rows.length > 0) {
+            loginEmail = `${employee_id}@teacher.school.com`;
+            userCheck = await client.query('SELECT id FROM users WHERE email = $1', [loginEmail]);
+        }
+
+        if (userCheck.rows.length === 0) {
+            await client.query(
+                `INSERT INTO users (email, password, role, school_id) VALUES ($1, $2, 'TEACHER', $3)`,
+                [loginEmail, defaultPassword, school_id]
+            );
+        }
+
+        // 4. Assign as Class Teacher (if selected)
         if (assign_class_id && assign_section_id) {
             await client.query(
                 `UPDATE sections SET class_teacher_id = $1 WHERE id = $2 AND class_id = $3`,

@@ -91,14 +91,10 @@ const StaffMyAttendance = () => {
                                 <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('default', { month: 'long' })}</option>
                             ))}
                         </select>
-                        <select
-                            value={year}
-                            onChange={(e) => setYear(parseInt(e.target.value))}
-                            className="bg-slate-50 border border-slate-200 text-slate-700 font-bold text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5 outline-none"
-                        >
-                            <option value={2024}>2024</option>
-                            <option value={2025}>2025</option>
-                            <option value={2026}>2026</option>
+                        <select className="bg-transparent text-sm outline-none font-bold text-slate-700 cursor-pointer" value={year} onChange={e => setYear(parseInt(e.target.value))}>
+                            {Array.from({ length: 11 }, (_, i) => new Date().getFullYear() + i).map(year => (
+                                <option key={year} value={year}>{year}</option>
+                            ))}
                         </select>
                     </div>
                 </div>

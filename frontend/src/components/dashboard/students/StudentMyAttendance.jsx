@@ -23,8 +23,22 @@ const StudentMyAttendance = () => {
         try {
             const res = await api.get('/students/attendance/my-report', { params: { month, year } });
             console.log('My Attendance Data:', res.data);
-            setReport(res.data.attendance); // { date: status }
-            setStats(res.data.stats); // { present, absent, late, total }
+
+            // Handle flat response structure
+            const data = res.data;
+            setReport(data.report || {});
+
+            // Check if stats are nested (legacy) or flat (current)
+            if (data.stats) {
+                setStats(data.stats);
+            } else {
+                setStats({
+                    present: data.presentDays || 0,
+                    absent: data.absentDays || 0,
+                    late: data.lateDays || 0,
+                    total: data.totalDays || 0
+                });
+            }
         } catch (error) {
             console.error('Failed to load my attendance', error);
         } finally {
@@ -42,8 +56,9 @@ const StudentMyAttendance = () => {
                     </select>
                     <div className="w-px h-4 bg-slate-300 mx-2"></div>
                     <select className="bg-transparent text-sm outline-none font-bold text-slate-700 cursor-pointer" value={year} onChange={e => setYear(parseInt(e.target.value))}>
-                        <option value={2024}>2024</option>
-                        <option value={2025}>2025</option>
+                        {Array.from({ length: 11 }, (_, i) => new Date().getFullYear() + i).map(year => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
                     </select>
                 </div>
                 {loading && <span className="text-xs text-slate-400 font-medium animate-pulse">Updating...</span>}
@@ -83,26 +98,48 @@ const StudentMyAttendance = () => {
                     ))}
 
                     {dates.map(date => {
-                        const status = report && report[date];
+                        // Construct YYYY-MM-DD key manually to avoid timezone issues with toISOString
+                        // Note: month is 1-indexed here
+                        const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+
+                        // Robust lookup (try full date string, then padded day just in case)
+                        const status = report && (report[dateKey] || report[String(date).padStart(2, '0')]);
 
                         let bg = 'bg-slate-50';
                         let label = '';
+                        let border = 'border-slate-100';
 
-                        if (status === 'Present') {
-                            bg = 'bg-emerald-100 text-emerald-700 border-emerald-200';
-                            label = 'P';
-                        } else if (status === 'Absent') {
-                            bg = 'bg-rose-100 text-rose-700 border-rose-200';
-                            label = 'A';
-                        } else if (status === 'Late') {
-                            bg = 'bg-amber-100 text-amber-700 border-amber-200';
-                            label = 'L';
+                        if (!status) {
+                            // Default empty
+                        } else {
+                            border = 'border shadow-sm';
+                            const s = status.toLowerCase();
+                            if (s === 'present') {
+                                bg = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                                label = 'P';
+                            } else if (s === 'absent') {
+                                bg = 'bg-rose-100 text-rose-700 border-rose-200';
+                                label = 'A';
+                            } else if (s === 'late') {
+                                bg = 'bg-amber-100 text-amber-700 border-amber-200';
+                                label = 'L';
+                            } else if (s === 'half day' || s === 'halfday') {
+                                bg = 'bg-blue-100 text-blue-700 border-blue-200';
+                                label = 'HD';
+                            } else if (s === 'holiday') {
+                                bg = 'bg-purple-100 text-purple-700 border-purple-200';
+                                label = 'H';
+                            } else {
+                                // Unknown status
+                                bg = 'bg-gray-100 text-gray-700';
+                                label = status[0];
+                            }
                         }
 
                         return (
-                            <div key={date} className={`aspect-square rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${bg} ${status ? 'border shadow-sm' : 'border-slate-100'}`}>
+                            <div key={date} className={`aspect-square rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${bg} ${border}`}>
                                 <span className="text-sm font-bold">{date}</span>
-                                {status && <span className="text-[10px] font-black uppercase">{label}</span>}
+                                {label && <span className="text-[10px] font-black uppercase">{label}</span>}
                             </div>
                         );
                     })}

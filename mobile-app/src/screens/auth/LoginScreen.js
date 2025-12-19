@@ -8,15 +8,17 @@ import {
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
-    Image,
     Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const LoginScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [role, setRole] = useState('SCHOOL_ADMIN');
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const { login } = useAuth();
 
@@ -27,14 +29,20 @@ const LoginScreen = ({ navigation }) => {
         }
 
         setIsLoading(true);
-        const result = await login(email, password);
+        const result = await login(email, password, role);
         setIsLoading(false);
 
         if (!result.success) {
             Alert.alert('Login Failed', result.message);
         }
-        // Navigation is handled by the navigator based on auth state
     };
+
+    const roles = [
+        { id: 'SCHOOL_ADMIN', label: 'Admin', icon: 'school' },
+        { id: 'TEACHER', label: 'Teacher', icon: 'account-multiple' },
+        { id: 'STUDENT', label: 'Student', icon: 'school-outline' },
+        { id: 'STAFF', label: 'Staff', icon: 'briefcase' },
+    ];
 
     return (
         <KeyboardAvoidingView
@@ -42,48 +50,96 @@ const LoginScreen = ({ navigation }) => {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
             <LinearGradient
-                colors={['#667eea', '#764ba2', '#f093fb']}
+                colors={['#1e1b4b', '#312e81', '#0f172a']}
                 style={styles.gradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
             >
-                <View style={styles.content}>
-                    {/* Logo/Header */}
+                <ScrollView contentContainerStyle={styles.content}>
                     <View style={styles.header}>
                         <View style={styles.logoContainer}>
-                            <Text style={styles.logoIcon}>🎓</Text>
+                            <Icon name="school" size={40} color="#fff" />
                         </View>
-                        <Text style={styles.title}>School Management</Text>
-                        <Text style={styles.subtitle}>Sign in to continue</Text>
+                        <Text style={styles.title}>Welcome Back</Text>
+                        <Text style={styles.subtitle}>Sign in to your dashboard</Text>
                     </View>
 
-                    {/* Login Form */}
-                    <View style={styles.form}>
+                    <View style={styles.formCard}>
+                        {/* Role Selection */}
+                        <Text style={styles.sectionTitle}>Select Your Role</Text>
+                        <View style={styles.roleGrid}>
+                            {roles.map((r) => (
+                                <TouchableOpacity
+                                    key={r.id}
+                                    style={[
+                                        styles.roleButton,
+                                        role === r.id && styles.roleButtonActive
+                                    ]}
+                                    onPress={() => setRole(r.id)}
+                                >
+                                    <Icon
+                                        name={r.icon}
+                                        size={24}
+                                        color={role === r.id ? '#818cf8' : '#64748b'}
+                                    />
+                                    <Text style={[
+                                        styles.roleText,
+                                        role === r.id && styles.roleTextActive
+                                    ]}>
+                                        {r.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        {/* Email Input */}
                         <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Email</Text>
+                            <Text style={styles.label}>
+                                {['STUDENT', 'TEACHER', 'STAFF'].includes(role) ? 'Email / ID' : 'Email Address'}
+                            </Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Enter your email"
-                                placeholderTextColor="#999"
+                                placeholder={['STUDENT', 'TEACHER', 'STAFF'].includes(role) ? "e.g. STU1234 or email" : "admin@school.com"}
+                                placeholderTextColor="#64748b"
                                 value={email}
                                 onChangeText={setEmail}
-                                keyboardType="email-address"
                                 autoCapitalize="none"
                                 editable={!isLoading}
                             />
                         </View>
 
+                        {/* Password Input */}
                         <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Password</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Enter your password"
-                                placeholderTextColor="#999"
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry={true}
-                                editable={!isLoading}
-                            />
+                            <View style={styles.passwordHeader}>
+                                <Text style={styles.label}>Password</Text>
+                                <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+                                    <Text style={styles.forgotPassword}>Forgot?</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <View style={styles.passwordInputWrapper}>
+                                <TextInput
+                                    style={[styles.input, styles.passwordInput]}
+                                    placeholder="••••••••"
+                                    placeholderTextColor="#64748b"
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    secureTextEntry={!showPassword}
+                                    editable={!isLoading}
+                                />
+                                <TouchableOpacity
+                                    style={styles.eyeIcon}
+                                    onPress={() => setShowPassword(!showPassword)}
+                                >
+                                    <Icon
+                                        name={showPassword ? "eye" : "eye-off"}
+                                        size={20}
+                                        color="#64748b"
+                                    />
+                                </TouchableOpacity>
+                            </View>
                         </View>
 
+                        {/* Login Button */}
                         <TouchableOpacity
                             style={[styles.button, isLoading && styles.buttonDisabled]}
                             onPress={handleLogin}
@@ -92,18 +148,17 @@ const LoginScreen = ({ navigation }) => {
                             {isLoading ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={styles.buttonText}>Sign In</Text>
+                                <LinearGradient
+                                    colors={['#4f46e5', '#7c3aed']}
+                                    style={styles.buttonGradient}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                >
+                                    <Text style={styles.buttonText}>Access Portal</Text>
+                                    <Icon name="arrow-right" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                                </LinearGradient>
                             )}
                         </TouchableOpacity>
-
-                        {/* Quick Login Info */}
-                        <View style={styles.quickLoginInfo}>
-                            <Text style={styles.quickLoginTitle}>Test Credentials:</Text>
-                            <Text style={styles.quickLoginText}>Student: student@demo.com</Text>
-                            <Text style={styles.quickLoginText}>Teacher: teacher@demo.com</Text>
-                            <Text style={styles.quickLoginText}>Staff: staff@demo.com</Text>
-                            <Text style={styles.quickLoginText}>Password: 123456</Text>
-                        </View>
 
                         <TouchableOpacity
                             style={styles.resetButton}
@@ -112,143 +167,183 @@ const LoginScreen = ({ navigation }) => {
                                 const AsyncStorage = require('@react-native-async-storage/async-storage').default;
                                 try {
                                     await AsyncStorage.clear();
-                                    Alert.alert('Success', 'App data cleared. Please restart the app if issues persist.');
+                                    Alert.alert('Success', 'App data cleared');
                                 } catch (e) {
                                     Alert.alert('Error', 'Failed to clear data');
                                 }
                             }}
                         >
-                            <Text style={styles.resetButtonText}>Reset App Data (Fix Errors)</Text>
+                            <Text style={styles.resetButtonText}>Reset App Data</Text>
                         </TouchableOpacity>
                     </View>
-                </View>
+                </ScrollView>
             </LinearGradient>
         </KeyboardAvoidingView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    gradient: {
-        flex: 1,
-    },
+    container: { flex: 1 },
+    gradient: { flex: 1 },
     content: {
-        flex: 1,
+        flexGrow: 1,
         justifyContent: 'center',
-        paddingHorizontal: 30,
+        padding: 24,
     },
     header: {
         alignItems: 'center',
-        marginBottom: 50,
+        marginBottom: 40,
     },
     logoContainer: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        width: 80,
+        height: 80,
+        borderRadius: 24,
+        backgroundColor: 'rgba(99, 102, 241, 0.2)', // Indigo tint
+        borderWidth: 1,
+        borderColor: 'rgba(99, 102, 241, 0.3)',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 20,
-    },
-    logoIcon: {
-        fontSize: 50,
+        transform: [{ rotate: '-5deg' }]
     },
     title: {
         fontSize: 32,
-        fontWeight: 'bold',
+        fontWeight: '800',
         color: '#fff',
+        letterSpacing: 0.5,
         marginBottom: 8,
-        textAlign: 'center',
     },
     subtitle: {
-        fontSize: 16,
-        color: 'rgba(255, 255, 255, 0.8)',
+        fontSize: 15,
+        color: '#94a3b8',
+        fontWeight: '500',
+    },
+    formCard: {
+        backgroundColor: 'rgba(30, 41, 59, 0.7)', // Slate 800 with opacity
+        borderRadius: 24,
+        padding: 24,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    sectionTitle: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#94a3b8',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 16,
         textAlign: 'center',
     },
-    form: {
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        borderRadius: 20,
-        padding: 25,
-        ...Platform.select({
-            ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 10 },
-                shadowOpacity: 0.3,
-                shadowRadius: 20,
-            },
-            android: {
-                elevation: 10,
-            },
-        }),
+    roleGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        marginBottom: 24,
+        gap: 12,
+    },
+    roleButton: {
+        width: '48%',
+        backgroundColor: 'rgba(15, 23, 42, 0.6)', // Slate 900
+        borderRadius: 16,
+        padding: 16,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.05)',
+        marginBottom: 0,
+    },
+    roleButtonActive: {
+        backgroundColor: 'rgba(79, 70, 229, 0.15)', // Indigo
+        borderColor: '#4f46e5',
+    },
+    roleText: {
+        marginTop: 8,
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#64748b',
+    },
+    roleTextActive: {
+        color: '#818cf8', // Indigo 400
     },
     inputContainer: {
         marginBottom: 20,
     },
     label: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '600',
-        color: '#333',
+        color: '#cbd5e1', // Slate 300
+        marginBottom: 8,
+        marginLeft: 4,
+    },
+    passwordHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: 8,
     },
+    forgotPassword: {
+        fontSize: 12,
+        color: '#818cf8',
+        fontWeight: '600',
+    },
     input: {
-        backgroundColor: '#f5f5f5',
-        borderRadius: 12,
-        padding: 15,
-        fontSize: 16,
-        color: '#333',
+        backgroundColor: 'rgba(15, 23, 42, 0.8)', // Slate 900
+        borderRadius: 16,
+        padding: 16,
+        fontSize: 15,
+        color: '#fff',
         borderWidth: 1,
-        borderColor: '#e0e0e0',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    passwordInputWrapper: {
+        position: 'relative',
+    },
+    passwordInput: {
+        paddingRight: 50,
+    },
+    eyeIcon: {
+        position: 'absolute',
+        right: 16,
+        top: 16,
     },
     button: {
-        backgroundColor: '#667eea',
-        borderRadius: 12,
-        padding: 16,
-        alignItems: 'center',
-        marginTop: 10,
-        shadowColor: '#667eea',
+        marginTop: 12,
+        borderRadius: 16,
+        overflow: 'hidden',
+        shadowColor: '#4f46e5',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 5,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    buttonGradient: {
+        paddingVertical: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
     },
     buttonDisabled: {
-        opacity: 0.6,
+        opacity: 0.7,
     },
     buttonText: {
         color: '#fff',
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    quickLoginInfo: {
-        marginTop: 20,
-        padding: 15,
-        backgroundColor: '#f0f4ff',
-        borderRadius: 10,
-        borderLeftWidth: 4,
-        borderLeftColor: '#667eea',
-    },
-    quickLoginTitle: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#667eea',
-        marginBottom: 8,
-    },
-    quickLoginText: {
-        fontSize: 11,
-        color: '#666',
-        marginBottom: 2,
+        fontSize: 16,
+        fontWeight: '700',
+        letterSpacing: 0.5,
     },
     resetButton: {
-        marginTop: 20,
+        marginTop: 24,
         alignItems: 'center',
-        padding: 10,
     },
     resetButtonText: {
-        color: '#ff6b6b',
-        fontSize: 14,
-        textDecorationLine: 'underline',
+        color: '#ef4444',
+        fontSize: 12,
+        fontWeight: '500',
+        opacity: 0.8,
     },
 });
 

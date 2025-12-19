@@ -46,12 +46,29 @@ exports.addStudent = async (req, res) => {
         const newStudent = result.rows[0];
 
         // 2. Create Login for Student
-        const loginEmail = email || `${admission_no.toLowerCase()}@student.school.com`;
+        let loginEmail = email || `${admission_no.toLowerCase()}@student.school.com`;
         const defaultPassword = await bcrypt.hash('123456', 10);
 
-        // Check if user email already exists (edge case)
+        // Check if user email already exists
         const userCheck = await client.query('SELECT id FROM users WHERE email = $1', [loginEmail]);
-        if (userCheck.rows.length === 0) {
+
+        // If email exists, fallback to Admission No based login
+        if (userCheck.rows.length > 0) {
+            loginEmail = `${admission_no.toLowerCase()}@student.school.com`;
+            // Double check if this fallback also exists (unlikely unless duplicate admission no, which is handled earlier)
+            const fallbackCheck = await client.query('SELECT id FROM users WHERE email = $1', [loginEmail]);
+            if (fallbackCheck.rows.length > 0) {
+                // If even fallback exists, we can't create a user. 
+                // This effectively handles the "User already exists" case without crashing, 
+                // but ideally we should update the existing user? No, better to safe fail or just log.
+                console.warn(`User for student ${admission_no} already exists.`);
+            } else {
+                await client.query(
+                    `INSERT INTO users (email, password, role, school_id) VALUES ($1, $2, 'STUDENT', $3)`,
+                    [loginEmail, defaultPassword, school_id]
+                );
+            }
+        } else {
             await client.query(
                 `INSERT INTO users (email, password, role, school_id) VALUES ($1, $2, 'STUDENT', $3)`,
                 [loginEmail, defaultPassword, school_id]
@@ -271,9 +288,10 @@ exports.getMyAttendanceReport = async (req, res) => {
 
         const { month, year } = req.query;
 
+        // 1. Fetch Daily Records
         let query = `
-            SELECT date, status 
-            FROM attendance 
+            SELECT status, TO_CHAR(date, 'YYYY-MM-DD') as date_str
+            FROM attendance
             WHERE student_id = $1
         `;
         const params = [student_id];
@@ -283,43 +301,49 @@ exports.getMyAttendanceReport = async (req, res) => {
             params.push(month, year);
         }
 
-        query += ` ORDER BY date DESC`;
+        query += ` ORDER BY date ASC`;
 
         const result = await pool.query(query, params);
 
-        // Stats (Filtered by Date if provided)
+        const report = result.rows.reduce((acc, row) => {
+            acc[row.date_str] = row.status;
+            return acc;
+        }, {});
+
+        // 2. Fetch Aggregated Stats
         let statsQuery = `
             SELECT 
                 COUNT(*) as total_days,
                 SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present_days,
-                SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END) as absent_days
+                SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END) as absent_days,
+                SUM(CASE WHEN status = 'Late' THEN 1 ELSE 0 END) as late_days,
+                SUM(CASE WHEN status = 'Half Day' THEN 1 ELSE 0 END) as half_days
             FROM attendance
             WHERE student_id = $1
         `;
+        // Reuse params structure but verify logic
         const statsParams = [student_id];
-
         if (month && year) {
             statsQuery += ` AND EXTRACT(MONTH FROM date) = $2 AND EXTRACT(YEAR FROM date) = $3`;
             statsParams.push(month, year);
         }
 
         const statsRes = await pool.query(statsQuery, statsParams);
-
         const stats = statsRes.rows[0];
+
         const total = parseInt(stats.total_days || 0);
         const present = parseInt(stats.present_days || 0);
         const percentage = total > 0 ? ((present / total) * 100).toFixed(1) : 0;
 
-        // Flattened Response for Mobile App
         res.json({
             attendancePercentage: percentage,
             totalDays: total,
             presentDays: present,
             absentDays: parseInt(stats.absent_days || 0),
-            monthlyRecords: result.rows.map(r => ({
-                ...r,
-                date: new Date(r.date).toISOString().split('T')[0]
-            }))
+            lateDays: parseInt(stats.late_days || 0),
+            halfDays: parseInt(stats.half_days || 0),
+            report: report, // CRITICAL: This was missing in response
+            monthlyRecords: result.rows
         });
 
     } catch (error) {
@@ -514,7 +538,7 @@ exports.getMyFees = async (req, res) => {
         // 1. Fetch Paid History
         console.log('[getMyFees] Fetching payments...');
         const payments = await pool.query(`
-            SELECT p.amount_paid as amount, p.payment_date as date, p.payment_method, fs.title as "feeType"
+            SELECT p.id, p.amount_paid as amount, TO_CHAR(p.payment_date, 'YYYY-MM-DD') as date, p.payment_method, p.receipt_no, fs.title as "feeType"
             FROM fee_payments p
             JOIN fee_structures fs ON p.fee_structure_id = fs.id
             WHERE p.student_id = $1
@@ -548,7 +572,6 @@ exports.getMyFees = async (req, res) => {
 
         payments.rows.forEach(p => {
             paidAmount += parseFloat(p.amount || 0);
-            if (p.date) p.date = new Date(p.date).toISOString().split('T')[0];
         });
 
         let pendingAmount = totalFees - paidAmount;
