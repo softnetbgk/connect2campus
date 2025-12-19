@@ -1,11 +1,26 @@
-// API Configuration
+// API Configuration with Environment Support
+// 
+// USAGE:
+// - For LOCAL testing: Set USE_LOCAL_SERVER = true (line 8)
+// - For PRODUCTION: Set USE_LOCAL_SERVER = false (line 8)
+// - Then rebuild ONCE and it will work for that environment
+
+const USE_LOCAL_SERVER = false; // ← Change this to switch environments
+
+const LOCAL_IP = '10.60.101.164'; // Your computer's local IP
+const PRODUCTION_URL = 'https://school-software-backend-z86u.onrender.com';
+
 export const API_CONFIG = {
-    // For Android Emulator: use 10.0.2.2
-    // For iOS Simulator: use localhost
-    // For Physical Device: use your computer's IP address (e.g., 192.168.x.x)
-    BASE_URL: 'http://10.60.101.164:5000/api',
+    BASE_URL: USE_LOCAL_SERVER
+        ? `http://${LOCAL_IP}:5000/api`
+        : `${PRODUCTION_URL}/api`,
     TIMEOUT: 30000,
+    ENVIRONMENT: USE_LOCAL_SERVER ? 'LOCAL' : 'PRODUCTION',
 };
+
+// Log current environment on app start (helps with debugging)
+console.log(`📡 API Environment: ${API_CONFIG.ENVIRONMENT}`);
+console.log(`🌐 API Base URL: ${API_CONFIG.BASE_URL}`);
 
 export const ENDPOINTS = {
     // Auth

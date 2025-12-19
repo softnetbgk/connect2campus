@@ -17,7 +17,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 const LoginScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [role, setRole] = useState('SCHOOL_ADMIN');
+    const [role, setRole] = useState('STUDENT');
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const { login } = useAuth();
@@ -38,7 +38,6 @@ const LoginScreen = ({ navigation }) => {
     };
 
     const roles = [
-        { id: 'SCHOOL_ADMIN', label: 'Admin', icon: 'school' },
         { id: 'TEACHER', label: 'Teacher', icon: 'account-multiple' },
         { id: 'STUDENT', label: 'Student', icon: 'school-outline' },
         { id: 'STAFF', label: 'Staff', icon: 'briefcase' },
