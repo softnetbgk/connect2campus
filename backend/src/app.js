@@ -16,8 +16,21 @@ app.set('trust proxy', 1);
 
 // Middleware
 app.use(compression()); // Gzip compression (Faster Response)
-app.use(helmet()); // Security headers
-app.use(cors()); // Enable CORS
+
+// Configure Helmet with relaxed CSP for production
+app.use(helmet({
+    contentSecurityPolicy: false, // Disable CSP to allow cross-origin requests
+    crossOriginEmbedderPolicy: false,
+}));
+
+// Configure CORS to allow all origins (for development and production)
+app.use(cors({
+    origin: true, // Allow all origins
+    credentials: true, // Allow credentials
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 app.use(morgan('dev')); // Logger
 app.use(express.json()); // Parse JSON bodies
 
