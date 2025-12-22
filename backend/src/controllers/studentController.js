@@ -91,10 +91,15 @@ exports.addStudent = async (req, res) => {
     } catch (error) {
         await client.query('ROLLBACK'); // Rollback on error
         console.error(error);
+        try {
+            const fs = require('fs');
+            fs.appendFileSync('backend_log.txt', `\n[${new Date().toISOString()}] ADD STUDENT ERROR: ${error.message}\nSTACK: ${error.stack}\nBODY: ${JSON.stringify(req.body)}\n`);
+        } catch (logErr) { console.error("Logging failed", logErr); }
+
         if (error.code === '23505') { // Unique violation
             return res.status(400).json({ message: 'Duplicate Admission No or Attendance ID. Please try again.' });
         }
-        res.status(500).json({ message: 'Server error adding student' });
+        res.status(500).json({ message: 'Server error adding student: ' + error.message });
     } finally {
         client.release();
     }
