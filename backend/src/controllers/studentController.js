@@ -20,6 +20,9 @@ exports.addStudent = async (req, res) => {
         } = req.body;
         const school_id = req.user.schoolId;
 
+        // Convert empty section_id to null
+        const safe_section_id = (section_id === '' || section_id === 'null' || section_id === undefined) ? null : section_id;
+
         // Generate Admission No if not provided
         let admission_no = req.body.admission_no;
         if (!admission_no) {
@@ -31,7 +34,14 @@ exports.addStudent = async (req, res) => {
             admission_no = `${prefix}${rand4}`;
         }
 
-        const rollCheck = await client.query('SELECT MAX(roll_number) as max_roll FROM students WHERE class_id = $1 AND section_id = $2', [class_id, section_id]);
+        // Logic to get roll number (handle null section)
+        let rollCheck;
+        if (safe_section_id) {
+            rollCheck = await client.query('SELECT MAX(roll_number) as max_roll FROM students WHERE class_id = $1 AND section_id = $2', [class_id, safe_section_id]);
+        } else {
+            rollCheck = await client.query('SELECT MAX(roll_number) as max_roll FROM students WHERE class_id = $1 AND section_id IS NULL', [class_id]);
+        }
+
         const roll_number = (rollCheck.rows[0].max_roll || 0) + 1;
 
         // 1. Insert Student
@@ -40,7 +50,7 @@ exports.addStudent = async (req, res) => {
             (school_id, name, admission_no, roll_number, gender, dob, age, class_id, section_id, 
              father_name, mother_name, contact_number, email, address, attendance_id, admission_date) 
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
-            [school_id, name, admission_no, roll_number, gender, dob, age, class_id, section_id,
+            [school_id, name, admission_no, roll_number, gender, dob, age, class_id, safe_section_id,
                 father_name, mother_name, contact_number, email, address, attendance_id, admission_date || new Date()]
         );
         const newStudent = result.rows[0];
@@ -145,12 +155,14 @@ exports.updateStudent = async (req, res) => {
             attendance_id, admission_date
         } = req.body;
 
+        const safe_section_id = (section_id === '' || section_id === 'null' || section_id === undefined) ? null : section_id;
+
         const result = await pool.query(
             `UPDATE students SET 
             name = $1, gender = $2, dob = $3, age = $4, class_id = $5, section_id = $6, 
             father_name = $7, mother_name = $8, contact_number = $9, email = $10, address = $11, attendance_id = $12, admission_date = $13
             WHERE id = $14 AND school_id = $15 RETURNING *`,
-            [name, gender, dob, age, class_id, section_id,
+            [name, gender, dob, age, class_id, safe_section_id,
                 father_name, mother_name, contact_number, email, address, attendance_id, admission_date,
                 id, req.user.schoolId]
         );

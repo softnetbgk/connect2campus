@@ -177,7 +177,7 @@ const RoomAllocation = () => {
                                         <div className="bg-slate-100 p-1.5 rounded-full">
                                             <User size={16} className="text-slate-500" />
                                         </div>
-                                        {alloc.first_name} {alloc.last_name}
+                                        {alloc.name}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 text-slate-500">
@@ -267,10 +267,10 @@ const RoomAllocation = () => {
                                 <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3 animate-in fade-in slide-in-from-top-2">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
-                                            {selectedStudent.first_name[0]}
+                                            {selectedStudent.name[0]}
                                         </div>
                                         <div>
-                                            <p className="font-bold text-indigo-900">{selectedStudent.first_name} {selectedStudent.last_name}</p>
+                                            <p className="font-bold text-indigo-900">{selectedStudent.name}</p>
                                             <p className="text-xs text-indigo-600">Class: {selectedStudent.class_name || 'N/A'} - {selectedStudent.section_name || 'N/A'}</p>
                                         </div>
                                         <div className="ml-auto">

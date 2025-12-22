@@ -222,7 +222,7 @@ const HostelFinance = () => {
                                             <tbody className="divide-y divide-slate-100">
                                                 {pendingList.map(item => (
                                                     <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                                                        <td className="px-6 py-3 font-medium text-slate-800">{item.first_name} {item.last_name}</td>
+                                                        <td className="px-6 py-3 font-medium text-slate-800">{item.name}</td>
                                                         <td className="px-6 py-3 text-slate-500">{item.admission_no}</td>
                                                         <td className="px-6 py-3">
                                                             <span className={`px-2 py-1 rounded text-xs font-bold ${item.type === 'Room Rent' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'}`}>
@@ -419,10 +419,10 @@ const HostelFinance = () => {
                             {/* Student Verification Card */}
                             <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-6 text-white shadow-lg flex flex-col md:flex-row items-center gap-6">
                                 <div className="w-20 h-20 rounded-full bg-indigo-500 flex items-center justify-center text-2xl font-bold border-4 border-white/20">
-                                    {studentData.first_name[0]}{studentData.last_name[0]}
+                                    {studentData.name ? studentData.name.substring(0, 2).toUpperCase() : ''}
                                 </div>
                                 <div className="flex-1 text-center md:text-left">
-                                    <h3 className="text-2xl font-bold">{studentData.first_name} {studentData.last_name}</h3>
+                                    <h3 className="text-2xl font-bold">{studentData.name}</h3>
                                     <div className="flex flex-wrap gap-4 mt-2 justify-center md:justify-start text-slate-300 text-sm">
                                         <span className="flex items-center gap-1"><User size={14} /> ID: {studentData.admission_no}</span>
                                         <span className="flex items-center gap-1"><Home size={14} /> {studentData.hostel_name}</span>

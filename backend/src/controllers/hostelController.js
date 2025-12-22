@@ -192,7 +192,7 @@ exports.getAllocationsByHostel = async (req, res) => {
     const { hostelId } = req.params;
     try {
         const result = await pool.query(`
-            SELECT a.*, s.first_name, s.last_name, r.room_number
+            SELECT a.*, s.name, r.room_number
             FROM hostel_allocations a
             JOIN hostel_rooms r ON a.room_id = r.id
             JOIN students s ON a.student_id = s.id
@@ -214,7 +214,7 @@ exports.getStudentHostelDetails = async (req, res) => {
     try {
         // Fetch basic student details + current hostel allocation if any
         const studentRes = await pool.query(`
-            SELECT s.id, s.first_name, s.last_name, s.admission_no, 
+            SELECT s.id, s.name, s.admission_no, 
                    s.parent_name, s.contact_number,
                    c.name as class_name, sec.name as section_name,
                    h.name as hostel_name, r.room_number, r.cost_per_term,
@@ -227,8 +227,7 @@ exports.getStudentHostelDetails = async (req, res) => {
             LEFT JOIN hostels h ON r.hostel_id = h.id
 
             WHERE s.admission_no ILIKE '%' || $1 || '%' 
-               OR s.first_name ILIKE '%' || $1 || '%' 
-               OR s.last_name ILIKE '%' || $1 || '%'
+               OR s.name ILIKE '%' || $1 || '%' 
                OR CAST(s.id AS TEXT) = $1
             LIMIT 1
         `, [admissionNo]);
@@ -311,7 +310,7 @@ exports.getMyHostelDetails = async (req, res) => {
 
         // Fetch Details without strict school_id check in main query (relies on admission_no being correct from step 1)
         const result = await pool.query(`
-            SELECT s.id, s.first_name, s.last_name, s.admission_no, 
+            SELECT s.id, s.name, s.admission_no, 
                    s.parent_name, s.contact_number,
                    c.name as class_name, sec.name as section_name,
                    h.name as hostel_name, r.room_number, r.cost_per_term,
@@ -546,7 +545,7 @@ exports.getPendingDues = async (req, res) => {
 
         // 1. Pending Mess Bills
         let messQuery = `
-            SELECT b.id, s.first_name, s.last_name, s.admission_no, b.amount, b.month, b.year 
+            SELECT b.id, s.name, s.admission_no, b.amount, b.month, b.year 
             FROM hostel_mess_bills b 
             JOIN students s ON b.student_id = s.id 
             WHERE b.status = 'Pending'
@@ -563,9 +562,8 @@ exports.getPendingDues = async (req, res) => {
 
         const messDues = messRes.rows.map(row => ({
             id: `mess_${row.id}`,
-            student_id: row.id, // note: this is bill id in query but logic might need student id? Wait, row.id is bill id. We need student admission_no for action.
-            first_name: row.first_name,
-            last_name: row.last_name,
+            student_id: row.id,
+            name: row.name,
             admission_no: row.admission_no,
             amount: row.amount,
             type: 'Mess Bill',
@@ -575,7 +573,7 @@ exports.getPendingDues = async (req, res) => {
         // 2. Pending Room Rent
         // Logic: Cost Per Term - Total Paid Rent > 0
         const rentQuery = `
-            SELECT s.id, s.first_name, s.last_name, s.admission_no, r.cost_per_term,
+            SELECT s.id, s.name, s.admission_no, r.cost_per_term,
                    COALESCE(SUM(p.amount), 0) as paid_amount
             FROM students s
             JOIN hostel_allocations a ON s.id = a.student_id
@@ -590,8 +588,7 @@ exports.getPendingDues = async (req, res) => {
         const rentDues = rentRes.rows.map(row => ({
             id: `rent_${row.id}`,
             student_id: row.id,
-            first_name: row.first_name,
-            last_name: row.last_name,
+            name: row.name,
             admission_no: row.admission_no,
             amount: (parseFloat(row.cost_per_term) - parseFloat(row.paid_amount)).toFixed(2),
             type: 'Room Rent',
@@ -599,7 +596,7 @@ exports.getPendingDues = async (req, res) => {
         }));
 
         // Combine and Sort
-        const allDues = [...messDues, ...rentDues].sort((a, b) => a.first_name.localeCompare(b.first_name));
+        const allDues = [...messDues, ...rentDues].sort((a, b) => a.name.localeCompare(b.name));
 
         res.json(allDues);
     } catch (error) {
