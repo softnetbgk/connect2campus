@@ -142,15 +142,17 @@ const Login = () => {
                 </form>
 
                 {/* Mobile App Download Section */}
-                <div className="mt-6 pt-6 border-t border-slate-100">
-                    <button
-                        onClick={() => setShowQR(true)}
-                        className="w-full flex items-center justify-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors text-xs font-semibold group"
-                    >
-                        <Smartphone size={16} className="group-hover:scale-110 transition-transform" />
-                        Download Mobile App
-                    </button>
-                </div>
+                {!isMobileApp && (
+                    <div className="mt-6 pt-6 border-t border-slate-100">
+                        <button
+                            onClick={() => setShowQR(true)}
+                            className="w-full flex items-center justify-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors text-xs font-semibold group"
+                        >
+                            <Smartphone size={16} className="group-hover:scale-110 transition-transform" />
+                            Download Mobile App
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* QR Code Modal for Mobile App */}
