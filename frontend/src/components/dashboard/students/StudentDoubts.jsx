@@ -89,7 +89,8 @@ const StudentDoubts = () => {
             fetchDoubts();
         } catch (error) {
             console.error(error);
-            toast.error("Failed to send doubt");
+            const msg = error.response?.data?.message || "Failed to send doubt";
+            toast.error(msg);
         }
     };
 
