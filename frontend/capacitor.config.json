@@ -1,5 +1,9 @@
 {
   "appId": "com.school.app",
   "appName": "SchoolApp",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "url": "https://school-software-frontend-rust.vercel.app",
+    "cleartext": true
+  }
 }
