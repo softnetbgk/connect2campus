@@ -23,6 +23,9 @@ const startServer = async () => {
             ALTER TABLE expenditures 
             ADD COLUMN IF NOT EXISTS transaction_id VARCHAR(100),
             ADD COLUMN IF NOT EXISTS upi_id VARCHAR(100);
+
+            ALTER TABLE doubts 
+            ALTER COLUMN subject_id DROP NOT NULL;
         `);
         console.log('✅ Database schema verified.');
 
