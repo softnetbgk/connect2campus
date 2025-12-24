@@ -172,7 +172,7 @@ const Login = () => {
 
                             <div className="bg-white p-4 rounded-xl shadow-inner border border-slate-100 inline-block mb-4">
                                 <QRCode
-                                    value={`${window.location.protocol}//${window.location.host}/SchoolApp.apk`}
+                                    value="https://drive.google.com/file/d/1QTMHG5DuqmrcbcXthUyA_eD8ioo5OgUc/view?usp=sharing"
                                     size={180}
                                     level="H"
                                 />
@@ -181,8 +181,9 @@ const Login = () => {
 
                             <div className="space-y-3">
                                 <a
-                                    href="/SchoolApp.apk"
-                                    download
+                                    href="https://drive.google.com/file/d/1QTMHG5DuqmrcbcXthUyA_eD8ioo5OgUc/view?usp=sharing"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     className="w-full inline-flex justify-center items-center gap-3 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors text-sm shadow-lg shadow-green-500/20"
                                 >
                                     <Smartphone size={20} />
