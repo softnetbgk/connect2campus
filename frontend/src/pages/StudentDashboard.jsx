@@ -34,6 +34,11 @@ const StudentDashboard = () => {
         bus: { route: 'Not Assigned', status: 'N/A' }
     });
 
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+        setIsMobileMenuOpen(false);
+    };
+
     useEffect(() => {
         const fetchSchoolInfo = async () => {
             try {
@@ -185,18 +190,18 @@ const StudentDashboard = () => {
                 </div>
 
                 <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
-                    <NavButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={LayoutDashboard} label="Dashboard" />
-                    <NavButton active={activeTab === 'academics'} onClick={() => setActiveTab('academics')} icon={BookOpen} label="Academics & Exams" />
-                    <NavButton active={activeTab === 'doubts'} onClick={() => setActiveTab('doubts')} icon={MessageSquare} label="Ask Doubts" />
-                    <NavButton active={activeTab === 'leaves'} onClick={() => setActiveTab('leaves')} icon={Calendar} label="Apply Leave" />
-                    <NavButton active={activeTab === 'attendance'} onClick={() => setActiveTab('attendance')} icon={Clock} label="Attendance" />
-                    <NavButton active={activeTab === 'library'} onClick={() => setActiveTab('library')} icon={FileText} label="Library Books" />
-                    <NavButton active={activeTab === 'hostel'} onClick={() => setActiveTab('hostel')} icon={Home} label="Hostel Rooms" />
-                    <NavButton active={activeTab === 'fees'} onClick={() => setActiveTab('fees')} icon={DollarSign} label="My Fees" />
-                    <NavButton active={activeTab === 'transport'} onClick={() => setActiveTab('transport')} icon={Bus} label="Track Your School Bus" />
-                    <NavButton active={activeTab === 'certificates'} onClick={() => setActiveTab('certificates')} icon={Award} label="Certificates" />
-                    <NavButton active={activeTab === 'announcements'} onClick={() => setActiveTab('announcements')} icon={Bell} label="Notice Board" />
-                    <NavButton active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} icon={Calendar} label="School Calendar" />
+                    <NavButton active={activeTab === 'overview'} onClick={() => handleTabChange('overview')} icon={LayoutDashboard} label="Dashboard" />
+                    <NavButton active={activeTab === 'academics'} onClick={() => handleTabChange('academics')} icon={BookOpen} label="Academics & Exams" />
+                    <NavButton active={activeTab === 'doubts'} onClick={() => handleTabChange('doubts')} icon={MessageSquare} label="Ask Doubts" />
+                    <NavButton active={activeTab === 'leaves'} onClick={() => handleTabChange('leaves')} icon={Calendar} label="Apply Leave" />
+                    <NavButton active={activeTab === 'attendance'} onClick={() => handleTabChange('attendance')} icon={Clock} label="Attendance" />
+                    <NavButton active={activeTab === 'library'} onClick={() => handleTabChange('library')} icon={FileText} label="Library Books" />
+                    <NavButton active={activeTab === 'hostel'} onClick={() => handleTabChange('hostel')} icon={Home} label="Hostel Rooms" />
+                    <NavButton active={activeTab === 'fees'} onClick={() => handleTabChange('fees')} icon={DollarSign} label="My Fees" />
+                    <NavButton active={activeTab === 'transport'} onClick={() => handleTabChange('transport')} icon={Bus} label="Track Your School Bus" />
+                    <NavButton active={activeTab === 'certificates'} onClick={() => handleTabChange('certificates')} icon={Award} label="Certificates" />
+                    <NavButton active={activeTab === 'announcements'} onClick={() => handleTabChange('announcements')} icon={Bell} label="Notice Board" />
+                    <NavButton active={activeTab === 'calendar'} onClick={() => handleTabChange('calendar')} icon={Calendar} label="School Calendar" />
                 </nav>
 
                 <div className="p-4 border-t border-slate-800">

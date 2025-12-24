@@ -98,6 +98,11 @@ const SchoolAdminDashboard = () => {
         }));
     };
 
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+        setIsMobileMenuOpen(false);
+    };
+
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     useEffect(() => {
@@ -170,144 +175,132 @@ const SchoolAdminDashboard = () => {
                     <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-2">Main</p>
                     <NavButton
                         active={activeTab === 'overview'}
-                        onClick={() => setActiveTab('overview')}
+                        onClick={() => handleTabChange('overview')}
                         icon={LayoutDashboard}
                         label="Dashboard Overview"
                     />
 
                     <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Management</p>
-
-                    {/* Students Group */}
                     <NavGroup
                         label="Students"
                         icon={Users}
                         expanded={expandedSections.students}
                         onToggle={() => toggleSection('students')}
                     >
-                        <NavSubButton active={activeTab === 'student-list'} onClick={() => setActiveTab('student-list')} label="Admission List" />
-                        <NavSubButton active={activeTab === 'student-attendance'} onClick={() => setActiveTab('student-attendance')} label="Take Attendance" />
-                        <NavSubButton active={activeTab === 'student-daily-status'} onClick={() => setActiveTab('student-daily-status')} label="Daily Status" />
-                        <NavSubButton active={activeTab === 'student-report'} onClick={() => setActiveTab('student-report')} label="Reports" />
+                        <NavSubButton active={activeTab === 'student-list'} onClick={() => handleTabChange('student-list')} label="Admission List" />
+                        <NavSubButton active={activeTab === 'student-attendance'} onClick={() => handleTabChange('student-attendance')} label="Take Attendance" />
+                        <NavSubButton active={activeTab === 'student-daily-status'} onClick={() => handleTabChange('student-daily-status')} label="Daily Status" />
+                        <NavSubButton active={activeTab === 'student-report'} onClick={() => handleTabChange('student-report')} label="Reports" />
                     </NavGroup>
 
-                    {/* Admissions Group - NEW Top Level */}
                     <NavGroup
                         label="Admissions"
                         icon={UserPlus}
                         expanded={expandedSections.admissions}
                         onToggle={() => toggleSection('admissions')}
                     >
-                        <NavSubButton active={activeTab === 'admissions-crm'} onClick={() => setActiveTab('admissions-crm')} label="Enquiry CRM" />
+                        <NavSubButton active={activeTab === 'admissions-crm'} onClick={() => handleTabChange('admissions-crm')} label="Enquiry CRM" />
                     </NavGroup>
 
-                    {/* Teachers Group */}
                     <NavGroup
                         label="Teachers"
                         icon={User}
                         expanded={expandedSections.teachers}
                         onToggle={() => toggleSection('teachers')}
                     >
-                        <NavSubButton active={activeTab === 'teacher-list'} onClick={() => setActiveTab('teacher-list')} label="Teacher List" />
-                        <NavSubButton active={activeTab === 'teacher-attendance'} onClick={() => setActiveTab('teacher-attendance')} label="Mark Attendance" />
-                        <NavSubButton active={activeTab === 'teacher-daily-status'} onClick={() => setActiveTab('teacher-daily-status')} label="Daily Status" />
-                        <NavSubButton active={activeTab === 'teacher-report'} onClick={() => setActiveTab('teacher-report')} label="Reports" />
+                        <NavSubButton active={activeTab === 'teacher-list'} onClick={() => handleTabChange('teacher-list')} label="Teacher List" />
+                        <NavSubButton active={activeTab === 'teacher-attendance'} onClick={() => handleTabChange('teacher-attendance')} label="Mark Attendance" />
+                        <NavSubButton active={activeTab === 'teacher-daily-status'} onClick={() => handleTabChange('teacher-daily-status')} label="Daily Status" />
+                        <NavSubButton active={activeTab === 'teacher-report'} onClick={() => handleTabChange('teacher-report')} label="Reports" />
                     </NavGroup>
 
-                    {/* Staff Group */}
                     <NavGroup
                         label="Staff"
                         icon={User}
                         expanded={expandedSections.staff}
                         onToggle={() => toggleSection('staff')}
                     >
-                        <NavSubButton active={activeTab === 'staff-list'} onClick={() => setActiveTab('staff-list')} label="Staff List" />
-                        <NavSubButton active={activeTab === 'staff-attendance'} onClick={() => setActiveTab('staff-attendance')} label="Mark Attendance" />
-                        <NavSubButton active={activeTab === 'staff-daily-status'} onClick={() => setActiveTab('staff-daily-status')} label="Daily Status" />
-                        <NavSubButton active={activeTab === 'staff-report'} onClick={() => setActiveTab('staff-report')} label="Reports" />
+                        <NavSubButton active={activeTab === 'staff-list'} onClick={() => handleTabChange('staff-list')} label="Staff List" />
+                        <NavSubButton active={activeTab === 'staff-attendance'} onClick={() => handleTabChange('staff-attendance')} label="Mark Attendance" />
+                        <NavSubButton active={activeTab === 'staff-daily-status'} onClick={() => handleTabChange('staff-daily-status')} label="Daily Status" />
+                        <NavSubButton active={activeTab === 'staff-report'} onClick={() => handleTabChange('staff-report')} label="Reports" />
                     </NavGroup>
 
                     <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Finance</p>
-
-                    {/* Fees Group */}
                     <NavGroup
                         label="Fees & Accounts"
                         icon={DollarSign}
                         expanded={expandedSections.fees}
                         onToggle={() => toggleSection('fees')}
                     >
-                        <NavSubButton active={activeTab === 'fee-config'} onClick={() => setActiveTab('fee-config')} label="Fee Structure" />
-                        <NavSubButton active={activeTab === 'fee-collection'} onClick={() => setActiveTab('fee-collection')} label="Collection Board" />
-                        <NavSubButton active={activeTab === 'expenditures'} onClick={() => setActiveTab('expenditures')} label="Expenditures" />
+                        <NavSubButton active={activeTab === 'fee-config'} onClick={() => handleTabChange('fee-config')} label="Fee Structure" />
+                        <NavSubButton active={activeTab === 'fee-collection'} onClick={() => handleTabChange('fee-collection')} label="Collection Board" />
+                        <NavSubButton active={activeTab === 'expenditures'} onClick={() => handleTabChange('expenditures')} label="Expenditures" />
                     </NavGroup>
 
-                    {/* Library Group */}
                     <NavGroup
                         label="Library"
                         icon={Book}
                         expanded={expandedSections.library}
                         onToggle={() => toggleSection('library')}
                     >
-                        <NavSubButton active={activeTab === 'library-overview'} onClick={() => setActiveTab('library-overview')} label="Overview" />
-                        <NavSubButton active={activeTab === 'library-books'} onClick={() => setActiveTab('library-books')} label="Books Catalog" />
-                        <NavSubButton active={activeTab === 'library-issue-return'} onClick={() => setActiveTab('library-issue-return')} label="Issue / Return" />
+                        <NavSubButton active={activeTab === 'library-overview'} onClick={() => handleTabChange('library-overview')} label="Overview" />
+                        <NavSubButton active={activeTab === 'library-books'} onClick={() => handleTabChange('library-books')} label="Books Catalog" />
+                        <NavSubButton active={activeTab === 'library-issue-return'} onClick={() => handleTabChange('library-issue-return')} label="Issue / Return" />
                     </NavGroup>
 
-                    {/* Salary Group */}
                     <NavGroup
                         label="Salary"
                         icon={DollarSign}
                         expanded={expandedSections.salary}
                         onToggle={() => toggleSection('salary')}
                     >
-                        <NavSubButton active={activeTab === 'salary-management'} onClick={() => setActiveTab('salary-management')} label="Salary Management" />
+                        <NavSubButton active={activeTab === 'salary-management'} onClick={() => handleTabChange('salary-management')} label="Salary Management" />
                     </NavGroup>
 
-                    {/* Academics Group */}
                     <NavGroup
                         label="Academics"
                         icon={BarChart3}
                         expanded={expandedSections.academics}
                         onToggle={() => toggleSection('academics')}
                     >
-                        <NavSubButton active={activeTab === 'timetable'} onClick={() => setActiveTab('timetable')} label="Timetable" />
-                        <NavSubButton active={activeTab === 'marks'} onClick={() => setActiveTab('marks')} label="Marks" />
-                        <NavSubButton active={activeTab === 'exam-schedule'} onClick={() => setActiveTab('exam-schedule')} label="Exam Schedule" />
-                        <NavSubButton active={activeTab === 'question-generator'} onClick={() => setActiveTab('question-generator')} label="AI Question Paper" />
+                        <NavSubButton active={activeTab === 'timetable'} onClick={() => handleTabChange('timetable')} label="Timetable" />
+                        <NavSubButton active={activeTab === 'marks'} onClick={() => handleTabChange('marks')} label="Marks" />
+                        <NavSubButton active={activeTab === 'exam-schedule'} onClick={() => handleTabChange('exam-schedule')} label="Exam Schedule" />
+                        <NavSubButton active={activeTab === 'question-generator'} onClick={() => handleTabChange('question-generator')} label="AI Question Paper" />
                     </NavGroup>
 
-                    {/* Hostel Group */}
                     <NavGroup
                         label="Hostel"
                         icon={Home}
                         expanded={expandedSections.hostel}
                         onToggle={() => toggleSection('hostel')}
                     >
-                        <NavSubButton active={activeTab === 'hostel-overview'} onClick={() => setActiveTab('hostel-overview')} label="Hostel Overview" />
-                        <NavSubButton active={activeTab === 'hostel-rooms'} onClick={() => setActiveTab('hostel-rooms')} label="Room Management" />
-                        <NavSubButton active={activeTab === 'hostel-allocation'} onClick={() => setActiveTab('hostel-allocation')} label="Room Allocation" />
-                        <NavSubButton active={activeTab === 'hostel-finance'} onClick={() => setActiveTab('hostel-finance')} label="Hostel Finance" />
+                        <NavSubButton active={activeTab === 'hostel-overview'} onClick={() => handleTabChange('hostel-overview')} label="Hostel Overview" />
+                        <NavSubButton active={activeTab === 'hostel-rooms'} onClick={() => handleTabChange('hostel-rooms')} label="Room Management" />
+                        <NavSubButton active={activeTab === 'hostel-allocation'} onClick={() => handleTabChange('hostel-allocation')} label="Room Allocation" />
+                        <NavSubButton active={activeTab === 'hostel-finance'} onClick={() => handleTabChange('hostel-finance')} label="Hostel Finance" />
                     </NavGroup>
 
-                    {/* Calendar Group */}
                     <NavGroup
                         label="Calendar & Events"
                         icon={Calendar}
                         expanded={expandedSections.calendar}
                         onToggle={() => toggleSection('calendar')}
                     >
-                        <NavSubButton active={activeTab === 'school-calendar'} onClick={() => setActiveTab('school-calendar')} label="School Calendar" />
+                        <NavSubButton active={activeTab === 'school-calendar'} onClick={() => handleTabChange('school-calendar')} label="School Calendar" />
                     </NavGroup>
 
                     <div className="mt-2 space-y-1">
                         <NavButton
                             active={activeTab === 'announcements'}
-                            onClick={() => setActiveTab('announcements')}
+                            onClick={() => handleTabChange('announcements')}
                             icon={Megaphone}
                             label="Announcements"
                         />
                         <NavButton
                             active={activeTab === 'leave-management'}
-                            onClick={() => setActiveTab('leave-management')}
+                            onClick={() => handleTabChange('leave-management')}
                             icon={Clock}
                             label="Leave Requests"
                             badge={pendingLeavesCount}
@@ -318,7 +311,7 @@ const SchoolAdminDashboard = () => {
                     <div className="mt-2 text-slate-100">
                         <NavButton
                             active={activeTab === 'transport-management'}
-                            onClick={() => setActiveTab('transport-management')}
+                            onClick={() => handleTabChange('transport-management')}
                             icon={Bus}
                             label="Transport"
                         />
@@ -328,7 +321,7 @@ const SchoolAdminDashboard = () => {
                     <div className="mt-2 text-slate-100">
                         <NavButton
                             active={activeTab === 'certificates-generator'}
-                            onClick={() => setActiveTab('certificates-generator')}
+                            onClick={() => handleTabChange('certificates-generator')}
                             icon={Book}
                             label="Certificates"
                         />
@@ -342,7 +335,7 @@ const SchoolAdminDashboard = () => {
                             expanded={expandedSections.biometric}
                             onToggle={() => toggleSection('biometric')}
                         >
-                            <NavSubButton active={activeTab === 'biometric-access'} onClick={() => setActiveTab('biometric-access')} label="Manage Devices" />
+                            <NavSubButton active={activeTab === 'biometric-access'} onClick={() => handleTabChange('biometric-access')} label="Manage Devices" />
                         </NavGroup>
                     </div>
                 </nav>

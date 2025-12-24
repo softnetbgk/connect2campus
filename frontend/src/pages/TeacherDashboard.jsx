@@ -28,6 +28,11 @@ const TeacherDashboard = () => {
     const [schoolName, setSchoolName] = useState('');
     const [loading, setLoading] = useState(true);
 
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+        setIsMobileMenuOpen(false);
+    };
+
     useEffect(() => {
         fetchProfile();
         fetchSchoolInfo();
@@ -108,17 +113,17 @@ const TeacherDashboard = () => {
                 </div>
 
                 <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
-                    <NavButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={LayoutDashboard} label="Dashboard" />
-                    <NavButton active={activeTab === 'attendance'} onClick={() => setActiveTab('attendance')} icon={CheckSquare} label="Mark Attendance" />
-                    <NavButton active={activeTab === 'my-attendance'} onClick={() => setActiveTab('my-attendance')} icon={Clock} label="My Attendance" />
-                    <NavButton active={activeTab === 'timetable'} onClick={() => setActiveTab('timetable')} icon={Calendar} label="My Timetable" />
-                    <NavButton active={activeTab === 'salary'} onClick={() => setActiveTab('salary')} icon={Users} label="My Salary" />
-                    <NavButton active={activeTab === 'transport'} onClick={() => setActiveTab('transport')} icon={Bus} label="Track My School Bus" />
-                    <NavButton active={activeTab === 'doubts'} onClick={() => setActiveTab('doubts')} icon={MessageSquare} label="Student Doubts" />
-                    <NavButton active={activeTab === 'library'} onClick={() => setActiveTab('library')} icon={BookOpen} label="Library Books" />
-                    <NavButton active={activeTab === 'leaves'} onClick={() => setActiveTab('leaves')} icon={Clock} label="Leave Applications" />
-                    <NavButton active={activeTab === 'announcements'} onClick={() => setActiveTab('announcements')} icon={Bell} label="Notice Board" />
-                    <NavButton active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} icon={Calendar} label="School Calendar" />
+                    <NavButton active={activeTab === 'overview'} onClick={() => handleTabChange('overview')} icon={LayoutDashboard} label="Dashboard" />
+                    <NavButton active={activeTab === 'attendance'} onClick={() => handleTabChange('attendance')} icon={CheckSquare} label="Mark Attendance" />
+                    <NavButton active={activeTab === 'my-attendance'} onClick={() => handleTabChange('my-attendance')} icon={Clock} label="My Attendance" />
+                    <NavButton active={activeTab === 'timetable'} onClick={() => handleTabChange('timetable')} icon={Calendar} label="My Timetable" />
+                    <NavButton active={activeTab === 'salary'} onClick={() => handleTabChange('salary')} icon={Users} label="My Salary" />
+                    <NavButton active={activeTab === 'transport'} onClick={() => handleTabChange('transport')} icon={Bus} label="Track My School Bus" />
+                    <NavButton active={activeTab === 'doubts'} onClick={() => handleTabChange('doubts')} icon={MessageSquare} label="Student Doubts" />
+                    <NavButton active={activeTab === 'library'} onClick={() => handleTabChange('library')} icon={BookOpen} label="Library Books" />
+                    <NavButton active={activeTab === 'leaves'} onClick={() => handleTabChange('leaves')} icon={Clock} label="Leave Applications" />
+                    <NavButton active={activeTab === 'announcements'} onClick={() => handleTabChange('announcements')} icon={Bell} label="Notice Board" />
+                    <NavButton active={activeTab === 'calendar'} onClick={() => handleTabChange('calendar')} icon={Calendar} label="School Calendar" />
                 </nav>
 
                 <div className="p-4 border-t border-slate-800">
