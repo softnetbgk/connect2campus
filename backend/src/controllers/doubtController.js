@@ -21,7 +21,10 @@ exports.createDoubt = async (req, res) => {
         let { teacher_id, subject_id, question } = req.body;
 
         const student_id = await getStudentId(email, school_id);
-        if (!student_id) return res.status(404).json({ message: 'Student profile not found' });
+        if (!student_id) {
+            console.error(`Doubt Error: Student not found for email ${email} school ${school_id}`);
+            return res.status(404).json({ message: `Student profile not found for ${email}. Please contact admin.` });
+        }
 
         // If subject_id is missing, try to resolve it from Teacher's Specialization
         if (!subject_id) {
