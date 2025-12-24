@@ -1,41 +1,11 @@
-import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
-import { School, ShieldCheck, User, Users, GraduationCap, Briefcase, Bus, Eye, EyeOff, X, Smartphone } from 'lucide-react';
-import QRCode from 'react-qr-code';
+import { Capacitor } from '@capacitor/core';
+
+// ... (existing imports)
 
 const Login = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [role, setRole] = useState('SCHOOL_ADMIN');
-    const [errorMessage, setErrorMessage] = useState('');
-    const [showQR, setShowQR] = useState(false);
-    const { login } = useAuth();
-    const navigate = useNavigate();
+    // ... (existing state)
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setErrorMessage(''); // Clear previous errors
-        const result = await login(email, password, role);
-        if (result.success) {
-            toast.success('Welcome back!');
-            switch (role) {
-                case 'SCHOOL_ADMIN': navigate('/school-admin'); break;
-                case 'TEACHER': navigate('/teacher'); break;
-                case 'STUDENT': navigate('/student'); break;
-                case 'STAFF': navigate('/staff'); break;
-                default: navigate('/');
-            }
-        } else {
-            setErrorMessage(result.message);
-            toast.error(result.message);
-        }
-    };
-
-    // Check if the user is on the mobile app
-    const isMobileApp = new URLSearchParams(window.location.search).get('is_mobile_app') === 'true';
+    const isMobileApp = Capacitor.isNativePlatform();
 
     const roles = [
         { id: 'SCHOOL_ADMIN', label: 'School Admin', icon: School },
