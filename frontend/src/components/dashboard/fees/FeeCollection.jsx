@@ -265,12 +265,12 @@ argin: 10px 0; }
                     <History size={16} /> Back to Class List
                 </button>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-3 bg-indigo-600 text-white p-6 rounded-xl shadow-lg flex justify-between items-center">
-                        <div>
+                    <div className="lg:col-span-3 bg-indigo-600 text-white p-6 rounded-xl shadow-lg flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div className="text-center md:text-left">
                             <h2 className="text-2xl font-bold">{selectedStudent.name}</h2>
                             <p className="text-indigo-100">Class {selectedStudent.class_name || (selectedClass ? config?.classes.find(c => c.class_id == selectedClass)?.class_name : '')} • {selectedStudent.admission_no}</p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-center md:text-right">
                             <p className="text-xs text-indigo-200 uppercase font-bold">Total Dues Available</p>
                             <p className="text-3xl font-bold">₹{formatCurrency(feeDetails.reduce((sum, f) => sum + f.balance, 0))}</p>
                         </div>
@@ -282,7 +282,7 @@ argin: 10px 0; }
                             <button onClick={() => setActiveTab('history')} className={`flex-1 p-4 font-bold text-sm ${activeTab === 'history' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500'}`}>Payment History</button>
                         </div>
 
-                        <div className="bg-white rounded-b-xl shadow-sm border border-gray-200 p-6 min-h-[300px]">
+                        <div className="bg-white rounded-b-xl shadow-sm border border-gray-200 p-6 min-h-[300px] overflow-x-auto">
                             {activeTab === 'dues' ? (
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
@@ -447,25 +447,25 @@ argin: 10px 0; }
     return (
         <div className="space-y-6 animate-in fade-in">
             {/* Header / Filter */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 items-end">
-                <div className="flex-1">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 md:items-end">
+                <div className="flex-1 w-full">
                     <h2 className="text-lg font-bold text-gray-800 mb-1">Fee Collection Dashboard</h2>
                     <p className="text-gray-500 text-sm">Select a Class & Section to view fee status</p>
                 </div>
-                <div>
-                    <select className="input min-w-[150px]" value={selectedClass} onChange={e => { setSelectedClass(e.target.value); setSelectedSection(''); }}>
+                <div className="w-full md:w-auto">
+                    <select className="input w-full md:min-w-[150px]" value={selectedClass} onChange={e => { setSelectedClass(e.target.value); setSelectedSection(''); }}>
                         <option value="">All Classes</option>
                         {config?.classes?.map(c => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
                     </select>
                 </div>
-                <div>
-                    <select className="input min-w-[150px]" value={selectedSection} onChange={e => setSelectedSection(e.target.value)}>
+                <div className="w-full md:w-auto">
+                    <select className="input w-full md:min-w-[150px]" value={selectedSection} onChange={e => setSelectedSection(e.target.value)}>
                         <option value="">All Sections</option>
                         {sections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                 </div>
-                <div>
-                    <select className="input min-w-[150px]" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+                <div className="w-full md:w-auto">
+                    <select className="input w-full md:min-w-[150px]" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
                         <option value="All">All Status</option>
                         <option value="Paid">Paid</option>
                         <option value="Unpaid">Unpaid</option>
@@ -476,7 +476,7 @@ argin: 10px 0; }
                 {overview && (
                     <button
                         onClick={handlePrintOverview}
-                        className="bg-slate-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-slate-500/20 hover:bg-slate-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                        className="bg-slate-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-slate-500/20 hover:bg-slate-700 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 w-full md:w-auto"
                     >
                         <Printer size={20} /> Print Report
                     </button>
@@ -561,7 +561,7 @@ argin: 10px 0; }
                                     .filter(s => statusFilter === 'All' || s.status === statusFilter)
                                     .map(s => (
                                         <tr key={s.id} className="hover:bg-slate-50/80 transition-colors group">
-                                            <td className="p-4 pl-6">
+                                            <td className="p-2 md:p-4 pl-4 md:pl-6">
                                                 <div className="font-bold text-slate-800">{s.name}</div>
                                                 <div className="text-xs text-slate-400 font-medium mt-0.5 flex items-center gap-2">
                                                     <span className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] text-slate-500">#{s.admission_no}</span>
@@ -573,16 +573,16 @@ argin: 10px 0; }
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="p-4 font-mono text-slate-600 font-medium">₹{formatCurrency(s.total_fee)}</td>
-                                            <td className="p-4 font-mono text-emerald-600 font-medium">₹{formatCurrency(s.paid)}</td>
-                                            <td className="p-4 font-mono">
+                                            <td className="p-2 md:p-4 font-mono text-slate-600 font-medium">₹{formatCurrency(s.total_fee)}</td>
+                                            <td className="p-2 md:p-4 font-mono text-emerald-600 font-medium">₹{formatCurrency(s.paid)}</td>
+                                            <td className="p-2 md:p-4 font-mono">
                                                 {s.balance > 0 ? (
                                                     <span className="text-rose-600 font-bold">₹{formatCurrency(s.balance)}</span>
                                                 ) : (
                                                     <span className="text-slate-400">₹0.00</span>
                                                 )}
                                             </td>
-                                            <td className="p-4">
+                                            <td className="p-2 md:p-4">
                                                 <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${s.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
                                                     s.status === 'Partial' ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-rose-50 text-rose-700 border-rose-100'
                                                     }`}>
@@ -592,7 +592,7 @@ argin: 10px 0; }
                                                     {s.status}
                                                 </span>
                                             </td>
-                                            <td className="p-4 pr-6 text-right">
+                                            <td className="p-2 md:p-4 pr-4 md:pr-6 text-right">
                                                 <button
                                                     onClick={() => handleSelectStudent(s)}
                                                     className="bg-white border border-slate-200 text-indigo-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-sm hover:shadow active:scale-95"

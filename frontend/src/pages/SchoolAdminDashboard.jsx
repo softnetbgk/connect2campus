@@ -395,7 +395,7 @@ const SchoolAdminDashboard = () => {
                 </header>
 
                 {/* Scrollable Page Content */}
-                <main className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
                     <div className="max-w-7xl mx-auto animate-in fade-in duration-300">
                         {activeTab === 'overview' && <Overview config={academicConfig} />}
                         {activeTab === 'student-list' && <StudentManagement config={academicConfig} prefillData={activeTabState} />}
