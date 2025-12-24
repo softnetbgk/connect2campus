@@ -41,6 +41,8 @@ jobs:
         run: npm ci
 
       - name: Build Web App
+        env:
+           VITE_API_URL: https://school-software-backend-z86u.onrender.com/api
         run: npm run build
 
       - name: Sync Capacitor
