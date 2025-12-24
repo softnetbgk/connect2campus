@@ -5,27 +5,8 @@
     "framework": "vite",
     "rewrites": [
         {
-            "source": "/SchoolApp.apk",
-            "destination": "/SchoolApp.apk"
-        },
-        {
             "source": "/(.*)",
             "destination": "/index.html"
-        }
-    ],
-    "headers": [
-        {
-            "source": "/SchoolApp.apk",
-            "headers": [
-                {
-                    "key": "Content-Type",
-                    "value": "application/vnd.android.package-archive"
-                },
-                {
-                    "key": "Content-Disposition",
-                    "value": "attachment; filename=SchoolApp.apk"
-                }
-            ]
         }
     ]
 }
