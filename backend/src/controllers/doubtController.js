@@ -2,10 +2,10 @@ const { pool } = require('../config/db');
 
 // Helper to find student ID
 const getStudentId = async (email, school_id) => {
-    console.log('Looking for student with email:', email, 'school_id:', school_id);
+    console.log('Looking for student with email:', email);
 
-    // Try 1: Direct email match
-    let studentRes = await pool.query('SELECT id, admission_no FROM students WHERE email = $1 AND school_id = $2', [email, school_id]);
+    // Try 1: Direct email match (no school_id filter since column doesn't exist)
+    let studentRes = await pool.query('SELECT id, admission_no FROM students WHERE email = $1', [email]);
     if (studentRes.rows.length > 0) {
         console.log('Found student by email:', studentRes.rows[0]);
         return studentRes.rows[0].id;
@@ -15,20 +15,20 @@ const getStudentId = async (email, school_id) => {
     const emailParts = email.split('@');
     const potentialAdmissionNo = emailParts[0]; // Get part before @
 
-    studentRes = await pool.query('SELECT id, admission_no FROM students WHERE LOWER(admission_no) = LOWER($1) AND school_id = $2', [potentialAdmissionNo, school_id]);
+    studentRes = await pool.query('SELECT id, admission_no FROM students WHERE LOWER(admission_no) = LOWER($1)', [potentialAdmissionNo]);
     if (studentRes.rows.length > 0) {
         console.log('Found student by admission number:', studentRes.rows[0]);
         return studentRes.rows[0].id;
     }
 
     // Try 3: If the entire email might be the admission number (for backward compatibility)
-    studentRes = await pool.query('SELECT id, admission_no FROM students WHERE LOWER(admission_no) = LOWER($1) AND school_id = $2', [email, school_id]);
+    studentRes = await pool.query('SELECT id, admission_no FROM students WHERE LOWER(admission_no) = LOWER($1)', [email]);
     if (studentRes.rows.length > 0) {
         console.log('Found student by admission number (full email):', studentRes.rows[0]);
         return studentRes.rows[0].id;
     }
 
-    console.error('Student NOT found. Tried:', { email, potentialAdmissionNo, school_id });
+    console.error('Student NOT found. Tried:', { email, potentialAdmissionNo });
     return null;
 };
 
