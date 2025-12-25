@@ -155,19 +155,19 @@ const SchoolAdminDashboard = () => {
             )}
 
             {/* Sidebar - Vibrant Modern Design */}
-            <aside className={`w-72 bg-[#0f172a] text-slate-300 flex flex-col shadow-2xl z-50 transition-transform duration-300 
+            <aside className={`w-72 bg-gradient-to-b from-sky-700 to-sky-800 text-white flex flex-col shadow-2xl z-50 transition-transform duration-300 
                 fixed inset-y-0 left-0 h-screen overflow-y-auto custom-scrollbar print:hidden
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
                 md:translate-x-0 md:sticky md:top-0 md:flex`}>
                 {/* Brand Area */}
-                <div className="p-6 flex items-center justify-between border-b border-slate-800/50">
+                <div className="p-6 flex items-center justify-between border-b border-sky-600/30">
                     <div className="flex items-center gap-3">
-                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-2.5 rounded-xl shadow-lg shadow-indigo-500/20">
+                        <div className="bg-gradient-to-br from-cyan-400 to-sky-500 p-2.5 rounded-xl shadow-lg shadow-cyan-400/30">
                             <Users className="text-white w-6 h-6" />
                         </div>
                         <div className="w-full">
                             <h1 className="text-xl font-serif font-black italic text-white tracking-wide leading-tight drop-shadow-md">{academicConfig.name || 'School Admin'}</h1>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">Admin Portal</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-300">Admin Portal</p>
                         </div>
                     </div>
                     {/* Mobile Close Button */}
@@ -350,9 +350,9 @@ const SchoolAdminDashboard = () => {
                 </nav>
 
                 {/* Footer User Profile */}
-                <div className="p-4 border-t border-slate-800/50 bg-[#0f172a]">
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-colors cursor-pointer group">
-                        <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">
+                <div className="p-4 border-t border-sky-600/30 bg-sky-800">
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-sky-700/50 hover:bg-sky-600 transition-colors cursor-pointer group">
+                        <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold">
                             {user?.email?.[0].toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -454,11 +454,11 @@ const NavButton = ({ active, onClick, icon: Icon, label, badge }) => (
     <button
         onClick={onClick}
         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${active
-            ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/30 translate-x-1'
-            : 'text-slate-400 hover:bg-white/5 hover:text-white hover:translate-x-1'
+            ? 'bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-lg shadow-cyan-400/30 translate-x-1'
+            : 'text-sky-100 hover:bg-sky-600/50 hover:text-white hover:translate-x-1'
             }`}
     >
-        <Icon size={18} className={`${active ? 'text-indigo-100' : 'text-slate-500 group-hover:text-indigo-400 px-0'}`} />
+        <Icon size={18} className={`${active ? 'text-white' : 'text-sky-200 group-hover:text-cyan-300 px-0'}`} />
         <span className="flex-1 text-left">{label}</span>
         {badge > 0 && (
             <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm animate-pulse">
@@ -473,11 +473,11 @@ const NavGroup = ({ label, icon: Icon, expanded, onToggle, children }) => (
     <div className="space-y-1">
         <button
             onClick={onToggle}
-            className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group ${expanded ? 'text-white bg-white/5' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+            className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group ${expanded ? 'text-white bg-sky-600/50' : 'text-sky-100 hover:bg-sky-600/50 hover:text-white'
                 }`}
         >
             <div className="flex items-center gap-3">
-                <Icon size={18} className={`${expanded ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'}`} />
+                <Icon size={18} className={`${expanded ? 'text-cyan-300' : 'text-sky-200 group-hover:text-cyan-300'}`} />
                 {label}
             </div>
             <ChevronDown size={14} className={`transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
@@ -495,11 +495,11 @@ const NavSubButton = ({ active, onClick, label }) => (
     <button
         onClick={onClick}
         className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition-all duration-200 flex items-center gap-2 ${active
-            ? 'text-white bg-indigo-500/20 border border-indigo-500/30 shadow-sm'
-            : 'text-slate-400 hover:text-white hover:bg-white/5'
+            ? 'text-white bg-cyan-500/30 border border-cyan-400/30 shadow-sm'
+            : 'text-sky-100 hover:text-white hover:bg-sky-600/30'
             }`}
     >
-        <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${active ? 'bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.6)]' : 'bg-slate-600'
+        <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${active ? 'bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.6)]' : 'bg-sky-300'
             }`}></span>
         {label}
     </button>
