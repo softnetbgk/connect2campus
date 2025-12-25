@@ -73,14 +73,17 @@ exports.createDoubt = async (req, res) => {
         // If subject_id is missing but request has 'subject' name (Mobile App case)
         if (!subject_id && req.body.subject) {
             const subjectName = req.body.subject;
-            const subRes = await pool.query('SELECT id FROM subjects WHERE lower(name) = lower($1) AND school_id = $2', [subjectName, school_id]);
+            // Try to find subject by name (without school_id filter)
+            const subRes = await pool.query('SELECT id FROM subjects WHERE lower(name) = lower($1) LIMIT 1', [subjectName]);
             if (subRes.rows.length > 0) {
                 subject_id = subRes.rows[0].id;
+                console.log('Found subject by name:', subjectName);
 
-                // Find a teacher for this subject
-                let teacherRes = await pool.query('SELECT id FROM teachers WHERE lower(subject_specialization) = lower($1) AND school_id = $2 LIMIT 1', [subjectName, school_id]);
+                // Find a teacher for this subject (without school_id filter)
+                let teacherRes = await pool.query('SELECT id FROM teachers WHERE lower(subject_specialization) = lower($1) LIMIT 1', [subjectName]);
                 if (teacherRes.rows.length > 0) {
                     teacher_id = teacherRes.rows[0].id;
+                    console.log('Found teacher by specialization:', subjectName);
                 }
             }
         }
@@ -91,9 +94,11 @@ exports.createDoubt = async (req, res) => {
             if (teacherRes.rows.length > 0) {
                 const specialization = teacherRes.rows[0].subject_specialization;
                 if (specialization) {
-                    const subjectRes = await pool.query('SELECT id FROM subjects WHERE lower(name) = lower($1) AND school_id = $2', [specialization, school_id]);
+                    // Try to find subject by specialization name (without school_id filter)
+                    const subjectRes = await pool.query('SELECT id FROM subjects WHERE lower(name) = lower($1) LIMIT 1', [specialization]);
                     if (subjectRes.rows.length > 0) {
                         subject_id = subjectRes.rows[0].id;
+                        console.log('Found subject from teacher specialization:', specialization);
                     }
                 }
             }
