@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Users, User, Smile } from 'lucide-react';
+import { Users, User, Calendar, Bell } from 'lucide-react';
 import api from '../../api/axios';
+import { useNavigate } from 'react-router-dom';
 
 const Overview = ({ config }) => {
     const [stats, setStats] = useState({
@@ -11,6 +12,9 @@ const Overview = ({ config }) => {
         staff: 0,
         classDistribution: []
     });
+
+    const [pendingLeaves, setPendingLeaves] = useState([]);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -48,7 +52,18 @@ const Overview = ({ config }) => {
                 console.error('Error loading overview stats:', error);
             }
         };
+
+        const fetchPendingLeaves = async () => {
+            try {
+                const res = await api.get('/leaves?status=Pending');
+                setPendingLeaves(Array.isArray(res.data) ? res.data.slice(0, 5) : []);
+            } catch (error) {
+                console.error('Error loading pending leaves:', error);
+            }
+        };
+
         fetchStats();
+        fetchPendingLeaves();
     }, []);
 
     return (
