@@ -24,7 +24,7 @@ const StudentLeaves = () => {
 
     const fetchLeaves = async () => {
         try {
-            const res = await api.get('/leaves/my');
+            const res = await api.get('/leaves/my-leaves');
             setLeaves(res.data);
         } catch (error) {
             console.error("Failed to fetch leaves", error);
