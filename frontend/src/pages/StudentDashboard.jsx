@@ -38,6 +38,12 @@ const StudentDashboard = () => {
     const handleTabChange = (tab) => {
         setActiveTab(tab);
         setIsMobileMenuOpen(false);
+
+        // Mark leave notifications as read when user visits leaves page
+        if (tab === 'leaves') {
+            localStorage.setItem('lastLeaveCheck', new Date().toISOString());
+            setLeaveNotifications([]); // Clear the badge immediately
+        }
     };
 
     useEffect(() => {
@@ -151,12 +157,15 @@ const StudentDashboard = () => {
         const fetchLeaveNotifications = async () => {
             try {
                 const res = await api.get('/leaves/my-leaves');
-                // Filter only recently approved/rejected leaves (last 7 days)
+                // Get the last time user checked leaves from localStorage
+                const lastChecked = localStorage.getItem('lastLeaveCheck');
+                const lastCheckedTime = lastChecked ? new Date(lastChecked) : new Date(0);
+
+                // Filter only recently approved/rejected leaves that are newer than last check
                 const recent = res.data.filter(leave => {
                     if (leave.status === 'Pending') return false;
                     const updatedDate = new Date(leave.updated_at || leave.created_at);
-                    const daysSince = (new Date() - updatedDate) / (1000 * 60 * 60 * 24);
-                    return daysSince <= 7;
+                    return updatedDate > lastCheckedTime;
                 });
                 setLeaveNotifications(recent);
             } catch (error) {
