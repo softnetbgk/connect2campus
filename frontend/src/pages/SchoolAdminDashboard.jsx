@@ -92,10 +92,19 @@ const SchoolAdminDashboard = () => {
     });
 
     const toggleSection = (section) => {
-        setExpandedSections(prev => ({
-            ...prev,
-            [section]: !prev[section]
-        }));
+        setExpandedSections(prev => {
+            const isCurrentlyExpanded = prev[section];
+            // If clicking an already expanded section, just close it
+            if (isCurrentlyExpanded) {
+                return { ...prev, [section]: false };
+            }
+            // Otherwise, close all sections and open only the clicked one
+            const allClosed = Object.keys(prev).reduce((acc, key) => {
+                acc[key] = false;
+                return acc;
+            }, {});
+            return { ...allClosed, [section]: true };
+        });
     };
 
     const handleTabChange = (tab) => {
