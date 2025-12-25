@@ -16,14 +16,20 @@ const getStudentId = async (email, school_id) => {
 // Create a new doubt (Student Only)
 exports.createDoubt = async (req, res) => {
     try {
-        const school_id = req.user.schoolId;
+        const school_id = req.user.school_id;
         const email = req.user.email;
         let { teacher_id, subject_id, question } = req.body;
+
+        console.log('Creating doubt:', { email, school_id, teacher_id, subject_id, question: question?.substring(0, 50) });
+
+        if (!question || !question.trim()) {
+            return res.status(400).json({ message: 'Question is required' });
+        }
 
         const student_id = await getStudentId(email, school_id);
         if (!student_id) {
             console.error(`Doubt Error: Student not found for email ${email} school ${school_id}`);
-            return res.status(404).json({ message: `Student profile not found for ${email}. Please contact admin.` });
+            return res.status(404).json({ message: `Student profile not found. Please ensure you're logged in with the correct account.` });
         }
 
         // If subject_id is missing but request has 'subject' name (Mobile App case)
@@ -57,16 +63,19 @@ exports.createDoubt = async (req, res) => {
             }
         }
 
+        console.log('Inserting doubt with:', { student_id, teacher_id, subject_id });
+
         const result = await pool.query(
             `INSERT INTO doubts (student_id, teacher_id, subject_id, question) 
              VALUES ($1, $2, $3, $4) RETURNING *`,
             [student_id, teacher_id || null, subject_id || null, question]
         );
 
+        console.log('Doubt created successfully:', result.rows[0].id);
         res.status(201).json(result.rows[0]);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error creating doubt' });
+        console.error('Error creating doubt:', error);
+        res.status(500).json({ message: 'Server error creating doubt: ' + error.message });
     }
 };
 
