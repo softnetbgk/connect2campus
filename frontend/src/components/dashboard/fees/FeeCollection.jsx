@@ -559,6 +559,7 @@ argin: 10px 0; }
                             <tbody className="divide-y divide-slate-100">
                                 {overview.students
                                     .filter(s => statusFilter === 'All' || s.status === statusFilter)
+                                    .slice(0, statusFilter === 'Paid' ? 10 : undefined)
                                     .map(s => (
                                         <tr key={s.id} className="hover:bg-slate-50/80 transition-colors group">
                                             <td className="p-2 md:p-4 pl-4 md:pl-6">

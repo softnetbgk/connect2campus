@@ -168,7 +168,11 @@ const MarksManagement = ({ config }) => {
         }
     };
 
-    const handleMarkChange = (studentId, subjectId, componentId, value) => {
+    const handleMarkChange = (studentId, subjectId, componentId, value, maxMarks) => {
+        if (parseFloat(value) > parseFloat(maxMarks)) {
+            toast.error(`Marks cannot exceed ${maxMarks}`);
+            return;
+        }
         const key = componentId
             ? `${studentId}-${subjectId}-${componentId}`
             : `${studentId}-${subjectId}`;
@@ -404,7 +408,7 @@ const MarksManagement = ({ config }) => {
                                                                 max={component.max_marks}
                                                                 step="0.5"
                                                                 value={marks[`${student.id}-${subject.id}-${component.id}`] !== undefined ? marks[`${student.id}-${subject.id}-${component.id}`] : ''}
-                                                                onChange={(e) => handleMarkChange(student.id, subject.id, component.id, e.target.value)}
+                                                                onChange={(e) => handleMarkChange(student.id, subject.id, component.id, e.target.value, component.max_marks)}
                                                                 className="w-full px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-amber-500 outline-none text-center"
                                                                 placeholder="-"
                                                             />
@@ -418,7 +422,7 @@ const MarksManagement = ({ config }) => {
                                                             max={selectedExamType?.max_marks || 100}
                                                             step="0.5"
                                                             value={marks[`${student.id}-${subject.id}`] !== undefined ? marks[`${student.id}-${subject.id}`] : ''}
-                                                            onChange={(e) => handleMarkChange(student.id, subject.id, null, e.target.value)}
+                                                            onChange={(e) => handleMarkChange(student.id, subject.id, null, e.target.value, selectedExamType?.max_marks || 100)}
                                                             className="w-full px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-amber-500 outline-none text-center"
                                                             placeholder="-"
                                                         />

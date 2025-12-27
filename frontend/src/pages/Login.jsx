@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { School, ShieldCheck, User, Users, GraduationCap, Briefcase, Bus, Eye, EyeOff, X, Smartphone } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { Capacitor } from '@capacitor/core';
+import Welcome from './Welcome';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -15,6 +16,7 @@ const Login = () => {
     const [showQR, setShowQR] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -35,9 +37,18 @@ const Login = () => {
         }
     };
 
-    const isMobileApp = Capacitor.isNativePlatform();
+    // Detect if running in mobile app (Capacitor or WebView with param)
+    const isMobileApp = Capacitor.isNativePlatform() || new URLSearchParams(window.location.search).get('is_mobile_app') === 'true';
+
+    // Skip welcome if navigated with state flag
+    const [showWelcome, setShowWelcome] = useState(!location.state?.skipWelcome && new URLSearchParams(window.location.search).get('skip_welcome') !== 'true');
+
+    if (showWelcome) {
+        return <Welcome onComplete={() => setShowWelcome(false)} />;
+    }
 
     const roles = [
+        // ...
         { id: 'SCHOOL_ADMIN', label: 'School Admin', icon: School },
         { id: 'TEACHER', label: 'Teacher', icon: Users },
         { id: 'STUDENT', label: 'Student', icon: GraduationCap },
@@ -45,147 +56,159 @@ const Login = () => {
     ].filter(role => !isMobileApp || role.id !== 'SCHOOL_ADMIN'); // Hide Admin on Mobile App
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-sky-700 via-cyan-600 to-blue-800 flex items-center justify-center p-4 relative overflow-hidden">
-
-            {/* Background Blobs */}
-            <div className="absolute top-0 left-0 w-96 h-96 bg-cyan-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 -translate-x-1/2 -translate-y-1/2 animate-blob"></div>
-            <div className="absolute top-0 right-0 w-96 h-96 bg-sky-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 translate-x-1/2 -translate-y-1/2 animate-blob animation-delay-2000"></div>
-            <div className="absolute -bottom-32 left-20 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
-
-            <div className="bg-white/95 backdrop-blur-xl p-6 rounded-3xl shadow-2xl w-full max-w-sm border border-white/20 relative z-10 transition-all duration-300 hover:shadow-cyan-500/20">
-                <div className="text-center mb-6">
-                    <div className="bg-gradient-to-br from-cyan-500 to-sky-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-cyan-500/30 transform rotate-3 hover:rotate-6 transition-transform">
-                        <School className="text-white w-8 h-8" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Connect to Campus</h1>
-                    <p className="text-slate-500 mt-1 text-sm font-medium">Sign in to your dashboard</p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Role Selection Grid */}
-                    <div>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 text-center">Select Your Role</label>
-                        <div className="grid grid-cols-2 gap-2">
-                            {roles.map((r) => (
-                                <button
-                                    key={r.id}
-                                    type="button"
-                                    onClick={() => setRole(r.id)}
-                                    className={`p-2 rounded-lg text-[10px] font-bold transition-all flex flex-col items-center justify-center gap-1 h-16 border
-                                        ${role === r.id
-                                            ? 'bg-cyan-50 border-cyan-500 text-cyan-700 shadow-sm transform scale-105'
-                                            : 'bg-slate-50 border-transparent text-slate-400 hover:bg-white hover:border-slate-200 hover:shadow-sm'}`}
-                                >
-                                    <r.icon size={20} className={role === r.id ? 'text-cyan-600' : 'text-slate-400'} />
-                                    {r.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="space-y-3">
-                        <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1 ml-1">
-                                {['STUDENT', 'TEACHER', 'STAFF'].includes(role) ? 'Email / Attendance ID' : 'Email Address'}
-                            </label>
-                            <input
-                                type="text"
-                                required
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-0 outline-none transition-all font-semibold text-sm text-slate-700 placeholder:text-slate-400"
-                                placeholder={['STUDENT', 'TEACHER', 'STAFF'].includes(role) ? 'e.g. STU1234 or email@school.com' : 'admin@school.com'}
-                                value={email}
-                                onChange={(e) => { setEmail(e.target.value); setErrorMessage(''); }}
-                            />
-                        </div>
-
-                        <div>
-                            <div className="flex justify-between items-center mb-1 ml-1">
-                                <label className="block text-xs font-bold text-slate-700">Password</label>
-                                <Link to="/forgot-password" className="text-[10px] text-cyan-600 font-bold hover:underline">Forgot Password?</Link>
-                            </div>
-                            <div className="relative">
-                                <input
-                                    type={showPassword ? "text" : "password"}
-                                    required
-                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-cyan-500 focus:ring-0 outline-none transition-all font-semibold text-sm text-slate-700 placeholder:text-slate-400 pr-10"
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={(e) => { setPassword(e.target.value); setErrorMessage(''); }}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-600 transition-colors"
-                                >
-                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        className="w-full bg-gradient-to-r from-cyan-500 to-sky-600 hover:from-cyan-600 hover:to-sky-700 text-white font-bold py-3 rounded-xl transition-all transform active:scale-[0.98] shadow-lg shadow-cyan-500/30 flex items-center justify-center gap-2 text-sm"
-                    >
-                        Access Portal
-                    </button>
-
-                    {errorMessage && (
-                        <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-xs font-bold text-center border border-red-100 animate-in fade-in slide-in-from-top-1">
-                            {errorMessage}
-                        </div>
-                    )}
-
-                    <p className="text-center text-[10px] text-slate-400 mt-3">
-                        Having trouble? <a href="#" className="text-cyan-600 font-bold hover:underline">Contact Support</a>
-                    </p>
-                </form>
-
-                {/* Mobile App Download Section */}
-                {!isMobileApp && (
-                    <div className="mt-6 pt-6 border-t border-slate-100">
-                        <button
-                            onClick={() => setShowQR(true)}
-                            className="w-full flex items-center justify-center gap-2 text-slate-500 hover:text-cyan-600 transition-colors text-xs font-semibold group"
-                        >
-                            <Smartphone size={16} className="group-hover:scale-110 transition-transform" />
-                            Download Mobile App
-                        </button>
-                    </div>
-                )}
+        <div className="relative min-h-screen w-full overflow-hidden flex items-center justify-center">
+            {/* Animated Background Image - Classroom */}
+            <div className="absolute inset-0 w-full h-full z-0">
+                <img
+                    src="https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2560&auto=format&fit=crop"
+                    alt="Classroom Background"
+                    className="w-full h-full object-cover animate-ken-burns"
+                />
+                <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]"></div>
             </div>
 
-            {/* QR Code Modal for Mobile App */}
+            {/* Floating Modern Shapes */}
+            <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-yellow-400/20 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-[#00C9FC]/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+
+            {/* Login Card - Glassmorphism */}
+            <div className="relative z-10 w-full max-w-sm p-4 mx-4">
+                <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-8 transform transition-all hover:scale-[1.01] animate-fade-in-up">
+
+                    <div className="text-center mb-6 space-y-2">
+                        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/10 border border-white/20 mb-2 shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                            <School size={28} className="text-yellow-400" />
+                        </div>
+                        <h2 className="text-3xl font-cursive text-white drop-shadow-md">Welcome Back</h2>
+                        <p className="text-gray-300 text-xs tracking-wide uppercase font-medium">Sign in to your dashboard</p>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Role Selection */}
+                        <div>
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 text-center">Select Your Role</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {roles.map((r) => (
+                                    <button
+                                        key={r.id}
+                                        type="button"
+                                        onClick={() => setRole(r.id)}
+                                        className={`p-2 rounded-xl text-[10px] font-bold transition-all flex flex-col items-center justify-center gap-1 border h-16
+                                            ${role === r.id
+                                                ? 'bg-yellow-400 text-black border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.4)] transform scale-105'
+                                                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:border-white/30 hover:text-white'}`}
+                                    >
+                                        <r.icon size={20} className={role === r.id ? 'text-black' : 'text-gray-500 group-hover:text-white'} />
+                                        {r.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-semibold text-gray-400 ml-1 uppercase tracking-wider">
+                                    {['STUDENT', 'TEACHER', 'STAFF'].includes(role) ? 'Email / Attendance ID' : 'Email Address'}
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 focus:border-yellow-400 transition-all font-sans text-sm"
+                                    placeholder={['STUDENT', 'TEACHER', 'STAFF'].includes(role) ? 'e.g. STU1234' : 'admin@school.com'}
+                                    value={email}
+                                    onChange={(e) => { setEmail(e.target.value); setErrorMessage(''); }}
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <div className="flex justify-between items-center ml-1">
+                                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Password</label>
+                                    <Link to="/forgot-password" className="text-[10px] text-yellow-400 font-bold hover:text-yellow-300 transition-colors">Forgotten Password</Link>
+                                </div>
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        required
+                                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 focus:border-yellow-400 transition-all font-sans text-sm pr-10"
+                                        placeholder="••••••••"
+                                        value={password}
+                                        onChange={(e) => { setPassword(e.target.value); setErrorMessage(''); }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-400 transition-colors"
+                                    >
+                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="w-full py-3 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold rounded-xl shadow-lg shadow-yellow-400/20 transform transition-all hover:scale-[1.02] flex items-center justify-center gap-2 text-sm"
+                        >
+                            Access Portal
+                        </button>
+
+                        {errorMessage && (
+                            <div className="bg-red-500/20 text-red-200 px-4 py-2 rounded-xl text-xs font-bold text-center border border-red-500/50 animate-in fade-in slide-in-from-top-1 backdrop-blur-sm">
+                                {errorMessage}
+                            </div>
+                        )}
+
+                        <div className="text-center mt-2">
+                            <p className="text-white/30 text-[10px] font-cursive tracking-widest">Connect to Campus</p>
+                        </div>
+                    </form>
+
+                    {/* Mobile App Download Section */}
+                    {!isMobileApp && (
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                            <button
+                                onClick={() => setShowQR(true)}
+                                className="w-full flex items-center justify-center gap-2 text-gray-400 hover:text-yellow-400 transition-colors text-xs font-semibold group"
+                            >
+                                <Smartphone size={16} className="group-hover:scale-110 transition-transform" />
+                                Download Mobile App
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* QR Code Modal */}
             {showQR && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl relative animate-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-slate-900 border border-white/20 rounded-2xl p-6 max-w-sm w-full shadow-2xl relative animate-in zoom-in-95 duration-200">
                         <button
                             onClick={() => setShowQR(false)}
-                            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+                            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
                         >
                             <X size={20} />
                         </button>
 
                         <div className="text-center">
-                            <h3 className="text-lg font-bold text-slate-800 mb-2">Get the Mobile App</h3>
-                            <p className="text-sm text-slate-500 mb-6">Choose your platform to download</p>
+                            <h3 className="text-lg font-bold text-white mb-2">Get the Mobile App</h3>
+                            <p className="text-sm text-gray-400 mb-6">Scan to download instantly</p>
 
-                            <div className="flex flex-col md:flex-row gap-4 justify-center mb-4">
+                            <div className="flex flex-col md:flex-row gap-4 justify-center mb-6">
                                 <div className="bg-white p-3 rounded-xl shadow-inner border border-slate-100">
                                     <QRCode
                                         value={`${window.location.protocol}//${window.location.host}/SchoolApp.apk`}
-                                        size={140}
+                                        size={130}
                                         level="H"
                                     />
-                                    <p className="text-[10px] text-slate-400 mt-2 font-mono">Android APK</p>
+                                    <p className="text-[10px] text-slate-800 mt-2 font-mono font-bold">Android APK</p>
                                 </div>
                                 <div className="bg-white p-3 rounded-xl shadow-inner border border-slate-100">
                                     <QRCode
-                                        value={`${window.location.protocol}//${window.location.host}`}
-                                        size={140}
+                                        value={`${window.location.protocol}//${window.location.host}?skip_welcome=true&is_mobile_app=true`}
+                                        size={130}
                                         level="H"
                                     />
-                                    <p className="text-[10px] text-slate-400 mt-2 font-mono">iOS (Web Version)</p>
+                                    <p className="text-[10px] text-slate-800 mt-2 font-mono font-bold">iOS App</p>
                                 </div>
                             </div>
 
@@ -200,13 +223,13 @@ const Login = () => {
                                 </a>
 
                                 <a
-                                    href={window.location.origin}
+                                    href={`${window.location.origin}?skip_welcome=true&is_mobile_app=true`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="w-full inline-flex justify-center items-center gap-3 bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-colors text-sm shadow-lg shadow-slate-500/20"
                                 >
-                                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.21-1.98 1.07-3.14-1.04.05-2.3.69-3.04 1.59-.67.81-1.24 2.13-1.07 3.23 1.17.09 2.37-.85 1.04-1.68z" /></svg>
-                                    Open iOS Web App
+                                    <Smartphone size={20} className="text-gray-400" />
+                                    Launch iOS App
                                 </a>
                             </div>
                         </div>

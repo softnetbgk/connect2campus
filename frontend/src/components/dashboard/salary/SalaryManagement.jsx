@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Calendar, Download, CheckCircle, Clock, Filter } from 'lucide-react';
+import { DollarSign, Calendar, Download, CheckCircle, Clock, Filter, IndianRupee, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../../api/axios';
 
@@ -10,11 +10,15 @@ const SalaryManagement = () => {
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [filterType, setFilterType] = useState('all'); // 'all', 'teacher', 'staff'
     const [paymentFilter, setPaymentFilter] = useState('all'); // 'all', 'paid', 'unpaid'
+    const [searchQuery, setSearchQuery] = useState('');
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [paymentData, setPaymentData] = useState({
         payment_mode: 'Cash',
-        notes: ''
+        notes: '',
+        transaction_id: '',
+        cheque_number: '',
+        bank_name: ''
     });
 
     useEffect(() => {
@@ -45,13 +49,18 @@ const SalaryManagement = () => {
                 year: selectedYear,
                 amount: selectedEmployee.calculated_salary,
                 payment_mode: paymentData.payment_mode,
-                notes: paymentData.notes
+                notes: paymentData.notes,
+                transaction_details: {
+                    transaction_id: paymentData.transaction_id,
+                    cheque_number: paymentData.cheque_number,
+                    bank_name: paymentData.bank_name
+                }
             });
 
             toast.success(`Salary marked as paid for ${selectedEmployee.name}`);
             setShowPaymentModal(false);
             setSelectedEmployee(null);
-            setPaymentData({ payment_mode: 'Cash', notes: '' });
+            setPaymentData({ payment_mode: 'Cash', notes: '', transaction_id: '', cheque_number: '', bank_name: '' });
             fetchSalaryData();
         } catch (error) {
             toast.error('Failed to mark salary as paid');
@@ -66,6 +75,16 @@ const SalaryManagement = () => {
         // Payment filter
         if (paymentFilter === 'paid' && !emp.is_paid) return false;
         if (paymentFilter === 'unpaid' && emp.is_paid) return false;
+
+        // Search filter
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            return (
+                emp.name?.toLowerCase().includes(query) ||
+                emp.employee_id?.toLowerCase().includes(query) ||
+                emp.role?.toLowerCase().includes(query)
+            );
+        }
 
         return true;
     });
@@ -86,7 +105,7 @@ const SalaryManagement = () => {
                 <div className="flex justify-between items-center">
                     <div>
                         <h2 className="text-2xl font-bold flex items-center gap-2">
-                            <DollarSign size={28} />
+                            <IndianRupee size={28} />
                             Salary Management
                         </h2>
                         <p className="text-emerald-50 mt-1">Manage monthly salaries for Teachers and Staff</p>
@@ -100,61 +119,56 @@ const SalaryManagement = () => {
 
             {/* Filters */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                <div className="flex flex-wrap gap-4 items-center">
-                    <div className="flex items-center gap-2">
-                        <Calendar size={18} className="text-slate-500" />
-                        <span className="font-semibold text-slate-700">Period:</span>
+                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                    <div className="flex gap-4 items-center w-full md:w-auto">
+                        <div className="flex items-center gap-2">
+                            <Calendar size={18} className="text-slate-500" />
+                            <span className="font-semibold text-slate-700">Period:</span>
+                        </div>
+                        <select
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                            className="px-4 py-2 border border-slate-300 rounded-lg font-medium text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                        >
+                            {months.map((month, idx) => (
+                                <option key={idx} value={idx + 1}>{month}</option>
+                            ))}
+                        </select>
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                            className="px-4 py-2 border border-slate-300 rounded-lg font-medium text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                        >
+                            {years.map(year => (
+                                <option key={year} value={year}>{year}</option>
+                            ))}
+                        </select>
                     </div>
-                    <select
-                        value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                        className="px-4 py-2 border border-slate-300 rounded-lg font-medium text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                    >
-                        {months.map((month, idx) => (
-                            <option key={idx} value={idx + 1}>{month}</option>
-                        ))}
-                    </select>
-                    <select
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                        className="px-4 py-2 border border-slate-300 rounded-lg font-medium text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                    >
-                        {years.map(year => (
-                            <option key={year} value={year}>{year}</option>
-                        ))}
-                    </select>
 
-                    <div className="ml-auto flex gap-6 items-center">
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        {/* Search Bar */}
+                        <div className="relative flex-1 md:w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                            <input
+                                type="text"
+                                placeholder="Search by name or ID..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                            />
+                        </div>
+
                         <div className="flex gap-2">
                             {['all', 'teacher', 'staff'].map(type => (
                                 <button
                                     key={type}
                                     onClick={() => setFilterType(type)}
-                                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all capitalize ${filterType === type
+                                    className={`px-3 py-2 rounded-lg text-xs font-bold transition-all capitalize ${filterType === type
                                         ? 'bg-emerald-600 text-white shadow-md'
                                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                         }`}
                                 >
                                     {type}
-                                </button>
-                            ))}
-                        </div>
-                        <div className="h-6 w-px bg-slate-300"></div>
-                        <div className="flex gap-2">
-                            {[
-                                { key: 'all', label: 'All' },
-                                { key: 'paid', label: 'Paid' },
-                                { key: 'unpaid', label: 'Unpaid' }
-                            ].map(filter => (
-                                <button
-                                    key={filter.key}
-                                    onClick={() => setPaymentFilter(filter.key)}
-                                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${paymentFilter === filter.key
-                                        ? 'bg-indigo-600 text-white shadow-md'
-                                        : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-300'
-                                        }`}
-                                >
-                                    {filter.label}
                                 </button>
                             ))}
                         </div>
@@ -274,22 +288,14 @@ const SalaryManagement = () => {
                             <h3 className="text-lg font-bold text-emerald-900">Mark Salary as Paid</h3>
                             <p className="text-sm text-emerald-700 mt-1">{selectedEmployee.name}</p>
                         </div>
-                        <div className="p-6 space-y-4">
+                        <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
                             <div className="bg-slate-50 p-4 rounded-lg">
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="text-sm text-slate-600">Period</span>
                                     <span className="font-bold text-slate-800">{months[selectedMonth - 1]} {selectedYear}</span>
                                 </div>
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-sm text-slate-600">Days Present</span>
-                                    <span className="font-bold text-emerald-600">{selectedEmployee.days_present} days</span>
-                                </div>
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-sm text-slate-600">Rate per Day</span>
-                                    <span className="font-bold text-slate-800">₹{selectedEmployee.salary_per_day}</span>
-                                </div>
                                 <div className="border-t border-slate-200 mt-3 pt-3 flex justify-between items-center">
-                                    <span className="font-bold text-slate-700">Total Amount</span>
+                                    <span className="font-bold text-slate-700">Total Payable Amount</span>
                                     <span className="text-2xl font-bold text-emerald-600">
                                         ₹{parseFloat(selectedEmployee.calculated_salary || 0).toLocaleString()}
                                     </span>
@@ -310,6 +316,59 @@ const SalaryManagement = () => {
                                 </select>
                             </div>
 
+                            {/* Conditional Fields for Online Payments */}
+                            {['Bank Transfer', 'UPI'].includes(paymentData.payment_mode) && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Transaction ID / UTR</label>
+                                        <input
+                                            type="text"
+                                            value={paymentData.transaction_id}
+                                            onChange={(e) => setPaymentData({ ...paymentData, transaction_id: e.target.value })}
+                                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                                            placeholder="Enter Transaction ID"
+                                        />
+                                    </div>
+                                    {paymentData.payment_mode === 'Bank Transfer' && (
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-2">Bank Name</label>
+                                            <input
+                                                type="text"
+                                                value={paymentData.bank_name}
+                                                onChange={(e) => setPaymentData({ ...paymentData, bank_name: e.target.value })}
+                                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                                                placeholder="Enter Bank Name (Optional)"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {paymentData.payment_mode === 'Cheque' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Cheque Number</label>
+                                        <input
+                                            type="text"
+                                            value={paymentData.cheque_number}
+                                            onChange={(e) => setPaymentData({ ...paymentData, cheque_number: e.target.value })}
+                                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                                            placeholder="Enter Cheque Number"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Bank Name</label>
+                                        <input
+                                            type="text"
+                                            value={paymentData.bank_name}
+                                            onChange={(e) => setPaymentData({ ...paymentData, bank_name: e.target.value })}
+                                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                                            placeholder="Issuing Bank Name"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2">Notes (Optional)</label>
                                 <textarea
@@ -317,7 +376,7 @@ const SalaryManagement = () => {
                                     onChange={(e) => setPaymentData({ ...paymentData, notes: e.target.value })}
                                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                                     rows="3"
-                                    placeholder="Add any notes..."
+                                    placeholder="Add any additional notes..."
                                 />
                             </div>
 
@@ -326,7 +385,7 @@ const SalaryManagement = () => {
                                     onClick={() => {
                                         setShowPaymentModal(false);
                                         setSelectedEmployee(null);
-                                        setPaymentData({ payment_mode: 'Cash', notes: '' });
+                                        setPaymentData({ payment_mode: 'Cash', notes: '', transaction_id: '', cheque_number: '', bank_name: '' });
                                     }}
                                     className="flex-1 px-4 py-2 border border-slate-300 rounded-lg font-bold text-slate-700 hover:bg-slate-50 transition-colors"
                                 >

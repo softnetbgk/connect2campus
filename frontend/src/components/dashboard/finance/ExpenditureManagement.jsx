@@ -19,7 +19,8 @@ const ExpenditureManagement = () => {
         expense_date: new Date().toISOString().split('T')[0],
         payment_method: 'Cash',
         transaction_id: '',
-        upi_id: ''
+        upi_id: '',
+        custom_category: ''
     });
 
     useEffect(() => {
@@ -57,7 +58,11 @@ const ExpenditureManagement = () => {
         }
 
         try {
-            await api.post('/finance/expenditures', formData);
+            const payload = { ...formData };
+            if (payload.category === 'Custom') {
+                payload.category = payload.custom_category;
+            }
+            await api.post('/finance/expenditures', payload);
             toast.success('Expenditure added successfully');
             setShowModal(false);
             setFormData({
@@ -68,7 +73,8 @@ const ExpenditureManagement = () => {
                 expense_date: new Date().toISOString().split('T')[0],
                 payment_method: 'Cash',
                 transaction_id: '',
-                upi_id: ''
+                upi_id: '',
+                custom_category: ''
             });
             fetchExpenditures();
             fetchStats();
@@ -399,9 +405,23 @@ const ExpenditureManagement = () => {
                                             <option value="Supplies">Supplies</option>
                                             <option value="Utilities">Utilities</option>
                                             <option value="Salary">Salary</option>
-                                            <option value="Other">Other</option>
+                                            <option value="Salary">Salary</option>
+                                            <option value="Custom">+ Custom Category</option>
                                         </select>
                                     </div>
+                                    {formData.category === 'Custom' && (
+                                        <div className="col-span-2">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-1">Custom Category Name</label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                                                value={formData.custom_category}
+                                                onChange={e => setFormData({ ...formData, custom_category: e.target.value })}
+                                                placeholder="Enter category name"
+                                                required
+                                            />
+                                        </div>
+                                    )}
                                     <div>
                                         <label className="block text-sm font-semibold text-slate-700 mb-1">Payment Method</label>
                                         <select

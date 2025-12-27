@@ -51,13 +51,13 @@ const SetupAdmin = () => {
                         placeholder="Default: admin123"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:border-blue-500 outline-none"
+                        className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:border-[#00C9FC] outline-none"
                     />
                 </div>
 
                 <button
                     onClick={handleSetup}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded transition-colors"
+                    className="w-full bg-[#00C9FC] hover:bg-cyan-500 text-white font-bold py-3 rounded transition-colors"
                 >
                     Create Super Admin
                 </button>

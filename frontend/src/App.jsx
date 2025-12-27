@@ -36,6 +36,7 @@ const ProtectedRoute = ({ children, role }) => {
 
 
 import ErrorBoundary from './components/ErrorBoundary';
+import Welcome from './pages/Welcome';
 
 function App() {
   return (
@@ -43,7 +44,7 @@ function App() {
       <AuthProvider>
         <Router>
           <div className="min-h-screen bg-gray-50">
-            <Toaster position="top-right" />
+            <Toaster position="top-center" />
             <Routes>
               <Route path="/" element={<Navigate to="/login" />} />
               <Route path="/login" element={<Login />} />

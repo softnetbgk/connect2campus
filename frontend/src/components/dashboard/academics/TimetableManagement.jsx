@@ -447,9 +447,11 @@ const TimetableManagement = ({ config }) => {
                                                     disabled={!sub.enabled}
                                                 >
                                                     <option value="">Select Teacher</option>
-                                                    {teachers.map(t => (
-                                                        <option key={t.id} value={t.id}>{t.name}</option>
-                                                    ))}
+                                                    {teachers
+                                                        .filter(t => t.subject_specialization && t.subject_specialization.toLowerCase() === sub.subject_name.toLowerCase())
+                                                        .map(t => (
+                                                            <option key={t.id} value={t.id}>{t.name}</option>
+                                                        ))}
                                                 </select>
                                             </div>
                                         ))}
@@ -505,9 +507,14 @@ const TimetableManagement = ({ config }) => {
                                     className="w-full px-4 py-2 border border-slate-300 rounded-lg"
                                 >
                                     <option value="">Unassigned</option>
-                                    {teachers.map(t => (
-                                        <option key={t.id} value={t.id}>{t.name} - {t.subject_specialization}</option>
-                                    ))}
+                                    {teachers
+                                        .filter(t => {
+                                            const currentSubject = classSubjects.find(s => s.id === editingSlot.subject_id);
+                                            return currentSubject && t.subject_specialization && t.subject_specialization.toLowerCase() === currentSubject.name.toLowerCase();
+                                        })
+                                        .map(t => (
+                                            <option key={t.id} value={t.id}>{t.name}</option>
+                                        ))}
                                 </select>
                             </div>
                         </div>

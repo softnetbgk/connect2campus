@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
     Users, Calendar, BarChart3, LogOut, Check, ChevronRight, ChevronDown, User, DollarSign,
-    LayoutDashboard, Settings, Bell, Search, Menu, Book, Home, Clock, Megaphone, Bus, UserPlus, Shield, ScanLine, X
+    LayoutDashboard, Settings, Bell, Search, Menu, Book, Home, Clock, Megaphone, Bus, UserPlus, Shield, ScanLine, X, IndianRupee
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -78,7 +78,7 @@ const SchoolAdminDashboard = () => {
 
     // Sidebar Expansion States
     const [expandedSections, setExpandedSections] = useState({
-        students: true,
+        students: false,
         teachers: false,
         staff: false,
         fees: false,
@@ -145,35 +145,45 @@ const SchoolAdminDashboard = () => {
     const handleLogout = () => { logout(); navigate('/'); };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900 relative">
+        <div className="relative min-h-screen w-full flex font-sans text-slate-900 overflow-hidden">
+            {/* Global Background */}
+            <div className="absolute inset-0 w-full h-full z-0 pointer-events-none">
+                <img
+                    src="https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2560&auto=format&fit=crop"
+                    alt="Background"
+                    className="w-full h-full object-cover animate-ken-burns opacity-60"
+                />
+                <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-[2px]"></div>
+            </div>
+
             {/* Mobile Sidebar Overlay */}
             {isMobileMenuOpen && (
                 <div
-                    className="fixed inset-0 bg-slate-900/50 z-40 md:hidden backdrop-blur-sm"
+                    className="fixed inset-0 bg-black/80 z-40 md:hidden backdrop-blur-sm"
                     onClick={() => setIsMobileMenuOpen(false)}
                 />
             )}
 
-            {/* Sidebar - Vibrant Modern Design */}
-            <aside className={`w-72 bg-gradient-to-b from-sky-700 to-sky-800 text-white flex flex-col shadow-2xl z-50 transition-transform duration-300 
+            {/* Sidebar - Dark Glass Design */}
+            <aside className={`w-72 bg-black/40 backdrop-blur-xl border-r border-white/10 text-gray-300 flex flex-col shadow-2xl z-50 transition-transform duration-300 
                 fixed inset-y-0 left-0 h-screen overflow-y-auto custom-scrollbar print:hidden
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
                 md:translate-x-0 md:sticky md:top-0 md:flex`}>
                 {/* Brand Area */}
-                <div className="p-6 flex items-center justify-between border-b border-sky-600/30">
+                <div className="p-6 flex items-center justify-between border-b border-white/10">
                     <div className="flex items-center gap-3">
-                        <div className="bg-gradient-to-br from-cyan-400 to-sky-500 p-2.5 rounded-xl shadow-lg shadow-cyan-400/30">
-                            <Users className="text-white w-6 h-6" />
+                        <div className="bg-yellow-400/20 p-2.5 rounded-xl shadow-[0_0_15px_rgba(250,204,21,0.2)] border border-yellow-400/30">
+                            <Users className="text-yellow-400 w-6 h-6" />
                         </div>
                         <div className="w-full">
                             <h1 className="text-xl font-serif font-black italic text-white tracking-wide leading-tight drop-shadow-md">{academicConfig.name || 'School Admin'}</h1>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-300">Admin Portal</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-yellow-400/80">Admin Portal</p>
                         </div>
                     </div>
                     {/* Mobile Close Button */}
                     <button
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className="md:hidden text-slate-400 hover:text-white"
+                        className="md:hidden text-gray-400 hover:text-white"
                     >
                         <X size={24} />
                     </button>
@@ -181,7 +191,7 @@ const SchoolAdminDashboard = () => {
 
                 {/* Navigation */}
                 <nav className="p-4 space-y-1 flex-1">
-                    <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-2">Main</p>
+                    <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 mt-2">Main</p>
                     <NavButton
                         active={activeTab === 'overview'}
                         onClick={() => handleTabChange('overview')}
@@ -189,7 +199,7 @@ const SchoolAdminDashboard = () => {
                         label="Dashboard Overview"
                     />
 
-                    <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Management</p>
+                    <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 mt-6">Management</p>
                     <NavGroup
                         label="Students"
                         icon={Users}
@@ -235,17 +245,22 @@ const SchoolAdminDashboard = () => {
                         <NavSubButton active={activeTab === 'staff-report'} onClick={() => handleTabChange('staff-report')} label="Reports" />
                     </NavGroup>
 
-                    <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Finance</p>
+                    <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 mt-6">Finance</p>
                     <NavGroup
                         label="Fees & Accounts"
-                        icon={DollarSign}
+                        icon={IndianRupee}
                         expanded={expandedSections.fees}
                         onToggle={() => toggleSection('fees')}
                     >
                         <NavSubButton active={activeTab === 'fee-config'} onClick={() => handleTabChange('fee-config')} label="Fee Structure" />
                         <NavSubButton active={activeTab === 'fee-collection'} onClick={() => handleTabChange('fee-collection')} label="Collection Board" />
-                        <NavSubButton active={activeTab === 'expenditures'} onClick={() => handleTabChange('expenditures')} label="Expenditures" />
                     </NavGroup>
+                    <NavButton
+                        active={activeTab === 'expenditures'}
+                        onClick={() => handleTabChange('expenditures')}
+                        icon={IndianRupee}
+                        label="Expenditures"
+                    />
 
                     <NavGroup
                         label="Library"
@@ -260,7 +275,7 @@ const SchoolAdminDashboard = () => {
 
                     <NavGroup
                         label="Salary"
-                        icon={DollarSign}
+                        icon={IndianRupee}
                         expanded={expandedSections.salary}
                         onToggle={() => toggleSection('salary')}
                     >
@@ -316,8 +331,8 @@ const SchoolAdminDashboard = () => {
                         />
                     </div>
 
-                    <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Logistics</p>
-                    <div className="mt-2 text-slate-100">
+                    <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 mt-6">Logistics</p>
+                    <div className="mt-2">
                         <NavButton
                             active={activeTab === 'transport-management'}
                             onClick={() => handleTabChange('transport-management')}
@@ -326,8 +341,8 @@ const SchoolAdminDashboard = () => {
                         />
                     </div>
 
-                    <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Documents</p>
-                    <div className="mt-2 text-slate-100">
+                    <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 mt-6">Documents</p>
+                    <div className="mt-2">
                         <NavButton
                             active={activeTab === 'certificates-generator'}
                             onClick={() => handleTabChange('certificates-generator')}
@@ -336,8 +351,8 @@ const SchoolAdminDashboard = () => {
                         />
                     </div>
 
-                    <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Biometric & Access</p>
-                    <div className="mt-2 text-slate-100">
+                    <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 mt-6">Biometric & Access</p>
+                    <div className="mt-2">
                         <NavGroup
                             label="Access Control"
                             icon={Shield}
@@ -350,16 +365,16 @@ const SchoolAdminDashboard = () => {
                 </nav>
 
                 {/* Footer User Profile */}
-                <div className="p-4 border-t border-sky-600/30 bg-sky-800">
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-sky-700/50 hover:bg-sky-600 transition-colors cursor-pointer group">
-                        <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold">
+                <div className="p-4 border-t border-white/10 bg-black/20">
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group border border-white/5 hover:border-white/20">
+                        <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center text-black font-bold shadow-md shadow-yellow-400/20">
                             {user?.email?.[0].toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white truncate">{user?.email}</p>
-                            <p className="text-xs text-slate-400">School Administrator</p>
+                            <p className="text-sm font-bold text-white truncate">{user?.email}</p>
+                            <p className="text-xs text-gray-400">School Administrator</p>
                         </div>
-                        <button onClick={handleLogout} className="text-slate-400 hover:text-red-400 transition-colors">
+                        <button onClick={handleLogout} className="text-gray-400 hover:text-red-400 transition-colors">
                             <LogOut size={18} />
                         </button>
                     </div>
@@ -367,17 +382,17 @@ const SchoolAdminDashboard = () => {
             </aside>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col h-screen overflow-hidden bg-[#f1f5f9]">
+            <div className="flex-1 flex flex-col h-screen overflow-hidden bg-[#f1f5f9] relative z-10">
                 {/* Header */}
                 <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 h-16 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm print:hidden">
                     <div className="flex items-center gap-4">
                         <button
-                            className="md:hidden text-slate-500 hover:text-indigo-600 mr-2"
+                            className="md:hidden text-slate-600 hover:text-indigo-600 mr-2"
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                         >
                             <Menu size={24} />
                         </button>
-                        <h2 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                        <h2 className="text-xl font-bold text-slate-800">
                             {getTabTitle(activeTab)}
                         </h2>
                     </div>
@@ -386,10 +401,10 @@ const SchoolAdminDashboard = () => {
                             <Search className="absolute left-3 top-2.5 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
                             <input
                                 placeholder="Search..."
-                                className="bg-slate-100 border-none rounded-full py-2 pl-10 pr-4 text-sm w-64 focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all"
+                                className="bg-slate-100 border-none rounded-full py-2 pl-10 pr-4 text-sm w-64 text-slate-800 focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all placeholder-slate-400"
                             />
                         </div>
-                        <button className="relative p-2 text-slate-400 hover:text-indigo-600 transition-colors rounded-full hover:bg-indigo-50">
+                        <button className="relative p-2 text-slate-500 hover:text-indigo-600 transition-colors rounded-full hover:bg-indigo-50">
                             <Bell size={20} />
                             {/* <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span> */}
                         </button>
@@ -453,53 +468,57 @@ const SchoolAdminDashboard = () => {
 const NavButton = ({ active, onClick, icon: Icon, label, badge }) => (
     <button
         onClick={onClick}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group ${active
-            ? 'bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-lg shadow-cyan-400/30 translate-x-1'
-            : 'text-sky-100 hover:bg-sky-600/50 hover:text-white hover:translate-x-1'
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group ${active
+            ? 'bg-yellow-400 text-black shadow-lg shadow-yellow-400/20 translate-x-1'
+            : 'text-gray-400 hover:bg-white/5 hover:text-white hover:translate-x-1'
             }`}
     >
-        <Icon size={18} className={`${active ? 'text-white' : 'text-sky-200 group-hover:text-cyan-300 px-0'}`} />
+        <Icon size={18} className={`${active ? 'text-black' : 'text-gray-400 group-hover:text-white px-0'}`} />
         <span className="flex-1 text-left">{label}</span>
-        {badge > 0 && (
-            <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm animate-pulse">
-                {badge}
-            </span>
-        )}
+        {
+            badge > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm animate-pulse">
+                    {badge}
+                </span>
+            )
+        }
         {active && <ChevronRight size={14} className="ml-auto opacity-50" />}
-    </button>
+    </button >
 );
 
 const NavGroup = ({ label, icon: Icon, expanded, onToggle, children }) => (
     <div className="space-y-1">
         <button
             onClick={onToggle}
-            className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group ${expanded ? 'text-white bg-sky-600/50' : 'text-sky-100 hover:bg-sky-600/50 hover:text-white'
+            className={`w-full flex items-center justify-between px-4 py-3 text-sm font-bold rounded-xl transition-all duration-200 group ${expanded ? 'text-white bg-white/5' : 'text-gray-400 hover:bg-white/5 hover:text-white'
                 }`}
         >
             <div className="flex items-center gap-3">
-                <Icon size={18} className={`${expanded ? 'text-cyan-300' : 'text-sky-200 group-hover:text-cyan-300'}`} />
+                <Icon size={18} className={`${expanded ? 'text-white' : 'text-gray-400 group-hover:text-white'}`} />
                 {label}
             </div>
             <ChevronDown size={14} className={`transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
         </button>
-        {expanded && (
-            <div className="pl-4 space-y-1 animate-in slide-in-from-top-2 duration-200">
-                {children}
-            </div>
-        )}
-    </div>
+        {
+            expanded && (
+                <div className="pl-4 space-y-1 animate-in slide-in-from-top-2 duration-200">
+                    {children}
+                </div>
+            )
+        }
+    </div >
 );
 
 // UI SubComponent
 const NavSubButton = ({ active, onClick, label }) => (
     <button
         onClick={onClick}
-        className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition-all duration-200 flex items-center gap-2 ${active
-            ? 'text-white bg-cyan-500/30 border border-cyan-400/30 shadow-sm'
-            : 'text-sky-100 hover:text-white hover:bg-sky-600/30'
+        className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${active
+            ? 'text-yellow-400 bg-white/5 border border-white/10 shadow-sm'
+            : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
     >
-        <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${active ? 'bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.6)]' : 'bg-sky-300'
+        <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${active ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.8)]' : 'bg-gray-600'
             }`}></span>
         {label}
     </button>
@@ -552,15 +571,42 @@ const styles = `
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    aside .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }
-    aside .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+    aside .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
     
     .label {font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.25rem; display: block;}
-    .input {width: 100%; padding: 0.6rem 0.85rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; outline: none; transition: all 0.2s; background: white;}
+    
+    .input {
+        width: 100%; 
+        padding: 0.6rem 0.85rem; 
+        border: 1px solid #e2e8f0; 
+        border-radius: 0.75rem; 
+        font-size: 0.875rem; 
+        outline: none; 
+        transition: all 0.2s; 
+        background: white; 
+        color: #1e293b;
+    }
     .input:focus {border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);}
-    .btn-primary {background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 0.6rem 1.2rem; border-radius: 0.75rem; font-weight: 600; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);}
-    .btn-primary:hover {transform: translateY(-1px); box-shadow: 0 8px 12px -1px rgba(79, 70, 229, 0.3);}
-    .btn-secondary {background-color: white; color: #475569; padding: 0.6rem 1.2rem; border-radius: 0.75rem; font-weight: 600; border: 1px solid #e2e8f0; transition: all 0.2s;}
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #00C9FC 0%, #06b6d4 100%); 
+        color: white; 
+        padding: 0.6rem 1.2rem; 
+        border-radius: 0.75rem; 
+        font-weight: 600; 
+        transition: all 0.2s; 
+        box-shadow: 0 4px 6px -1px rgba(6, 182, 212, 0.4);}
+    .btn-primary:hover {transform: translateY(-1px); box-shadow: 0 8px 12px -1px rgba(6, 182, 212, 0.5);}
+    
+    .btn-secondary {
+        background-color: white; 
+        color: #475569; 
+        padding: 0.6rem 1.2rem; 
+        border-radius: 0.75rem; 
+        font-weight: 600; 
+        border: 1px solid #e2e8f0; 
+        transition: all 0.2s;
+    }
     .btn-secondary:hover {background-color: #f8fafc; border-color: #cbd5e1;}
 `;
 

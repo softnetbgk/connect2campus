@@ -126,125 +126,131 @@ const StaffDashboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900 relative">
+        <div className="relative min-h-screen w-full flex font-sans text-slate-900 overflow-hidden">
             {/* Mobile Sidebar Overlay */}
             {isMobileMenuOpen && (
                 <div
-                    className="fixed inset-0 bg-slate-900/50 z-40 md:hidden backdrop-blur-sm"
+                    className="fixed inset-0 bg-black/80 z-40 md:hidden backdrop-blur-sm"
                     onClick={() => setIsMobileMenuOpen(false)}
                 />
             )}
 
-            {/* Sidebar */}
-            <aside className={`w-64 bg-slate-900 text-slate-300 flex flex-col fixed inset-y-0 left-0 z-50 h-full transition-transform duration-300 
-                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-                <div className="p-6 flex items-center justify-between border-b border-slate-800">
+            {/* Sidebar - Blue Gradient Theme */}
+            <aside className={`w-72 bg-gradient-to-b from-sky-500 to-blue-600 text-white flex flex-col shadow-2xl z-50 transition-transform duration-300 
+                fixed inset-y-0 left-0 h-screen overflow-y-auto custom-scrollbar print:hidden
+                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
+                md:translate-x-0 md:sticky md:top-0 md:flex`}>
+
+                {/* Brand Area */}
+                <div className="p-6 flex items-center justify-between border-b border-white/20">
                     <div className="flex items-center gap-3">
-                        <div className="bg-orange-500 p-2 rounded-lg">
+                        <div className="bg-white/20 p-2.5 rounded-xl shadow-[0_0_15px_rgba(255,255,255,0.2)] border border-white/30 backdrop-blur-sm">
                             <Briefcase className="text-white w-6 h-6" />
                         </div>
-                        <div>
-                            <div className="w-full">
-                                <h1 className="text-xl font-serif font-black italic text-white tracking-wide leading-tight drop-shadow-md">{schoolName || (isDriver ? 'Driver Portal' : 'Staff Portal')}</h1>
-                            </div>
-                            <div className="flex flex-col">
-                                <p className="text-xs font-medium text-slate-500">Welcome, {staffProfile?.name || user?.name}</p>
-                                {staffProfile?.employee_id && (
-                                    <p className="text-[10px] text-orange-500 font-mono mt-0.5">ID: {staffProfile.employee_id}</p>
-                                )}
-                            </div>
+                        <div className="w-full">
+                            <h1 className="text-xl font-serif font-black italic text-white tracking-wide leading-tight drop-shadow-md">{schoolName || (isDriver ? 'Driver Portal' : 'Staff Portal')}</h1>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-blue-100">{isDriver ? 'Transport Staff' : 'Staff Dashboard'}</p>
                         </div>
                     </div>
-                    {/* Close Button */}
+                    {/* Mobile Close Button */}
                     <button
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className="md:hidden text-slate-400 hover:text-white"
+                        className="md:hidden text-blue-100 hover:text-white"
                     >
                         <X size={24} />
                     </button>
                 </div>
 
-                <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
+                {/* Navigation */}
+                <nav className="p-4 space-y-1 flex-1 overflow-y-auto custom-scrollbar">
+                    <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-2">Main</p>
                     <NavButton active={activeTab === 'overview'} onClick={() => handleTabChange('overview')} icon={LayoutDashboard} label="Dashboard" />
 
-                    {/* Common Attendance */}
+                    <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">Work</p>
                     <NavButton active={activeTab === 'attendance'} onClick={() => handleTabChange('attendance')} icon={Calendar} label="My Attendance" />
-
-                    {/* Transport: Driver gets Tracking, Staff gets Info */}
                     <NavButton active={activeTab === 'transport'} onClick={() => handleTabChange('transport')} icon={Bus} label={isDriver ? "Trip Tracker" : "Track My School Bus"} />
 
+                    <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">Finance</p>
                     <NavButton active={activeTab === 'salary'} onClick={() => handleTabChange('salary')} icon={FileText} label="Salary Slips" />
+
+                    <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">General</p>
                     <NavButton active={activeTab === 'announcements'} onClick={() => handleTabChange('announcements')} icon={Bell} label="Notice Board" />
                     <NavButton active={activeTab === 'calendar'} onClick={() => handleTabChange('calendar')} icon={Calendar} label="School Calendar" />
                 </nav>
 
-                <div className="p-4 border-t border-slate-800">
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer group">
-                        <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold">
+                {/* Footer User Profile */}
+                <div className="p-4 border-t border-white/20 bg-black/10">
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors cursor-pointer group border border-white/10 hover:border-white/30">
+                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-blue-600 font-bold shadow-lg">
                             {user?.email?.[0].toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white truncate">{staffProfile?.name || user?.name}</p>
-                            <p className="text-xs text-slate-400">{isDriver ? 'Driver' : 'Staff Member'}</p>
+                            <p className="text-sm font-bold text-white truncate">{staffProfile?.name || user?.name}</p>
+                            <p className="text-xs text-blue-100">{isDriver ? 'Driver' : 'Staff Member'}</p>
                         </div>
-                        <button onClick={handleLogout} className="text-slate-400 hover:text-red-400 transition-colors">
+                        <button onClick={handleLogout} className="text-blue-200 hover:text-white transition-colors">
                             <LogOut size={18} />
                         </button>
                     </div>
                 </div>
             </aside>
 
-            {/* Main Content */}
-            <main className="flex-1 md:ml-64 ml-0 p-8 overflow-y-auto h-screen">
-                <header className="flex justify-between items-center mb-8">
+            {/* Main Content Area - LIGHT THEME */}
+            <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[#f1f5f9] relative z-10">
+                {/* Header */}
+                <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 h-16 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm print:hidden">
                     <div className="flex items-center gap-4">
                         <button
-                            className="md:hidden text-slate-500 hover:text-orange-600"
+                            className="md:hidden text-slate-600 hover:text-indigo-600 mr-2"
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                         >
                             <Menu size={24} />
                         </button>
                         <div>
-                            <h2 className="text-2xl font-bold text-slate-800">{getTabTitle(activeTab, isDriver)}</h2>
-                            <p className="text-slate-500 text-sm hidden md:block">Manage your work and profile</p>
+                            <h2 className="text-xl font-bold text-slate-800">
+                                {getTabTitle(activeTab, isDriver)}
+                            </h2>
+                            <p className="text-xs text-slate-500 md:block hidden">Manage your work and profile</p>
                         </div>
                     </div>
-                    <div className="flex gap-4">
-                        <button className="p-2 bg-white border border-slate-200 rounded-full text-slate-500 hover:text-orange-600 hover:border-orange-200 transition-all relative">
+                    <div className="flex items-center gap-4">
+                        <button className="relative p-2 text-slate-500 hover:text-indigo-600 transition-colors rounded-full hover:bg-indigo-50">
                             <Bell size={20} />
-                            {/* <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span> */}
                         </button>
-                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-700 font-bold border-2 border-white shadow-sm">
+                        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold border border-orange-200">
                             {user?.name?.[0]}
                         </div>
                     </div>
                 </header>
 
-                <div className="max-w-6xl mx-auto">
-                    {activeTab === 'overview' && <StaffOverview isDriver={isDriver} schoolName={schoolName} />}
-                    {activeTab === 'attendance' && <StaffMyAttendance />}
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+                    <div className="max-w-6xl mx-auto animate-in fade-in duration-300">
+                        {activeTab === 'overview' && <StaffOverview isDriver={isDriver} schoolName={schoolName} />}
+                        {activeTab === 'attendance' && <StaffMyAttendance />}
 
-                    {/* Unified Transport View */}
-                    {activeTab === 'transport' && (
-                        isDriver ? (
-                            <DriverTrackingView
-                                vehicles={vehicles}
-                                selectedVehicle={selectedVehicle}
-                                setSelectedVehicle={setSelectedVehicle}
-                                startTracking={startTracking}
-                                stopTracking={stopTracking}
-                                isTracking={isTracking}
-                                location={location}
-                                logs={logs}
-                            />
-                        ) : (
-                            <StaffTransportView profile={staffProfile} />
-                        )
-                    )}
+                        {/* Unified Transport View */}
+                        {activeTab === 'transport' && (
+                            isDriver ? (
+                                <DriverTrackingView
+                                    vehicles={vehicles}
+                                    selectedVehicle={selectedVehicle}
+                                    setSelectedVehicle={setSelectedVehicle}
+                                    startTracking={startTracking}
+                                    stopTracking={stopTracking}
+                                    isTracking={isTracking}
+                                    location={location}
+                                    logs={logs}
+                                />
+                            ) : (
+                                <StaffTransportView profile={staffProfile} />
+                            )
+                        )}
 
-                    {activeTab === 'salary' && <StaffSalarySlips />}
-                    {activeTab === 'announcements' && <ViewAnnouncements />}
-                    {activeTab === 'calendar' && <SchoolCalendar />}
+                        {activeTab === 'salary' && <StaffSalarySlips />}
+                        {activeTab === 'announcements' && <ViewAnnouncements />}
+                        {activeTab === 'calendar' && <SchoolCalendar />}
+                    </div>
                 </div>
             </main>
         </div>
@@ -256,8 +262,9 @@ const StaffDashboard = () => {
 const StaffOverview = ({ isDriver, schoolName }) => (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="col-span-full mb-6">
-            <div className="overflow-hidden w-full bg-white/50 rounded-xl p-3 border border-slate-100 shadow-inner">
-                <h3 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-600 via-amber-500 to-yellow-500 animate-marquee-fast uppercase tracking-widest font-serif italic drop-shadow-sm">
+            <div className="overflow-hidden w-full bg-white rounded-xl p-4 border border-slate-200 shadow-sm relative">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full mix-blend-multiply filter blur-3xl opacity-70 -translate-y-1/2 translate-x-1/2"></div>
+                <h3 className="text-3xl font-black text-slate-800 tracking-tight font-serif italic relative z-10">
                     {schoolName}
                 </h3>
             </div>
@@ -392,10 +399,14 @@ const StaffTransportView = ({ profile }) => (
 const NavButton = ({ active, onClick, icon: Icon, label }) => (
     <button
         onClick={onClick}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm mb-1 ${active ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/50' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group ${active
+            ? 'bg-white text-blue-600 shadow-lg translate-x-1'
+            : 'text-blue-100 hover:bg-white/10 hover:text-white hover:translate-x-1'
+            }`}
     >
-        <Icon size={18} />
-        {label}
+        <Icon size={18} className={`${active ? 'text-blue-600' : 'text-blue-200 group-hover:text-white px-0'}`} />
+        <span className="flex-1 text-left">{label}</span>
+        {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600/20"></span>}
     </button>
 );
 
@@ -407,8 +418,29 @@ const getTabTitle = (tab, isDriver) => {
         case 'transport': return isDriver ? 'Trip Tracking' : 'Track My School Bus';
         case 'salary': return 'Salary & Payslips';
         case 'calendar': return 'Academic Calendar';
+        case 'announcements': return 'Announcements';
         default: return 'Dashboard';
     }
 };
 
-export default StaffDashboard;
+// Styles for custom scrollbar (injected here to ensure consistency)
+/* 
+   Note: Ideally move to index.css, but this ensures it works immediately 
+   without touching global files.
+*/
+const styles = `
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    aside .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+`;
+
+export default function WrappedStaffDashboard() {
+    return (
+        <>
+            <style>{styles}</style>
+            <StaffDashboard />
+        </>
+    );
+};

@@ -1,8 +1,10 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
 
 @theme {
-  --color-primary: #4f46e5;
-  --color-secondary: #ec4899;
+  --color-primary: #00C9FC;
+  --color-secondary: #000000;
+  --color-brand-cyan: #00C9FC;
 }
 
 body {
@@ -39,4 +41,193 @@ body {
   animation: marquee-ltr 20s linear infinite;
   white-space: nowrap;
   display: inline-block;
+}
+
+@keyframes fly-left {
+  0% {
+    transform: translateX(110vw) rotate(-5deg);
+  }
+
+  100% {
+    transform: translateX(-20vw) rotate(-5deg);
+  }
+}
+
+@keyframes fly-right-slow {
+  0% {
+    transform: translateX(-20vw);
+  }
+
+  100% {
+    transform: translateX(110vw);
+  }
+}
+
+@keyframes drive-bus-sequence {
+  0% {
+    left: -400px;
+  }
+
+  35% {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* Arrive at center/stop position */
+  65% {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* Wait */
+  100% {
+    left: 120%;
+    transform: translateX(0);
+  }
+
+  /* Drive away */
+}
+
+@keyframes fly-big-plane {
+  0% {
+    right: -600px;
+    transform: translateY(0);
+  }
+
+  100% {
+    right: 120vw;
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes signal-red {
+
+  0%,
+  60% {
+    opacity: 1;
+    filter: drop-shadow(0 0 10px red);
+  }
+
+  61%,
+  100% {
+    opacity: 0.3;
+    filter: none;
+  }
+}
+
+@keyframes signal-green {
+
+  0%,
+  60% {
+    opacity: 0.3;
+    filter: none;
+  }
+
+  61%,
+  100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 10px #22c55e);
+  }
+}
+
+@keyframes signal-blink-red {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin-slow {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes puff {
+  0% {
+    transform: translateX(0) scale(0.5);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translateX(-20px) scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes bounce-slight {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fly-left {
+  animation-name: fly-left;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.animate-fly-right-slow {
+  animation-name: fly-right-slow;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.animate-drive-bus-sequence {
+  animation-name: drive-bus-sequence;
+  animation-fill-mode: forwards;
+  animation-timing-function: ease-in-out;
+}
+
+.animate-fly-big-plane {
+  animation-name: fly-big-plane;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.font-cursive {
+  font-family: 'Pacifico', cursive;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 1s linear infinite;
+}
+
+.animate-puff {
+  animation: puff 1s ease-out infinite;
+}
+
+.animate-bounce-slight {
+  animation: bounce-slight 1s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 1s ease-out forwards;
 }
