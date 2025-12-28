@@ -6,6 +6,7 @@ import {
     LogOut, Bell, GraduationCap,
     CheckSquare, Clock, Bus, MessageSquare, MapPin, BookOpen, Menu, X
 } from 'lucide-react';
+import NotificationBell from '../components/NotificationBell';
 import api from '../api/axios';
 import StudentAttendanceMarking from '../components/dashboard/students/StudentAttendanceMarking';
 import TeacherMyTimetable from '../components/dashboard/teachers/TeacherMyTimetable';
@@ -170,9 +171,7 @@ const TeacherDashboard = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <button className="relative p-2 text-slate-500 hover:text-indigo-600 transition-colors rounded-full hover:bg-indigo-50">
-                            <Bell size={20} />
-                        </button>
+                        <NotificationBell />
                         <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold border border-emerald-200">
                             {user?.name?.[0]}
                         </div>

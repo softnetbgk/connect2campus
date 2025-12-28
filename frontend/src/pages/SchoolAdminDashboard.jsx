@@ -4,8 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
     Users, Calendar, BarChart3, LogOut, Check, ChevronRight, ChevronDown, User, DollarSign,
-    LayoutDashboard, Settings, Bell, Search, Menu, Book, Home, Clock, Megaphone, Bus, UserPlus, Shield, ScanLine, X, IndianRupee
+    LayoutDashboard, Settings, Search, Menu, Book, Home, Clock, Megaphone, Bus, UserPlus, Shield, ScanLine, X, IndianRupee
 } from 'lucide-react';
+import NotificationBell from '../components/NotificationBell';
 import toast from 'react-hot-toast';
 
 // Student Components
@@ -397,10 +398,7 @@ const SchoolAdminDashboard = () => {
                         </h2>
                     </div>
                     <div className="flex items-center gap-4">
-                        <button className="relative p-2 text-slate-500 hover:text-indigo-600 transition-colors rounded-full hover:bg-indigo-50">
-                            <Bell size={20} />
-                            {/* <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span> */}
-                        </button>
+                        <NotificationBell />
                     </div>
                 </header>
 

@@ -5,6 +5,7 @@ import {
     LayoutDashboard, BookOpen, Home, Bus, FileText, Calendar, DollarSign,
     LogOut, User, Bell, GraduationCap, Clock, Award, MessageSquare, Menu, X
 } from 'lucide-react';
+import NotificationBell from '../components/NotificationBell';
 import toast from 'react-hot-toast';
 
 import api from '../api/axios';
@@ -288,6 +289,7 @@ const StudentDashboard = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
+                        <NotificationBell />
                         <button
                             onClick={() => setActiveTab('leaves')}
                             className="p-2 bg-white border border-slate-200 rounded-full text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all relative"

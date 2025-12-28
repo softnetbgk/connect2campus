@@ -66,6 +66,7 @@ app.use('/api/certificates', require('./routes/certificateRoutes'));
 app.use('/api/admissions', require('./routes/admissionsRoutes'));
 app.use('/api/biometric', require('./routes/biometricRoutes'));
 app.use('/api/doubts', require('./routes/doubtRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 // Download App Route
 app.get('/download-app', (req, res) => {

@@ -7,6 +7,7 @@ import {
     LayoutDashboard, CheckSquare, Bus, Calendar,
     FileText, LogOut, Bell, Briefcase, Navigation, Radio, MapPin, Menu, X
 } from 'lucide-react';
+import NotificationBell from '../components/NotificationBell';
 import SchoolCalendar from '../components/dashboard/calendar/SchoolCalendar';
 import ViewAnnouncements from '../components/dashboard/calendar/ViewAnnouncements';
 import StaffMyAttendance from '../components/dashboard/staff/StaffMyAttendance';
@@ -214,9 +215,7 @@ const StaffDashboard = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <button className="relative p-2 text-slate-500 hover:text-indigo-600 transition-colors rounded-full hover:bg-indigo-50">
-                            <Bell size={20} />
-                        </button>
+                        <NotificationBell />
                         <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold border border-orange-200">
                             {user?.name?.[0]}
                         </div>
