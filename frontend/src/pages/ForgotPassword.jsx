@@ -3,6 +3,7 @@ import axios from '../api/axios';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { School, Mail, ArrowLeft, Loader2, KeyRound } from 'lucide-react'; // Added icons
+import loginBg from '../assets/login-bg.jpg';
 
 const ForgotPassword = () => {
     const [email, setEmail] = useState('');
@@ -31,7 +32,7 @@ const ForgotPassword = () => {
             {/* Animated Background Image - Classroom */}
             <div className="absolute inset-0 w-full h-full z-0">
                 <img
-                    src="https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2560&auto=format&fit=crop"
+                    src={loginBg}
                     alt="Classroom Background"
                     className="w-full h-full object-cover animate-ken-burns"
                 />

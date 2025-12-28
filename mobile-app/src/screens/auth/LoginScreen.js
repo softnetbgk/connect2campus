@@ -9,6 +9,7 @@ import {
     Platform,
     ActivityIndicator,
     Alert,
+    ImageBackground,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
@@ -48,135 +49,141 @@ const LoginScreen = ({ navigation }) => {
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-            <LinearGradient
-                colors={['#1e1b4b', '#312e81', '#0f172a']}
-                style={styles.gradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+            <ImageBackground
+                source={require('../../../assets/login-bg.jpg')}
+                style={styles.container}
+                resizeMode="cover"
             >
-                <ScrollView contentContainerStyle={styles.content}>
-                    <View style={styles.header}>
-                        <View style={styles.logoContainer}>
-                            <Icon name="school" size={40} color="#fff" />
-                        </View>
-                        <Text style={styles.title}>Welcome Back</Text>
-                        <Text style={styles.subtitle}>Sign in to your dashboard</Text>
-                    </View>
-
-                    <View style={styles.formCard}>
-                        {/* Role Selection */}
-                        <Text style={styles.sectionTitle}>Select Your Role</Text>
-                        <View style={styles.roleGrid}>
-                            {roles.map((r) => (
-                                <TouchableOpacity
-                                    key={r.id}
-                                    style={[
-                                        styles.roleButton,
-                                        role === r.id && styles.roleButtonActive
-                                    ]}
-                                    onPress={() => setRole(r.id)}
-                                >
-                                    <Icon
-                                        name={r.icon}
-                                        size={24}
-                                        color={role === r.id ? '#818cf8' : '#64748b'}
-                                    />
-                                    <Text style={[
-                                        styles.roleText,
-                                        role === r.id && styles.roleTextActive
-                                    ]}>
-                                        {r.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-
-                        {/* Email Input */}
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.label}>
-                                {['STUDENT', 'TEACHER', 'STAFF'].includes(role) ? 'Email / ID' : 'Email Address'}
-                            </Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder={['STUDENT', 'TEACHER', 'STAFF'].includes(role) ? "e.g. STU1234 or email" : "admin@school.com"}
-                                placeholderTextColor="#64748b"
-                                value={email}
-                                onChangeText={setEmail}
-                                autoCapitalize="none"
-                                editable={!isLoading}
-                            />
-                        </View>
-
-                        {/* Password Input */}
-                        <View style={styles.inputContainer}>
-                            <View style={styles.passwordHeader}>
-                                <Text style={styles.label}>Password</Text>
-                                <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-                                    <Text style={styles.forgotPassword}>Forgot?</Text>
-                                </TouchableOpacity>
+                <LinearGradient
+                    colors={['rgba(30, 27, 75, 0.85)', 'rgba(49, 46, 129, 0.8)', 'rgba(15, 23, 42, 0.85)']}
+                    style={styles.gradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                >
+                    <ScrollView contentContainerStyle={styles.content}>
+                        <View style={styles.header}>
+                            <View style={styles.logoContainer}>
+                                <Icon name="school" size={40} color="#fff" />
                             </View>
-                            <View style={styles.passwordInputWrapper}>
+                            <Text style={styles.title}>Welcome Back</Text>
+                            <Text style={styles.subtitle}>Sign in to your dashboard</Text>
+                        </View>
+
+                        <View style={styles.formCard}>
+                            {/* Role Selection */}
+                            <Text style={styles.sectionTitle}>Select Your Role</Text>
+                            <View style={styles.roleGrid}>
+                                {roles.map((r) => (
+                                    <TouchableOpacity
+                                        key={r.id}
+                                        style={[
+                                            styles.roleButton,
+                                            role === r.id && styles.roleButtonActive
+                                        ]}
+                                        onPress={() => setRole(r.id)}
+                                    >
+                                        <Icon
+                                            name={r.icon}
+                                            size={24}
+                                            color={role === r.id ? '#818cf8' : '#64748b'}
+                                        />
+                                        <Text style={[
+                                            styles.roleText,
+                                            role === r.id && styles.roleTextActive
+                                        ]}>
+                                            {r.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            {/* Email Input */}
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.label}>
+                                    {['STUDENT', 'TEACHER', 'STAFF'].includes(role) ? 'Email / ID' : 'Email Address'}
+                                </Text>
                                 <TextInput
-                                    style={[styles.input, styles.passwordInput]}
-                                    placeholder="••••••••"
+                                    style={styles.input}
+                                    placeholder={['STUDENT', 'TEACHER', 'STAFF'].includes(role) ? "e.g. STU1234 or email" : "admin@school.com"}
                                     placeholderTextColor="#64748b"
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    secureTextEntry={!showPassword}
+                                    value={email}
+                                    onChangeText={setEmail}
+                                    autoCapitalize="none"
                                     editable={!isLoading}
                                 />
-                                <TouchableOpacity
-                                    style={styles.eyeIcon}
-                                    onPress={() => setShowPassword(!showPassword)}
-                                >
-                                    <Icon
-                                        name={showPassword ? "eye" : "eye-off"}
-                                        size={20}
-                                        color="#64748b"
-                                    />
-                                </TouchableOpacity>
                             </View>
+
+                            {/* Password Input */}
+                            <View style={styles.inputContainer}>
+                                <View style={styles.passwordHeader}>
+                                    <Text style={styles.label}>Password</Text>
+                                    <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+                                        <Text style={styles.forgotPassword}>Forgot?</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <View style={styles.passwordInputWrapper}>
+                                    <TextInput
+                                        style={[styles.input, styles.passwordInput]}
+                                        placeholder="••••••••"
+                                        placeholderTextColor="#64748b"
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        secureTextEntry={!showPassword}
+                                        editable={!isLoading}
+                                    />
+                                    <TouchableOpacity
+                                        style={styles.eyeIcon}
+                                        onPress={() => setShowPassword(!showPassword)}
+                                    >
+                                        <Icon
+                                            name={showPassword ? "eye" : "eye-off"}
+                                            size={20}
+                                            color="#64748b"
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {/* Login Button */}
+                            <TouchableOpacity
+                                style={[styles.button, isLoading && styles.buttonDisabled]}
+                                onPress={handleLogin}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <LinearGradient
+                                        colors={['#4f46e5', '#7c3aed']}
+                                        style={styles.buttonGradient}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                    >
+                                        <Text style={styles.buttonText}>Access Portal</Text>
+                                        <Icon name="arrow-right" size={20} color="#fff" style={{ marginLeft: 8 }} />
+                                    </LinearGradient>
+                                )}
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.resetButton}
+                                onPress={async () => {
+                                    const { Alert } = require('react-native');
+                                    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+                                    try {
+                                        await AsyncStorage.clear();
+                                        Alert.alert('Success', 'App data cleared');
+                                    } catch (e) {
+                                        Alert.alert('Error', 'Failed to clear data');
+                                    }
+                                }}
+                            >
+                                <Text style={styles.resetButtonText}>Reset App Data</Text>
+                            </TouchableOpacity>
                         </View>
-
-                        {/* Login Button */}
-                        <TouchableOpacity
-                            style={[styles.button, isLoading && styles.buttonDisabled]}
-                            onPress={handleLogin}
-                            disabled={isLoading}
-                        >
-                            {isLoading ? (
-                                <ActivityIndicator color="#fff" />
-                            ) : (
-                                <LinearGradient
-                                    colors={['#4f46e5', '#7c3aed']}
-                                    style={styles.buttonGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                >
-                                    <Text style={styles.buttonText}>Access Portal</Text>
-                                    <Icon name="arrow-right" size={20} color="#fff" style={{ marginLeft: 8 }} />
-                                </LinearGradient>
-                            )}
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.resetButton}
-                            onPress={async () => {
-                                const { Alert } = require('react-native');
-                                const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-                                try {
-                                    await AsyncStorage.clear();
-                                    Alert.alert('Success', 'App data cleared');
-                                } catch (e) {
-                                    Alert.alert('Error', 'Failed to clear data');
-                                }
-                            }}
-                        >
-                            <Text style={styles.resetButtonText}>Reset App Data</Text>
-                        </TouchableOpacity>
-                    </View>
-                </ScrollView>
-            </LinearGradient>
+                    </ScrollView>
+                </LinearGradient>
+            </ImageBackground>
         </KeyboardAvoidingView>
     );
 };

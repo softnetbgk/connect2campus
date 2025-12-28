@@ -7,6 +7,8 @@ import QRCode from 'react-qr-code';
 import { Capacitor } from '@capacitor/core';
 import Welcome from './Welcome';
 
+import loginBg from '../assets/login-bg.jpg';
+
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -60,7 +62,7 @@ const Login = () => {
             {/* Animated Background Image - Classroom */}
             <div className="absolute inset-0 w-full h-full z-0">
                 <img
-                    src="https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=2560&auto=format&fit=crop"
+                    src={loginBg}
                     alt="Classroom Background"
                     className="w-full h-full object-cover animate-ken-burns"
                 />

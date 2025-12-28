@@ -52,7 +52,7 @@ const Welcome = ({ onComplete }) => {
                                 <path d="M340 185 C340 195 350 205 390 205 L420 205 C430 205 440 195 440 185 H340 Z" fill="#cbd5e1" />
                                 <path d="M340 185 C340 205 345 205 350 205 V185 H340 Z" fill="#334155" />
                                 {/* Text */}
-                                <text x="250" y="150" fontFamily="'Pacifico', cursive" fontSize="32" fill="#1e3a8a">Connect to Campus</text>
+                                <text x="20" y="155" fontFamily="'Pacifico', cursive" fontSize="35" fill="#1e3a8a">Connect to Campus</text>
                             </svg>
                         </div>
                     </div>
