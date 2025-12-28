@@ -147,6 +147,73 @@ exports.addRoute = async (req, res) => {
     }
 };
 
+// Update Route (Assign Vehicle etc)
+exports.updateRoute = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const { id } = req.params;
+        const { route_name, start_point, end_point, start_time, vehicle_id, stops } = req.body;
+        const school_id = req.user.schoolId;
+
+        await client.query('BEGIN');
+
+        // Update Route Details
+        const routeRes = await client.query(
+            `UPDATE transport_routes 
+             SET route_name = COALESCE($1, route_name), 
+                 start_point = COALESCE($2, start_point), 
+                 end_point = COALESCE($3, end_point), 
+                 start_time = COALESCE($4, start_time), 
+                 vehicle_id = COALESCE($5, vehicle_id)
+             WHERE id = $6 AND school_id = $7 RETURNING *`,
+            [route_name, start_point, end_point, start_time, vehicle_id, id, school_id]
+        );
+
+        if (routeRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: 'Route not found' });
+        }
+
+        // Update Stops if provided (Delete all and Re-insert)
+        if (stops && stops.length > 0) {
+            await client.query('DELETE FROM transport_stops WHERE route_id = $1', [id]);
+            for (let i = 0; i < stops.length; i++) {
+                const stop = stops[i];
+                await client.query(
+                    `INSERT INTO transport_stops (route_id, stop_name, stop_order, lat, lng, pickup_time)
+                     VALUES ($1, $2, $3, $4, $5, $6)`,
+                    [id, stop.name, i + 1, stop.lat || 0, stop.lng || 0, stop.time]
+                );
+            }
+        }
+
+        await client.query('COMMIT');
+        res.json(routeRes.rows[0]);
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error(error);
+        res.status(500).json({ message: 'Server error updating route' });
+    } finally {
+        client.release();
+    }
+};
+
+// Delete Route
+exports.deleteRoute = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const school_id = req.user.schoolId;
+
+        await pool.query('DELETE FROM transport_stops WHERE route_id = $1', [id]); // Cascades usually, but safe to be explicit
+        const result = await pool.query('DELETE FROM transport_routes WHERE id = $1 AND school_id = $2 RETURNING *', [id, school_id]);
+
+        if (result.rows.length === 0) return res.status(404).json({ message: 'Route not found' });
+        res.json({ message: 'Route deleted' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error deleting route' });
+    }
+};
 // Update Vehicle Location (Simulation)
 exports.updateLocation = async (req, res) => {
     try {

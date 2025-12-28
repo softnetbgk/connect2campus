@@ -33,9 +33,21 @@ const FitBounds = ({ vehicles }) => {
     return null;
 };
 
+// Controller to handle external focus requests
+const MapController = ({ focusTarget }) => {
+    const map = useMap();
+    useEffect(() => {
+        if (focusTarget) {
+            map.flyTo([focusTarget.lat, focusTarget.lng], 16, { animate: true, duration: 1.5 });
+        }
+    }, [focusTarget, map]);
+    return null;
+};
+
 const AdminLiveMap = () => {
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [focusTarget, setFocusTarget] = useState(null);
 
     // Initial Fetch
     const fetchData = async () => {
@@ -108,6 +120,8 @@ const AdminLiveMap = () => {
                             url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
                         />
 
+                        <MapController focusTarget={focusTarget} />
+
                         {vehicles.map(v => (
                             <Marker key={v.id} position={[v.lat, v.lng]}>
                                 <Popup>
@@ -129,13 +143,17 @@ const AdminLiveMap = () => {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {vehicles.map(v => (
-                    <div key={v.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
+                    <button
+                        key={v.id}
+                        onClick={() => setFocusTarget({ lat: v.lat, lng: v.lng, id: v.id })}
+                        className={`p-3 rounded-xl border shadow-sm flex items-center gap-3 transition-all ${focusTarget?.id === v.id ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-200' : 'bg-white border-slate-200 hover:border-indigo-300'}`}
+                    >
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <div>
-                            <div className="text-sm font-bold text-slate-800">{v.number}</div>
+                        <div className="text-left overflow-hidden w-full">
+                            <div className="text-sm font-bold text-slate-800 truncate">{v.number}</div>
                             <div className="text-xs text-slate-500 truncate">{v.driver}</div>
                         </div>
-                    </div>
+                    </button>
                 ))}
                 {vehicles.length === 0 && !loading && (
                     <div className="col-span-full text-center text-slate-400 text-sm py-4 italic">

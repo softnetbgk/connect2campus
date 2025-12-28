@@ -163,14 +163,27 @@ const TransportManagement = ({ initialTab }) => {
     const handleAddVehicle = async () => {
         try {
             const payload = { ...vehicleForm };
+            const assignRouteId = payload.assign_route_id;
+            // Clean payload
+            delete payload.assign_route_id;
             if (!payload.gps_device_id) delete payload.gps_device_id;
 
-            await api.post('/transport/vehicles', payload);
+            const res = await api.post('/transport/vehicles', payload);
+            const newVehicleId = res.data.vehicleId || res.data.id; // handle variation in response
+
+            // If Route Selected, Update Route
+            if (assignRouteId && newVehicleId) {
+                await api.put(`/transport/routes/${assignRouteId}`, {
+                    vehicle_id: newVehicleId
+                });
+            }
+
             toast.success('Vehicle added successfully');
             setShowVehicleModal(false);
-            setVehicleForm({ vehicle_number: '', vehicle_model: '', driver_name: '', driver_phone: '', capacity: '', gps_device_id: '' });
+            setVehicleForm({ vehicle_number: '', vehicle_model: '', driver_name: '', driver_phone: '', capacity: '', gps_device_id: '', assign_route_id: '' });
             fetchData();
         } catch (error) {
+            console.error(error);
             toast.error('Failed to add vehicle');
         }
     };
@@ -439,6 +452,23 @@ const TransportManagement = ({ initialTab }) => {
                                     type="number" className="w-full p-2 border rounded-lg text-sm" placeholder="Capacity"
                                     value={vehicleForm.capacity} onChange={e => setVehicleForm({ ...vehicleForm, capacity: e.target.value })}
                                 />
+
+                                <div className="pt-2 border-t border-slate-100">
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Assign Route (Optional)</label>
+                                    <select
+                                        className="w-full p-2 border rounded-lg text-sm bg-indigo-50/50"
+                                        value={vehicleForm.assign_route_id || ''}
+                                        onChange={e => setVehicleForm({ ...vehicleForm, assign_route_id: e.target.value })}
+                                    >
+                                        <option value="">-- No Route Assigned --</option>
+                                        {routes.map(r => (
+                                            <option key={r.id} value={r.id}>
+                                                {r.route_name} {r.vehicle_id ? '(Assigned)' : '(Unassigned)'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-[10px] text-slate-400 mt-1">* Selecting a route will assign this vehicle to it.</p>
+                                </div>
                                 <button onClick={handleAddVehicle} className="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700">Add Vehicle</button>
                             </div>
                         </div>
