@@ -81,8 +81,13 @@ const TimePicker12H = ({ value, onChange, className = "" }) => {
     );
 };
 
-const TransportManagement = () => {
-    const [activeTab, setActiveTab] = useState('vehicles');
+const TransportManagement = ({ initialTab }) => {
+    const [activeTab, setActiveTab] = useState(initialTab || 'vehicles');
+
+    useEffect(() => {
+        if (initialTab) setActiveTab(initialTab);
+    }, [initialTab]);
+
     const [vehicles, setVehicles] = useState([]);
     const [routes, setRoutes] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -523,7 +528,8 @@ const TransportManagement = () => {
                                 <div className="h-full bg-slate-100 relative">
                                     <MapContainer center={[12.9716, 77.5946]} zoom={13} style={{ height: '100%', width: '100%' }}>
                                         <TileLayer
-                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                            attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                                            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                                         />
                                         <LocationPicker onLocationSelect={handleMapClick} />
 

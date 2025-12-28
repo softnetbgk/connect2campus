@@ -68,6 +68,8 @@ import TransportManagement from '../components/dashboard/transport/TransportMana
 import AdmissionCRM from '../components/dashboard/admissions/AdmissionCRM';
 // Biometric Component
 import BiometricManagement from '../components/dashboard/biometric/BiometricManagement';
+// Live Map Component
+import AdminLiveMap from '../components/dashboard/admin/AdminLiveMap';
 
 const SchoolAdminDashboard = () => {
     const { logout, user } = useAuth();
@@ -89,6 +91,8 @@ const SchoolAdminDashboard = () => {
         hostel: false,
         calendar: false,
         admissions: false,
+        admissions: false,
+        transport: false,
         biometric: false
     });
 
@@ -332,15 +336,16 @@ const SchoolAdminDashboard = () => {
                         />
                     </div>
 
-                    <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 mt-6">Logistics</p>
-                    <div className="mt-2">
-                        <NavButton
-                            active={activeTab === 'transport-management'}
-                            onClick={() => handleTabChange('transport-management')}
-                            icon={Bus}
-                            label="Transport"
-                        />
-                    </div>
+                    <NavGroup
+                        label="Logistics"
+                        icon={Bus}
+                        expanded={expandedSections.transport}
+                        onToggle={() => toggleSection('transport')}
+                    >
+                        <NavSubButton active={activeTab === 'transport-vehicles'} onClick={() => handleTabChange('transport-vehicles')} label="Vehicle Manager" />
+                        <NavSubButton active={activeTab === 'transport-routes'} onClick={() => handleTabChange('transport-routes')} label="Route Manager" />
+                        <NavSubButton active={activeTab === 'transport-live'} onClick={() => handleTabChange('transport-live')} label="Live Fleet Map" />
+                    </NavGroup>
 
                     <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 mt-6">Documents</p>
                     <div className="mt-2">
@@ -446,7 +451,9 @@ const SchoolAdminDashboard = () => {
                         {activeTab === 'announcements' && <Announcements />}
                         {activeTab === 'leave-management' && <LeaveManagement onAction={fetchPendingLeaves} />}
                         {activeTab === 'certificates-generator' && <CertificateGenerator />}
-                        {activeTab === 'transport-management' && <TransportManagement />}
+                        {activeTab === 'transport-vehicles' && <TransportManagement initialTab="vehicles" />}
+                        {activeTab === 'transport-routes' && <TransportManagement initialTab="routes" />}
+                        {activeTab === 'transport-live' && <AdminLiveMap />}
                         {activeTab === 'biometric-access' && <BiometricManagement />}
                     </div>
                 </main>
