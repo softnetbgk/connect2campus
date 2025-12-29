@@ -5,9 +5,9 @@
 // - For PRODUCTION: Set USE_LOCAL_SERVER = false (line 8)
 // - Then rebuild ONCE and it will work for that environment
 
-const USE_LOCAL_SERVER = false; // ← Change this to switch environments
+const USE_LOCAL_SERVER = true; // ← Change this to switch environments
 
-const LOCAL_IP = '10.60.101.164'; // Your computer's local IP
+const LOCAL_IP = '172.23.101.71'; // Your computer's local IP
 const PRODUCTION_URL = 'https://school-software-backend-z86u.onrender.com';
 
 export const API_CONFIG = {

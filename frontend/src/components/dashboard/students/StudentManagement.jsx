@@ -355,9 +355,10 @@ const StudentManagement = ({ config, prefillData }) => {
                     <input
                         type="search"
                         placeholder="Search Name/ID..."
+                        autoComplete="off"
                         className="bg-slate-50 border border-slate-200 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-indigo-400 w-40 md:w-56 transition-all"
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''))}
                     />
                     <button
                         onClick={handlePrint}
@@ -472,7 +473,7 @@ const StudentManagement = ({ config, prefillData }) => {
                             <h2 className="text-lg font-bold text-gray-800">{isEditing ? 'Edit Student' : 'Add New Student'}</h2>
                             <button onClick={() => setShowModal(false)}><X size={20} className="text-gray-400 hover:text-gray-600" /></button>
                         </div>
-                        <form onSubmit={handleSubmit} className="p-6 grid grid-cols-2 gap-4 overflow-y-auto">
+                        <form onSubmit={handleSubmit} autoComplete="off" className="p-6 grid grid-cols-2 gap-4 overflow-y-auto">
 
                             {/* Personal Details */}
                             <div className="col-span-2">
@@ -490,6 +491,7 @@ const StudentManagement = ({ config, prefillData }) => {
                                         placeholder="First Name"
                                         pattern="[A-Za-z]+"
                                         title="Only letters allowed"
+                                        autoComplete="off"
                                         value={formData.first_name || ''}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}
@@ -507,6 +509,7 @@ const StudentManagement = ({ config, prefillData }) => {
                                         placeholder="Middle Name"
                                         pattern="[A-Za-z]*"
                                         title="Only letters allowed"
+                                        autoComplete="off"
                                         value={formData.middle_name || ''}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}
@@ -525,6 +528,7 @@ const StudentManagement = ({ config, prefillData }) => {
                                         placeholder="Last Name"
                                         pattern="[A-Za-z]+"
                                         title="Only letters allowed"
+                                        autoComplete="off"
                                         value={formData.last_name || ''}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}
@@ -551,6 +555,7 @@ const StudentManagement = ({ config, prefillData }) => {
                                     type="date"
                                     className="input"
                                     required
+                                    autoComplete="off"
                                     max={new Date().toISOString().split('T')[0]}
                                     value={formData.dob}
                                     onChange={e => setFormData({ ...formData, dob: e.target.value })}
@@ -558,11 +563,11 @@ const StudentManagement = ({ config, prefillData }) => {
                             </div>
                             <div className="col-span-1">
                                 <label className="label">Age</label>
-                                <input className="input bg-gray-50" readOnly value={formData.age} placeholder="Auto-calculated" />
+                                <input className="input bg-gray-50" readOnly autoComplete="off" value={formData.age} placeholder="Auto-calculated" />
                             </div>
                             <div className="col-span-1">
                                 <label className="label">Admission Date <span className="text-red-500">*</span></label>
-                                <input type="date" className="input" required value={formData.admission_date} onChange={e => setFormData({ ...formData, admission_date: e.target.value })} />
+                                <input type="date" className="input" required autoComplete="off" value={formData.admission_date} onChange={e => setFormData({ ...formData, admission_date: e.target.value })} />
                             </div>
 
                             {/* Academic Details */}
@@ -601,6 +606,7 @@ const StudentManagement = ({ config, prefillData }) => {
                                     required
                                     pattern="[A-Za-z\s]+"
                                     title="Only letters and spaces allowed"
+                                    autoComplete="off"
                                     value={formData.father_name}
                                     onCopy={e => e.preventDefault()}
                                     onPaste={e => e.preventDefault()}
@@ -618,6 +624,7 @@ const StudentManagement = ({ config, prefillData }) => {
                                     required
                                     pattern="[A-Za-z\s]+"
                                     title="Only letters and spaces allowed"
+                                    autoComplete="off"
                                     value={formData.mother_name}
                                     onCopy={e => e.preventDefault()}
                                     onPaste={e => e.preventDefault()}
@@ -636,6 +643,7 @@ const StudentManagement = ({ config, prefillData }) => {
                                     required
                                     maxLength="10"
                                     placeholder="10 Digits"
+                                    autoComplete="off"
                                     value={formData.contact_number}
                                     onCopy={e => e.preventDefault()}
                                     onPaste={e => e.preventDefault()}
@@ -654,6 +662,7 @@ const StudentManagement = ({ config, prefillData }) => {
                                     type="email"
                                     required
                                     placeholder="example@domain.com"
+                                    autoComplete="off"
                                     value={formData.email}
                                     onCopy={e => e.preventDefault()}
                                     onPaste={e => e.preventDefault()}
@@ -669,6 +678,7 @@ const StudentManagement = ({ config, prefillData }) => {
                                 <textarea
                                     className="input"
                                     rows="2"
+                                    autoComplete="off"
                                     value={formData.address}
                                     onCopy={e => e.preventDefault()}
                                     onPaste={e => e.preventDefault()}

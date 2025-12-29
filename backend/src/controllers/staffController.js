@@ -24,6 +24,20 @@ exports.addStaff = async (req, res) => {
             }
         }
 
+        // 1.1 Check if email already exists
+        if (email) {
+            const emailCheck = await client.query(
+                'SELECT id, name FROM staff WHERE email = $1 AND school_id = $2',
+                [email, school_id]
+            );
+            if (emailCheck.rows.length > 0) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({
+                    message: `Email already exists for staff: ${emailCheck.rows[0].name}`
+                });
+            }
+        }
+
         // 2. Generate 6-Digit Staff ID
         let employee_id;
         let isUnique = false;
@@ -119,6 +133,20 @@ exports.updateStaff = async (req, res) => {
                 await client.query('ROLLBACK');
                 return res.status(400).json({
                     message: `Phone number already exists for staff: ${phoneCheck.rows[0].name}`
+                });
+            }
+        }
+
+        // Check if email already exists for another staff member
+        if (email) {
+            const emailCheck = await client.query(
+                'SELECT id, name FROM staff WHERE email = $1 AND school_id = $2 AND id != $3',
+                [email, school_id, id]
+            );
+            if (emailCheck.rows.length > 0) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({
+                    message: `Email already exists for staff: ${emailCheck.rows[0].name}`
                 });
             }
         }

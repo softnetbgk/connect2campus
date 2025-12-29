@@ -142,9 +142,10 @@ const AdmissionCRM = ({ onNavigate }) => {
                     <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
                     <input
                         placeholder="Search by student name or phone..."
+                        autoComplete="off"
                         className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                         value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
+                        onChange={e => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''))}
                     />
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
@@ -261,10 +262,11 @@ const AdmissionCRM = ({ onNavigate }) => {
                             <h3 className="font-bold text-slate-800">Add New Enquiry</h3>
                             <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
                         </div>
-                        <form onSubmit={handleAddEnquiry} className="p-6 space-y-4">
+                        <form onSubmit={handleAddEnquiry} autoComplete="off" className="p-6 space-y-4">
                             <input
                                 required
                                 placeholder="Student Name"
+                                autoComplete="off"
                                 className="w-full p-2 border rounded-lg"
                                 value={formData.student_name}
                                 onChange={e => setFormData({ ...formData, student_name: e.target.value.replace(/\d/g, '') })}
@@ -287,6 +289,7 @@ const AdmissionCRM = ({ onNavigate }) => {
                                 </select>
                                 <input
                                     placeholder="Previous School"
+                                    autoComplete="off"
                                     className="w-full p-2 border rounded-lg"
                                     value={formData.previous_school}
                                     onChange={e => setFormData({ ...formData, previous_school: e.target.value })}
@@ -297,6 +300,7 @@ const AdmissionCRM = ({ onNavigate }) => {
                             <input
                                 required
                                 placeholder="Parent/Guardian Name"
+                                autoComplete="off"
                                 className="w-full p-2 border rounded-lg"
                                 value={formData.parent_name}
                                 onChange={e => setFormData({ ...formData, parent_name: e.target.value.replace(/\d/g, '') })}
@@ -308,6 +312,7 @@ const AdmissionCRM = ({ onNavigate }) => {
                                     required
                                     type="text"
                                     placeholder="Phone Number (10 digits)"
+                                    autoComplete="off"
                                     className="w-full p-2 border rounded-lg"
                                     value={formData.contact_number}
                                     onChange={e => {
@@ -321,6 +326,7 @@ const AdmissionCRM = ({ onNavigate }) => {
                                 />
                                 <input
                                     placeholder="Email (Optional)"
+                                    autoComplete="off"
                                     className="w-full p-2 border rounded-lg"
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -330,6 +336,7 @@ const AdmissionCRM = ({ onNavigate }) => {
                             </div>
                             <textarea
                                 placeholder="Notes / Remarks"
+                                autoComplete="off"
                                 className="w-full p-2 border rounded-lg h-24"
                                 value={formData.notes}
                                 onChange={e => setFormData({ ...formData, notes: e.target.value })}

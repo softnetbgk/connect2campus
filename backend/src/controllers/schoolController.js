@@ -29,6 +29,26 @@ const createSchool = async (req, res) => {
             isUnique = check.rows.length === 0;
         }
 
+        // Check if contact email already exists
+        const contactEmailCheck = await client.query("SELECT id FROM schools WHERE contact_email = $1", [contactEmail]);
+        if (contactEmailCheck.rows.length > 0) {
+            return res.status(400).json({ message: 'Contact email already exists for another school' });
+        }
+
+        // Check if contact number already exists
+        if (contactNumber) {
+            const contactNumberCheck = await client.query("SELECT id FROM schools WHERE contact_number = $1", [contactNumber]);
+            if (contactNumberCheck.rows.length > 0) {
+                return res.status(400).json({ message: 'Contact number already exists for another school' });
+            }
+        }
+
+        // Check if admin email already exists in users table
+        const adminEmailCheck = await client.query("SELECT id FROM users WHERE email = $1", [adminEmail]);
+        if (adminEmailCheck.rows.length > 0) {
+            return res.status(400).json({ message: 'Admin email already exists' });
+        }
+
         // 1. Create School
         const schoolRes = await client.query(
             `INSERT INTO schools (name, address, contact_email, contact_number, school_code) 

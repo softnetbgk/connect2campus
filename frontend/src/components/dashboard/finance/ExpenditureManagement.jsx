@@ -363,6 +363,7 @@ const ExpenditureManagement = () => {
                                     <input
                                         type="text"
                                         required
+                                        autoComplete="off"
                                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
                                         value={formData.title}
                                         onChange={e => setFormData({ ...formData, title: e.target.value })}
@@ -375,6 +376,7 @@ const ExpenditureManagement = () => {
                                         <input
                                             type="number"
                                             required
+                                            autoComplete="off"
                                             className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
                                             value={formData.amount}
                                             onChange={e => setFormData({ ...formData, amount: e.target.value })}
@@ -386,6 +388,7 @@ const ExpenditureManagement = () => {
                                         <input
                                             type="date"
                                             required
+                                            autoComplete="off"
                                             className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
                                             value={formData.expense_date}
                                             max={new Date().toISOString().split('T')[0]}
@@ -414,6 +417,7 @@ const ExpenditureManagement = () => {
                                             <label className="block text-sm font-semibold text-slate-700 mb-1">Custom Category Name</label>
                                             <input
                                                 type="text"
+                                                autoComplete="off"
                                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
                                                 value={formData.custom_category}
                                                 onChange={e => setFormData({ ...formData, custom_category: e.target.value })}
@@ -445,6 +449,7 @@ const ExpenditureManagement = () => {
                                             </label>
                                             <input
                                                 type="text"
+                                                autoComplete="off"
                                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
                                                 value={formData.transaction_id}
                                                 onChange={e => setFormData({ ...formData, transaction_id: e.target.value })}
@@ -456,6 +461,7 @@ const ExpenditureManagement = () => {
                                                 <label className="block text-sm font-semibold text-slate-700 mb-1">UPI ID</label>
                                                 <input
                                                     type="text"
+                                                    autoComplete="off"
                                                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
                                                     value={formData.upi_id}
                                                     onChange={e => setFormData({ ...formData, upi_id: e.target.value })}

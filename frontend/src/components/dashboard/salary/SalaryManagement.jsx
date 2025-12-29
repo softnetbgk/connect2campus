@@ -17,8 +17,7 @@ const SalaryManagement = () => {
         payment_mode: 'Cash',
         notes: '',
         transaction_id: '',
-        cheque_number: '',
-        bank_name: ''
+        cheque_number: ''
     });
 
     useEffect(() => {
@@ -41,6 +40,14 @@ const SalaryManagement = () => {
     const handleMarkPaid = async () => {
         if (!selectedEmployee) return;
 
+        // Validation for Online Payments
+        if (['Bank Transfer', 'UPI'].includes(paymentData.payment_mode) && !paymentData.transaction_id) {
+            return toast.error('Transaction ID / UTR is required for online payments');
+        }
+        if (paymentData.payment_mode === 'Cheque' && !paymentData.cheque_number) {
+            return toast.error('Cheque Number is required');
+        }
+
         try {
             await api.post('/salary/mark-paid', {
                 employee_id: selectedEmployee.id,
@@ -52,15 +59,14 @@ const SalaryManagement = () => {
                 notes: paymentData.notes,
                 transaction_details: {
                     transaction_id: paymentData.transaction_id,
-                    cheque_number: paymentData.cheque_number,
-                    bank_name: paymentData.bank_name
+                    cheque_number: paymentData.cheque_number
                 }
             });
 
             toast.success(`Salary marked as paid for ${selectedEmployee.name}`);
             setShowPaymentModal(false);
             setSelectedEmployee(null);
-            setPaymentData({ payment_mode: 'Cash', notes: '', transaction_id: '', cheque_number: '', bank_name: '' });
+            setPaymentData({ payment_mode: 'Cash', notes: '', transaction_id: '', cheque_number: '' });
             fetchSalaryData();
         } catch (error) {
             toast.error('Failed to mark salary as paid');
@@ -152,8 +158,9 @@ const SalaryManagement = () => {
                             <input
                                 type="text"
                                 placeholder="Search by name or ID..."
+                                autoComplete="off"
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''))}
                                 className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
                             />
                         </div>
@@ -320,50 +327,36 @@ const SalaryManagement = () => {
                             {['Bank Transfer', 'UPI'].includes(paymentData.payment_mode) && (
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-2">Transaction ID / UTR</label>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">
+                                            Transaction ID / UTR <span className="text-red-500">*</span>
+                                        </label>
                                         <input
                                             type="text"
+                                            required
+                                            autoComplete="off"
                                             value={paymentData.transaction_id}
                                             onChange={(e) => setPaymentData({ ...paymentData, transaction_id: e.target.value })}
                                             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                                             placeholder="Enter Transaction ID"
                                         />
                                     </div>
-                                    {paymentData.payment_mode === 'Bank Transfer' && (
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-2">Bank Name</label>
-                                            <input
-                                                type="text"
-                                                value={paymentData.bank_name}
-                                                onChange={(e) => setPaymentData({ ...paymentData, bank_name: e.target.value })}
-                                                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                                                placeholder="Enter Bank Name (Optional)"
-                                            />
-                                        </div>
-                                    )}
                                 </div>
                             )}
 
                             {paymentData.payment_mode === 'Cheque' && (
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-2">Cheque Number</label>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">
+                                            Cheque Number <span className="text-red-500">*</span>
+                                        </label>
                                         <input
                                             type="text"
+                                            required
+                                            autoComplete="off"
                                             value={paymentData.cheque_number}
                                             onChange={(e) => setPaymentData({ ...paymentData, cheque_number: e.target.value })}
                                             className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                                             placeholder="Enter Cheque Number"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-2">Bank Name</label>
-                                        <input
-                                            type="text"
-                                            value={paymentData.bank_name}
-                                            onChange={(e) => setPaymentData({ ...paymentData, bank_name: e.target.value })}
-                                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                                            placeholder="Issuing Bank Name"
                                         />
                                     </div>
                                 </div>
@@ -385,7 +378,7 @@ const SalaryManagement = () => {
                                     onClick={() => {
                                         setShowPaymentModal(false);
                                         setSelectedEmployee(null);
-                                        setPaymentData({ payment_mode: 'Cash', notes: '', transaction_id: '', cheque_number: '', bank_name: '' });
+                                        setPaymentData({ payment_mode: 'Cash', notes: '', transaction_id: '', cheque_number: '' });
                                     }}
                                     className="flex-1 px-4 py-2 border border-slate-300 rounded-lg font-bold text-slate-700 hover:bg-slate-50 transition-colors"
                                 >

@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, BookOpen, Home, Bus, FileText, Calendar, DollarSign,
-    LogOut, User, Bell, GraduationCap, Clock, Award, MessageSquare, Menu, X
+    LogOut, User, Bell, GraduationCap, Clock, Award, MessageSquare, Menu, X, Navigation
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
 import toast from 'react-hot-toast';
@@ -16,10 +16,10 @@ import StudentAcademics from '../components/dashboard/students/StudentAcademics'
 import StudentMyAttendance from '../components/dashboard/students/StudentMyAttendance';
 import StudentHostel from '../components/dashboard/students/StudentHostel';
 import StudentFees from '../components/dashboard/students/StudentFees';
-import StudentTransport from '../components/dashboard/students/StudentTransport';
 import StudentCertificates from '../components/dashboard/students/StudentCertificates';
 import StudentLeaves from '../components/dashboard/students/StudentLeaves';
 import ViewAnnouncements from '../components/dashboard/calendar/ViewAnnouncements';
+import AdminLiveMap from '../components/dashboard/admin/AdminLiveMap';
 
 const StudentDashboard = () => {
     const { user, logout } = useAuth();
@@ -235,7 +235,7 @@ const StudentDashboard = () => {
                     <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">Services</p>
                     <NavButton active={activeTab === 'library'} onClick={() => handleTabChange('library')} icon={FileText} label="Library Books" />
                     <NavButton active={activeTab === 'hostel'} onClick={() => handleTabChange('hostel')} icon={Home} label="Hostel Rooms" />
-                    <NavButton active={activeTab === 'transport'} onClick={() => handleTabChange('transport')} icon={Bus} label="Track Transport" />
+                    <NavButton active={activeTab === 'fleet-map'} onClick={() => handleTabChange('fleet-map')} icon={Navigation} label="Live Fleet Map" />
 
                     <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">Personal</p>
                     <NavButton active={activeTab === 'fees'} onClick={() => handleTabChange('fees')} icon={DollarSign} label="My Fees" />
@@ -261,7 +261,8 @@ const StudentDashboard = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-white truncate">{user?.name}</p>
-                            <p className="text-xs text-blue-100">Admission No: {studentData?.admission_no || '--'}</p>
+                            <p className="text-[10px] text-blue-100 uppercase font-bold tracking-tight">Admission No: {studentData?.admission_no || '--'}</p>
+                            <p className="text-[10px] text-blue-200">School ID: {user?.schoolId}</p>
                         </div>
                         <button onClick={handleLogout} className="text-blue-200 hover:text-white transition-colors">
                             <LogOut size={18} />
@@ -314,7 +315,7 @@ const StudentDashboard = () => {
                         {activeTab === 'overview' && <StudentOverview schoolName={schoolName} stats={overviewStats} />}
                         {activeTab === 'doubts' && <StudentDoubts />}
                         {activeTab === 'leaves' && <StudentLeaves />}
-                        {activeTab === 'transport' && <StudentTransport />}
+                        {activeTab === 'fleet-map' && <AdminLiveMap />}
                         {activeTab === 'library' && <StudentLibraryStatus />}
                         {activeTab === 'hostel' && <StudentHostel />}
                         {activeTab === 'fees' && <StudentFees student={studentData} schoolName={schoolName} />}
@@ -413,7 +414,7 @@ const NavButton = ({ active, onClick, icon: Icon, label, badge }) => (
 const getTabTitle = (tab) => {
     switch (tab) {
         case 'overview': return 'Student Dashboard';
-        case 'transport': return 'Track Your School Bus';
+        case 'fleet-map': return 'Live Fleet Tracking';
         case 'library': return 'My Issued Books';
         case 'hostel': return 'My Hostel Room';
         case 'fees': return 'Fee Status';

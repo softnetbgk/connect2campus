@@ -13,6 +13,7 @@ import ViewAnnouncements from '../components/dashboard/calendar/ViewAnnouncement
 import StaffMyAttendance from '../components/dashboard/staff/StaffMyAttendance';
 import TeacherTransportMap from '../components/dashboard/teachers/TeacherTransportMap';
 import StaffSalarySlips from '../components/dashboard/staff/StaffSalarySlips';
+import AdminLiveMap from '../components/dashboard/admin/AdminLiveMap';
 
 const StaffDashboard = () => {
     const { user, logout } = useAuth();
@@ -169,7 +170,8 @@ const StaffDashboard = () => {
 
                     <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">Work</p>
                     <NavButton active={activeTab === 'attendance'} onClick={() => handleTabChange('attendance')} icon={Calendar} label="My Attendance" />
-                    <NavButton active={activeTab === 'transport'} onClick={() => handleTabChange('transport')} icon={Bus} label={isDriver ? "Trip Tracker" : "Track My School Bus"} />
+                    {isDriver && <NavButton active={activeTab === 'transport'} onClick={() => handleTabChange('transport')} icon={Bus} label="Trip Tracker" />}
+                    <NavButton active={activeTab === 'fleet-map'} onClick={() => handleTabChange('fleet-map')} icon={Navigation} label="Live Fleet Map" />
 
                     <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">Finance</p>
                     <NavButton active={activeTab === 'salary'} onClick={() => handleTabChange('salary')} icon={FileText} label="Salary Slips" />
@@ -187,7 +189,8 @@ const StaffDashboard = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-white truncate">{staffProfile?.name || user?.name}</p>
-                            <p className="text-xs text-blue-100">{isDriver ? 'Driver' : 'Staff Member'}</p>
+                            <p className="text-[10px] text-blue-100 uppercase font-bold tracking-tight">{isDriver ? 'Driver' : 'Staff Member'}: {staffProfile?.employee_id || '--'}</p>
+                            <p className="text-[10px] text-blue-200">School ID: {user?.schoolId}</p>
                         </div>
                         <button onClick={handleLogout} className="text-blue-200 hover:text-white transition-colors">
                             <LogOut size={18} />
@@ -229,22 +232,19 @@ const StaffDashboard = () => {
                         {activeTab === 'attendance' && <StaffMyAttendance />}
 
                         {/* Unified Transport View */}
-                        {activeTab === 'transport' && (
-                            isDriver ? (
-                                <DriverTrackingView
-                                    vehicles={vehicles}
-                                    selectedVehicle={selectedVehicle}
-                                    setSelectedVehicle={setSelectedVehicle}
-                                    startTracking={startTracking}
-                                    stopTracking={stopTracking}
-                                    isTracking={isTracking}
-                                    location={location}
-                                    logs={logs}
-                                />
-                            ) : (
-                                <StaffTransportView profile={staffProfile} />
-                            )
+                        {activeTab === 'transport' && isDriver && (
+                            <DriverTrackingView
+                                vehicles={vehicles}
+                                selectedVehicle={selectedVehicle}
+                                setSelectedVehicle={setSelectedVehicle}
+                                startTracking={startTracking}
+                                stopTracking={stopTracking}
+                                isTracking={isTracking}
+                                location={location}
+                                logs={logs}
+                            />
                         )}
+                        {activeTab === 'fleet-map' && <AdminLiveMap />}
 
                         {activeTab === 'salary' && <StaffSalarySlips />}
                         {activeTab === 'announcements' && <ViewAnnouncements />}
@@ -346,53 +346,7 @@ const DriverTrackingView = ({ vehicles, selectedVehicle, setSelectedVehicle, sta
     </div>
 );
 
-const StaffTransportView = ({ profile }) => (
-    <div className="space-y-6 animate-in fade-in">
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-            <h3 className="font-bold text-lg text-slate-800 mb-6 flex items-center gap-2">
-                <Bus className="text-orange-600" /> Transport Allocation
-            </h3>
 
-            {profile?.transport_route_id ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 flex flex-col justify-between">
-                        <div>
-                            <div className="text-xs text-slate-500 font-bold uppercase mb-2">Route Details</div>
-                            <div className="text-xl font-bold text-slate-800">{profile.route_name}</div>
-                            {profile.pickup_point && (
-                                <div className="text-sm font-medium text-orange-600 mt-1 flex items-center gap-1">
-                                    <MapPin size={14} /> Stop: {profile.pickup_point}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
-                        <div className="text-xs text-slate-500 font-bold uppercase mb-2">Vehicle Info</div>
-                        <div className="text-lg font-bold text-slate-800">{profile.vehicle_number}</div>
-                        <div className="mt-4 pt-4 border-t border-slate-200">
-                            <div className="text-xs text-slate-400 font-bold uppercase mb-1">Driver</div>
-                            <div className="text-sm font-bold text-slate-700">{profile.driver_name}</div>
-                            <div className="text-sm font-mono text-slate-500">{profile.driver_phone}</div>
-                        </div>
-                    </div>
-
-                    <div className="col-span-full">
-                        <TeacherTransportMap vehicle={profile} />
-                    </div>
-                </div>
-            ) : (
-                <div className="h-48 bg-slate-50 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-slate-200 text-center p-6">
-                    <div className="bg-white p-3 rounded-full mb-3 shadow-sm">
-                        <Bus size={24} className="text-slate-300" />
-                    </div>
-                    <h4 className="text-slate-500 font-bold">No Transport Assigned</h4>
-                    <p className="text-slate-400 text-sm mt-1 max-w-xs">You have not subscribed to school transport or no route has been allocated yet.</p>
-                </div>
-            )}
-        </div>
-    </div>
-);
 
 // Helper Component
 const NavButton = ({ active, onClick, icon: Icon, label }) => (
@@ -414,7 +368,8 @@ const getTabTitle = (tab, isDriver) => {
         case 'overview': return isDriver ? 'Driver Dashboard' : 'Staff Dashboard';
 
         case 'attendance': return 'Attendance History';
-        case 'transport': return isDriver ? 'Trip Tracking' : 'Track My School Bus';
+        case 'transport': return 'Trip Tracking';
+        case 'fleet-map': return 'Live Fleet Tracking';
         case 'salary': return 'Salary & Payslips';
         case 'calendar': return 'Academic Calendar';
         case 'announcements': return 'Announcements';

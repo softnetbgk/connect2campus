@@ -125,6 +125,7 @@ const StaffManagement = () => {
                                         required
                                         pattern="[A-Za-z\s]+"
                                         title="Letters and spaces only"
+                                        autoComplete="off"
                                         value={formData.name}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}
@@ -143,6 +144,7 @@ const StaffManagement = () => {
                                         required
                                         pattern="[A-Za-z\s]+"
                                         title="Letters and spaces only"
+                                        autoComplete="off"
                                         value={formData.role}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}
@@ -162,6 +164,7 @@ const StaffManagement = () => {
                                         placeholder="Phone"
                                         required
                                         maxLength={10}
+                                        autoComplete="off"
                                         value={formData.phone}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}
@@ -174,6 +177,7 @@ const StaffManagement = () => {
                                         className="input"
                                         placeholder="Email"
                                         type="email"
+                                        autoComplete="off"
                                         value={formData.email}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}
@@ -194,6 +198,7 @@ const StaffManagement = () => {
                                         className="input"
                                         required
                                         type="date"
+                                        autoComplete="off"
                                         max={new Date().toISOString().split('T')[0]}
                                         value={formData.join_date}
                                         onChange={e => setFormData({ ...formData, join_date: e.target.value })}
@@ -209,6 +214,7 @@ const StaffManagement = () => {
                                         min="0"
                                         required
                                         placeholder="0.00"
+                                        autoComplete="off"
                                         value={formData.salary_per_day}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}

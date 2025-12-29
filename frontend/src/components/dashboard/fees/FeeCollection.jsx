@@ -26,6 +26,7 @@ const FeeCollection = ({ config }) => {
     const [amount, setAmount] = useState('');
     const [method, setMethod] = useState('Cash');
     const [remarks, setRemarks] = useState('');
+    const [transactionId, setTransactionId] = useState('');
 
     const sections = config?.classes?.find(c => c.class_id === parseInt(selectedClass))?.sections || [];
 
@@ -114,17 +115,23 @@ const FeeCollection = ({ config }) => {
 
     const handlePayment = async (e) => {
         e.preventDefault();
+        if (['Bank Transfer', 'UPI', 'Cheque'].includes(method) && !transactionId) {
+            return toast.error(`${method === 'Cheque' ? 'Cheque Number' : 'Transaction ID / UTR'} is required`);
+        }
+
         try {
             await api.post('/fees/pay', {
                 student_id: selectedStudent.id,
                 fee_structure_id: payModal.fee_structure_id,
                 amount: parseFloat(amount),
                 method,
-                remarks
+                remarks: transactionId ? `${method}: ${transactionId}${remarks ? ' - ' + remarks : ''}` : remarks
             });
             toast.success('Payment Recorded');
             setPayModal(null);
             setAmount('');
+            setTransactionId('');
+            setRemarks('');
             fetchStudentFees(selectedStudent.id);
             fetchHistory(selectedStudent.id);
             fetchOverview();
@@ -163,22 +170,38 @@ argin: 10px 0; }
             <body>
                 <div class="receipt">
                     <div class="header">
-                        <h1>Fee Payment Receipt</h1>
+                        <h1 style="color: #4f46e5; text-transform: uppercase; letter-spacing: 1px;">${school}</h1>
+                        <p style="font-size: 12px; color: #666; font-weight: bold;">OFFICIAL FEE RECEIPT</p>
                         <div class="receipt-no">RECEIPT #${payment.receipt_no}</div>
                     </div>
-                    <div class="row"><span class="label">Date:</span> <span class="value">${new Date(payment.payment_date).toLocaleDateString('en-GB')}</span></div>
-                    <div class="row"><span class="label">Student:</span> <span class="value">${student.name}</span></div>
+                    <div class="row"><span class="label">Payment Date:</span> <span class="value">${new Date(payment.payment_date).toLocaleDateString('en-GB')}</span></div>
+                    <div class="row"><span class="label">Student Name:</span> <span class="value">${student.name}</span></div>
                     <div class="row"><span class="label">Admission No:</span> <span class="value">${student.admission_no}</span></div>
-                    <div class="row"><span class="label">Class:</span> <span class="value">${school}</span></div>
-                    <div class="row"><span class="label">Fee Type:</span> <span class="value">${payment.fee_title}</span></div>
-                    <div class="row"><span class="label">Payment Method:</span> <span class="value">${payment.payment_method}</span></div>
-                    ${payment.remarks ? `<div class="row"><span class="label">Remarks:</span> <span class="value">${payment.remarks}</span></div>` : ''}
+                    <div class="row"><span class="label">Class/Section:</span> <span class="value">${school}</span></div>
+                    <div class="row"><span class="label">Fee Category:</span> <span class="value">${payment.fee_title}</span></div>
+                    <div class="row"><span class="label">Method:</span> <span class="value">${payment.payment_method}</span></div>
+                    ${payment.remarks ? `<div class="row"><span class="label">Reference:</span> <span class="value">${payment.remarks}</span></div>` : ''}
              
-       <div class="amount-row">
-                        <div class="row" style="border: none;"><span class="label">Amount Paid:</span> <span class="amount">₹${parseFloat(payment.amount_paid).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+                    <div class="amount-row">
+                        <div class="row" style="border: none;">
+                            <span class="label" style="font-size: 14px; color: #16a34a;">Amount Paid:</span> 
+                            <span class="amount">₹${parseFloat(payment.amount_paid).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        </div>
                     </div>
+
+                    <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: flex-end;">
+                        <div style="text-align: center;">
+                            <div style="width: 120px; border-bottom: 1px solid #333; margin-bottom: 5px;"></div>
+                            <p style="font-size: 10px; font-weight: bold; color: #666;">Student/Parent Sign</p>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="width: 120px; border-bottom: 1px solid #333; margin-bottom: 5px;"></div>
+                            <p style="font-size: 10px; font-weight: bold; color: #666;">Authorized Signatory</p>
+                        </div>
+                    </div>
+
                     <div class="footer">
-                        <p>This is a computer-generated receipt.</p>
+                        <p>Thank you for your payment!</p>
                         <p>Generated on: ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                 </div>
@@ -353,19 +376,34 @@ argin: 10px 0; }
                                 <div>
                                     <label className="label">Amount</label>
                                     <div className="relative">
-                                        <input className="input" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required max={payModal.balance} />
+                                        <input className="input" type="number" step="0.01" autoComplete="off" value={amount} onChange={e => setAmount(e.target.value)} required max={payModal.balance} />
                                     </div>
                                     <p className="text-xs text-right text-gray-500 mt-1">Max: ₹{formatCurrency(payModal.balance)}</p>
                                 </div>
                                 <div>
                                     <label className="label">Payment Method</label>
-                                    <select className="input" value={method} onChange={e => setMethod(e.target.value)}>
+                                    <select className="input" value={method} onChange={e => { setMethod(e.target.value); setTransactionId(''); }}>
                                         <option>Cash</option><option>Bank Transfer</option><option>UPI</option><option>Cheque</option>
                                     </select>
                                 </div>
+                                {['Bank Transfer', 'UPI', 'Cheque'].includes(method) && (
+                                    <div>
+                                        <label className="label">
+                                            {method === 'Cheque' ? 'Cheque Number' : 'Transaction ID / UTR'} <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            className="input"
+                                            required
+                                            autoComplete="off"
+                                            placeholder={method === 'Cheque' ? 'Enter Cheque Number' : 'Enter UTR / Transaction ID'}
+                                            value={transactionId}
+                                            onChange={e => setTransactionId(e.target.value)}
+                                        />
+                                    </div>
+                                )}
                                 <div>
-                                    <label className="label">Remarks</label>
-                                    <textarea className="input" rows="2" value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Transaction ID, etc." />
+                                    <label className="label">Remarks (Optional)</label>
+                                    <textarea className="input" rows="2" value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Any additional notes..." />
                                 </div>
                                 <div className="flex gap-2">
                                     <button type="button" onClick={() => setPayModal(null)} className="btn-secondary w-1/2">Cancel</button>
@@ -402,22 +440,22 @@ argin: 10px 0; }
                                     <>
                                         <div>
                                             <label className="label">Title</label>
-                                            <input className="input" value={editModal.data.title} onChange={e => setEditModal({ ...editModal, data: { ...editModal.data, title: e.target.value } })} />
+                                            <input className="input" autoComplete="off" value={editModal.data.title} onChange={e => setEditModal({ ...editModal, data: { ...editModal.data, title: e.target.value } })} />
                                         </div>
                                         <div>
                                             <label className="label">Total Amount</label>
-                                            <input className="input" type="number" value={editModal.data.total_amount} onChange={e => setEditModal({ ...editModal, data: { ...editModal.data, total_amount: e.target.value } })} />
+                                            <input className="input" type="number" autoComplete="off" value={editModal.data.total_amount} onChange={e => setEditModal({ ...editModal, data: { ...editModal.data, total_amount: e.target.value } })} />
                                         </div>
                                         <div>
                                             <label className="label">Due Date</label>
-                                            <input className="input" type="date" value={editModal.data.due_date ? new Date(editModal.data.due_date).toISOString().split('T')[0] : ''} onChange={e => setEditModal({ ...editModal, data: { ...editModal.data, due_date: e.target.value } })} />
+                                            <input className="input" type="date" autoComplete="off" value={editModal.data.due_date ? new Date(editModal.data.due_date).toISOString().split('T')[0] : ''} onChange={e => setEditModal({ ...editModal, data: { ...editModal.data, due_date: e.target.value } })} />
                                         </div>
                                     </>
                                 ) : (
                                     <>
                                         <div>
                                             <label className="label">Amount Paid</label>
-                                            <input className="input" type="number" value={editModal.data.amount_paid} onChange={e => setEditModal({ ...editModal, data: { ...editModal.data, amount_paid: e.target.value } })} required />
+                                            <input className="input" type="number" autoComplete="off" value={editModal.data.amount_paid} onChange={e => setEditModal({ ...editModal, data: { ...editModal.data, amount_paid: e.target.value } })} required />
                                         </div>
                                         <div>
                                             <label className="label">Payment Method</label>
@@ -427,11 +465,11 @@ argin: 10px 0; }
                                         </div>
                                         <div>
                                             <label className="label">Remarks / UTR</label>
-                                            <input className="input" value={editModal.data.remarks || ''} onChange={e => setEditModal({ ...editModal, data: { ...editModal.data, remarks: e.target.value } })} />
+                                            <input className="input" autoComplete="off" value={editModal.data.remarks || ''} onChange={e => setEditModal({ ...editModal, data: { ...editModal.data, remarks: e.target.value } })} />
                                         </div>
                                         <div>
                                             <label className="label">Date</label>
-                                            <input className="input" type="date" value={editModal.data.payment_date ? new Date(editModal.data.payment_date).toISOString().split('T')[0] : ''} onChange={e => setEditModal({ ...editModal, data: { ...editModal.data, payment_date: e.target.value } })} />
+                                            <input className="input" type="date" autoComplete="off" value={editModal.data.payment_date ? new Date(editModal.data.payment_date).toISOString().split('T')[0] : ''} onChange={e => setEditModal({ ...editModal, data: { ...editModal.data, payment_date: e.target.value } })} />
                                         </div>
                                     </>
                                 )}
@@ -457,9 +495,10 @@ argin: 10px 0; }
                         <input
                             type="text"
                             placeholder="Search by Student Name or ID..."
+                            autoComplete="off"
                             className="input w-full bg-slate-50 border-slate-200 focus:bg-white transition-colors"
                             value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
+                            onChange={e => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''))}
                         />
                     </div>
                 </div>

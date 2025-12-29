@@ -394,10 +394,12 @@ const TransportManagement = ({ initialTab }) => {
                             <div className="p-6 space-y-4">
                                 <input
                                     className="w-full p-2 border rounded-lg text-sm" placeholder="Vehicle Number (e.g. KA-01-AB-1234)"
+                                    autoComplete="off"
                                     value={vehicleForm.vehicle_number} onChange={e => setVehicleForm({ ...vehicleForm, vehicle_number: e.target.value })}
                                 />
                                 <input
                                     className="w-full p-2 border rounded-lg text-sm" placeholder="Model (e.g. Tata Starbus)"
+                                    autoComplete="off"
                                     value={vehicleForm.vehicle_model} onChange={e => setVehicleForm({ ...vehicleForm, vehicle_model: e.target.value })}
                                 />
 
@@ -407,8 +409,12 @@ const TransportManagement = ({ initialTab }) => {
                                     <input
                                         className="w-full p-2 border rounded-lg text-sm"
                                         placeholder="Search by ID or Name..."
+                                        autoComplete="off"
                                         value={driverSearch}
-                                        onChange={handleDriverSearch}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/[^a-zA-Z0-9 ]/g, '');
+                                            handleDriverSearch({ target: { value: val } });
+                                        }}
                                     />
                                     {driverResults.length > 0 && (
                                         <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-50 max-h-40 overflow-y-auto">
@@ -447,10 +453,12 @@ const TransportManagement = ({ initialTab }) => {
                                 </div>
                                 <input
                                     className="w-full p-2 border rounded-lg text-sm" placeholder="GPS Device ID / IMEI (Optional for Hardware Tracking)"
+                                    autoComplete="off"
                                     value={vehicleForm.gps_device_id} onChange={e => setVehicleForm({ ...vehicleForm, gps_device_id: e.target.value })}
                                 />
                                 <input
                                     type="number" className="w-full p-2 border rounded-lg text-sm" placeholder="Capacity"
+                                    autoComplete="off"
                                     value={vehicleForm.capacity} onChange={e => setVehicleForm({ ...vehicleForm, capacity: e.target.value })}
                                 />
 
@@ -492,6 +500,7 @@ const TransportManagement = ({ initialTab }) => {
                                 <div className="p-6 space-y-4 overflow-y-auto custom-scrollbar">
                                     <input
                                         className="w-full p-2 border rounded-lg text-sm" placeholder="Route Name"
+                                        autoComplete="off"
                                         value={routeForm.route_name} onChange={e => setRouteForm({ ...routeForm, route_name: e.target.value })}
                                     />
                                     <select
@@ -504,10 +513,12 @@ const TransportManagement = ({ initialTab }) => {
                                     <div className="grid grid-cols-2 gap-4">
                                         <input
                                             className="w-full p-2 border rounded-lg text-sm" placeholder="Start Point"
+                                            autoComplete="off"
                                             value={routeForm.start_point} onChange={e => setRouteForm({ ...routeForm, start_point: e.target.value })}
                                         />
                                         <input
                                             className="w-full p-2 border rounded-lg text-sm" placeholder="End Point"
+                                            autoComplete="off"
                                             value={routeForm.end_point} onChange={e => setRouteForm({ ...routeForm, end_point: e.target.value })}
                                         />
                                     </div>
@@ -530,6 +541,7 @@ const TransportManagement = ({ initialTab }) => {
                                                     <div className="flex-1 space-y-1">
                                                         <input
                                                             className="w-full p-2 border rounded-lg text-sm" placeholder="Stop Name"
+                                                            autoComplete="off"
                                                             value={stop.name} onChange={e => handleStopChange(index, 'name', e.target.value)}
                                                         />
                                                         <div className="flex gap-2 items-center">

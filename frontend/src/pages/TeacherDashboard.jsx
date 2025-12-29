@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, Users, Calendar,
     LogOut, Bell, GraduationCap,
-    CheckSquare, Clock, Bus, MessageSquare, MapPin, BookOpen, Menu, X
+    CheckSquare, Clock, Bus, MessageSquare, MapPin, BookOpen, Menu, X, Navigation
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
 import api from '../api/axios';
@@ -14,11 +14,11 @@ import TeacherMySalary from '../components/dashboard/teachers/TeacherMySalary';
 
 import TeacherMyAttendance from '../components/dashboard/teachers/TeacherMyAttendance';
 import TeacherDoubts from '../components/dashboard/teachers/TeacherDoubts';
-import TeacherTransportMap from '../components/dashboard/teachers/TeacherTransportMap';
 import TeacherLeaveApplication from '../components/dashboard/teachers/TeacherLeaveApplication';
 import SchoolCalendar from '../components/dashboard/calendar/SchoolCalendar';
 import TeacherLibraryStatus from '../components/dashboard/teachers/TeacherLibraryStatus';
 import ViewAnnouncements from '../components/dashboard/calendar/ViewAnnouncements';
+import AdminLiveMap from '../components/dashboard/admin/AdminLiveMap';
 
 const TeacherDashboard = () => {
     const { user, logout } = useAuth();
@@ -101,7 +101,7 @@ const TeacherDashboard = () => {
                         </div>
                         <div className="w-full">
                             <h1 className="text-xl font-serif font-black italic text-white tracking-wide leading-tight drop-shadow-md">{schoolName || 'Teacher Portal'}</h1>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-blue-100">Staff Dashboard</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-blue-100">Teacher Dashboard</p>
                         </div>
                     </div>
                     {/* Mobile Close Button */}
@@ -128,7 +128,7 @@ const TeacherDashboard = () => {
                     <NavButton active={activeTab === 'my-attendance'} onClick={() => handleTabChange('my-attendance')} icon={Clock} label="My Attendance" />
                     <NavButton active={activeTab === 'salary'} onClick={() => handleTabChange('salary')} icon={Users} label="My Salary" />
                     <NavButton active={activeTab === 'leaves'} onClick={() => handleTabChange('leaves')} icon={Clock} label="Leave Applications" />
-                    <NavButton active={activeTab === 'transport'} onClick={() => handleTabChange('transport')} icon={Bus} label="Track Transport" />
+                    <NavButton active={activeTab === 'fleet-map'} onClick={() => handleTabChange('fleet-map')} icon={Navigation} label="Live Fleet Map" />
 
                     <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">General</p>
                     <NavButton active={activeTab === 'announcements'} onClick={() => handleTabChange('announcements')} icon={Bell} label="Notice Board" />
@@ -143,7 +143,8 @@ const TeacherDashboard = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-white truncate">{user?.name}</p>
-                            <p className="text-xs text-blue-100">Teacher ID: {teacherProfile?.employee_id || '--'}</p>
+                            <p className="text-[10px] text-blue-100 uppercase font-bold tracking-tight">Emp ID: {teacherProfile?.employee_id || '--'}</p>
+                            <p className="text-[10px] text-blue-200">School ID: {user?.schoolId}</p>
                         </div>
                         <button onClick={handleLogout} className="text-blue-200 hover:text-white transition-colors">
                             <LogOut size={18} />
@@ -200,7 +201,7 @@ const TeacherDashboard = () => {
 
                                 {activeTab === 'timetable' && <TeacherMyTimetable />}
 
-                                {activeTab === 'transport' && <TeacherTransportView profile={teacherProfile} />}
+                                {activeTab === 'fleet-map' && <AdminLiveMap />}
 
                                 {activeTab === 'doubts' && <TeacherDoubts />}
                                 {activeTab === 'library' && <TeacherLibraryStatus />}
@@ -258,36 +259,7 @@ const TeacherOverview = ({ profile, schoolName }) => (
     </div>
 );
 
-const TeacherTransportView = ({ profile }) => (
-    <div className="space-y-6">
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-            <h3 className="font-bold text-lg text-slate-800 mb-4 flex items-center gap-2"><Bus className="text-emerald-600" /> Assigned Transport</h3>
 
-            {profile?.transport_route_id ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <div className="text-xs text-slate-500 font-bold uppercase mb-1">Route & Vehicle</div>
-                        <div className="text-lg font-bold text-slate-800">{profile.transport_route}</div>
-                        <div className="text-sm font-medium text-emerald-600 mt-1">{profile.vehicle_number}</div>
-                    </div>
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <div className="text-xs text-slate-500 font-bold uppercase mb-1">Driver Details</div>
-                        <div className="text-lg font-bold text-slate-800">{profile.driver_name}</div>
-                        <div className="text-sm font-mono text-slate-600 mt-1">{profile.driver_phone}</div>
-                    </div>
-
-                    <div className="col-span-full">
-                        <TeacherTransportMap vehicle={profile} />
-                    </div>
-                </div>
-            ) : (
-                <div className="h-40 bg-slate-50 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-200">
-                    <p className="text-slate-400 font-bold">Self Transport / Not Assigned</p>
-                </div>
-            )}
-        </div>
-    </div>
-);
 
 // Helper Component
 const NavButton = ({ active, onClick, icon: Icon, label }) => (
@@ -311,7 +283,7 @@ const getTabTitle = (tab) => {
         case 'my-attendance': return 'My Daily Attendance';
         case 'salary': return 'My Details & Salary Info';
         case 'timetable': return 'Class Timetable';
-        case 'transport': return 'Track My School Bus';
+        case 'fleet-map': return 'Live Fleet Tracking';
         case 'doubts': return 'Student Doubts & Questions';
         case 'library': return 'My Issued Books';
         case 'leaves': return 'Leave Applications';

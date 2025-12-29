@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { Bus, Phone, Navigation, AlertCircle } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import api from '../../../api/axios';
@@ -17,6 +17,15 @@ let DefaultIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
+
+// Recenter component
+const RecenterMap = ({ lat, lng }) => {
+    const map = useMap();
+    useEffect(() => {
+        map.setView([lat, lng]);
+    }, [lat, lng, map]);
+    return null;
+};
 
 const StudentTransport = () => {
     const [transportInfo, setTransportInfo] = useState(null);
@@ -88,9 +97,13 @@ const StudentTransport = () => {
                         style={{ height: '100%', width: '100%' }}
                     >
                         <TileLayer
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                         />
+                        <TileLayer
+                            url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+                        />
+                        <RecenterMap lat={transportInfo.position[0]} lng={transportInfo.position[1]} />
                         <Marker position={transportInfo.position}>
                             <Popup>
                                 <div className="text-center p-1">

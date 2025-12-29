@@ -13,14 +13,14 @@ router.post('/gps/webhook', handleGpsWebhook);
 router.use(authenticateToken);
 
 // Vehicle Routes
-router.get('/vehicles', authorize('SCHOOL_ADMIN', 'TRANSPORT_MANAGER', 'DRIVER'), getVehicles);
+router.get('/vehicles', authorize('SCHOOL_ADMIN', 'TRANSPORT_MANAGER', 'DRIVER', 'STUDENT', 'TEACHER', 'STAFF'), getVehicles);
 router.post('/vehicles', authorize('SCHOOL_ADMIN'), addVehicle);
 router.put('/vehicles/:id', authorize('SCHOOL_ADMIN', 'TRANSPORT_MANAGER'), updateVehicle);
 router.delete('/vehicles/:id', authorize('SCHOOL_ADMIN'), deleteVehicle);
 router.put('/vehicles/:id/location', authorize('SCHOOL_ADMIN', 'DRIVER'), updateLocation);
 
 // Route Routes
-router.get('/routes', authorize('SCHOOL_ADMIN', 'TRANSPORT_MANAGER', 'PARENT', 'STUDENT'), getRoutes); // Parents need to see routes too
+router.get('/routes', authorize('SCHOOL_ADMIN', 'TRANSPORT_MANAGER', 'PARENT', 'STUDENT', 'TEACHER', 'STAFF'), getRoutes); // Parents need to see routes too
 router.get('/my-route', authorize('STUDENT', 'DRIVER', 'PARENT'), getMyRoute);
 router.post('/routes', authorize('SCHOOL_ADMIN'), addRoute);
 router.put('/routes/:id', authorize('SCHOOL_ADMIN'), updateRoute);

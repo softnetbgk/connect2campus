@@ -171,6 +171,7 @@ const TeacherManagement = ({ config }) => {
                                     required
                                     pattern="[A-Za-z\s]+"
                                     title="Letters and spaces only"
+                                    autoComplete="off"
                                     value={formData.name}
                                     onCopy={e => e.preventDefault()}
                                     onPaste={e => e.preventDefault()}
@@ -191,6 +192,7 @@ const TeacherManagement = ({ config }) => {
                                         className="input"
                                         required
                                         placeholder="Select or Type Subject"
+                                        autoComplete="off"
                                         value={formData.subject_specialization}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}
@@ -210,6 +212,7 @@ const TeacherManagement = ({ config }) => {
                                         placeholder="Phone"
                                         required
                                         maxLength={10}
+                                        autoComplete="off"
                                         value={formData.phone}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}
@@ -223,6 +226,7 @@ const TeacherManagement = ({ config }) => {
                                         placeholder="Email"
                                         required
                                         type="email"
+                                        autoComplete="off"
                                         value={formData.email}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}
@@ -243,6 +247,7 @@ const TeacherManagement = ({ config }) => {
                                         className="input"
                                         required
                                         type="date"
+                                        autoComplete="off"
                                         max={new Date().toISOString().split('T')[0]}
                                         value={formData.join_date ? formData.join_date.split('T')[0] : ''}
                                         onChange={e => setFormData({ ...formData, join_date: e.target.value })}
@@ -258,6 +263,7 @@ const TeacherManagement = ({ config }) => {
                                         min="0"
                                         required
                                         placeholder="0.00"
+                                        autoComplete="off"
                                         value={formData.salary_per_day}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}

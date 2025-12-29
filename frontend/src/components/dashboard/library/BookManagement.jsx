@@ -286,9 +286,10 @@ const BookManagement = () => {
                     <input
                         type="text"
                         placeholder="Search by Title, Author, or Book Number..."
+                        autoComplete="off"
                         className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''))}
                     />
                 </div>
 
@@ -457,6 +458,7 @@ const BookManagement = () => {
                                     <input
                                         type="text"
                                         name="book_number"
+                                        autoComplete="off"
                                         className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                                         placeholder="e.g. LIB-001 (Optional)"
                                         value={formData.book_number}
@@ -474,6 +476,7 @@ const BookManagement = () => {
                                             name="quantity"
                                             min="1"
                                             max="100"
+                                            autoComplete="off"
                                             className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                                             value={formData.quantity}
                                             onChange={handleInputChange}
@@ -488,6 +491,7 @@ const BookManagement = () => {
                                     type="text"
                                     name="title"
                                     required
+                                    autoComplete="off"
                                     className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                                     placeholder="e.g. Introduction to Physics"
                                     value={formData.title}
@@ -499,6 +503,7 @@ const BookManagement = () => {
                                 <input
                                     type="text"
                                     name="author"
+                                    autoComplete="off"
                                     className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                                     placeholder="Author Name"
                                     value={formData.author}
@@ -510,6 +515,7 @@ const BookManagement = () => {
                                 <input
                                     type="text"
                                     name="category"
+                                    autoComplete="off"
                                     className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                                     placeholder="e.g. Science, Fiction, Reference"
                                     value={formData.category}

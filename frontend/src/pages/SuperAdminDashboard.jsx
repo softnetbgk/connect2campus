@@ -310,7 +310,8 @@ const SuperAdminDashboard = () => {
                                 type="text"
                                 placeholder="Search schools..."
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''))}
+                                autoComplete="off"
                                 className="pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none w-full sm:w-64 transition-all"
                             />
                         </div>
@@ -473,6 +474,7 @@ const SuperAdminDashboard = () => {
                                             <input
                                                 required
                                                 placeholder="e.g. Springfield High"
+                                                autoComplete="off"
                                                 className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
                                                 value={formData.name}
                                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -484,6 +486,7 @@ const SuperAdminDashboard = () => {
                                                 required
                                                 type="email"
                                                 placeholder="admin@school.com"
+                                                autoComplete="off"
                                                 className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
                                                 value={formData.contactEmail}
                                                 onChange={e => setFormData({ ...formData, contactEmail: e.target.value })}
@@ -496,6 +499,7 @@ const SuperAdminDashboard = () => {
                                                 type="tel"
                                                 maxLength={10}
                                                 placeholder="10-digit number"
+                                                autoComplete="off"
                                                 className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
                                                 value={formData.contactNumber}
                                                 onChange={e => setFormData({ ...formData, contactNumber: e.target.value.replace(/\D/g, '') })}
@@ -506,6 +510,7 @@ const SuperAdminDashboard = () => {
                                             <input
                                                 required
                                                 placeholder="Full street address"
+                                                autoComplete="off"
                                                 className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
                                                 value={formData.address}
                                                 onChange={e => setFormData({ ...formData, address: e.target.value })}
@@ -528,6 +533,7 @@ const SuperAdminDashboard = () => {
                                                     required
                                                     type="email"
                                                     placeholder="Principal or Admin Email"
+                                                    autoComplete="off"
                                                     className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all"
                                                     value={formData.adminEmail}
                                                     onChange={e => setFormData({ ...formData, adminEmail: e.target.value })}
@@ -539,6 +545,7 @@ const SuperAdminDashboard = () => {
                                                     required
                                                     type="password"
                                                     placeholder="••••••••"
+                                                    autoComplete="off"
                                                     className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all"
                                                     value={formData.adminPassword}
                                                     onChange={e => setFormData({ ...formData, adminPassword: e.target.value })}
@@ -550,6 +557,7 @@ const SuperAdminDashboard = () => {
                                                     required
                                                     type="password"
                                                     placeholder="••••••••"
+                                                    autoComplete="off"
                                                     className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all"
                                                     value={formData.confirmAdminPassword}
                                                     onChange={e => setFormData({ ...formData, confirmAdminPassword: e.target.value })}
@@ -615,6 +623,7 @@ const SuperAdminDashboard = () => {
                                                         <input
                                                             autoFocus
                                                             placeholder="Enter Class Name"
+                                                            autoComplete="off"
                                                             className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:border-emerald-500 outline-none"
                                                             value={classInput.name}
                                                             onChange={e => setClassInput({ ...classInput, name: e.target.value })}
@@ -655,6 +664,7 @@ const SuperAdminDashboard = () => {
                                                     <div className="flex gap-2 animate-in slide-in-from-top-2 duration-200">
                                                         <input
                                                             placeholder="Add Section (e.g. F)"
+                                                            autoComplete="off"
                                                             className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:border-indigo-500 outline-none"
                                                             value={customSectionStr}
                                                             onChange={(e) => setCustomSectionStr(e.target.value)}
@@ -703,6 +713,7 @@ const SuperAdminDashboard = () => {
                                                     <div className="flex gap-2 animate-in slide-in-from-top-2 duration-200">
                                                         <input
                                                             placeholder="Add Subject"
+                                                            autoComplete="off"
                                                             className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:border-emerald-500 outline-none"
                                                             value={customSubjectStr}
                                                             onChange={(e) => setCustomSubjectStr(e.target.value)}
