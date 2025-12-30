@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X, Printer } from 'lucide-react';
 import api from '../../../api/axios';
 
 const DailyAttendanceStatus = ({ config }) => {
@@ -57,23 +57,119 @@ const DailyAttendanceStatus = ({ config }) => {
     const absentStudents = attendanceData.filter(s => s.status === 'Absent');
     const otherStudents = attendanceData.filter(s => s.status === 'Late' || s.status === 'Unmarked');
 
+    const handlePrint = () => {
+        const className = config.classes?.find(c => c.class_id === parseInt(filterClass))?.class_name || 'All Classes';
+        const sectionName = availableSections.find(s => s.id === parseInt(filterSection))?.name || 'All Sections';
+
+        const printContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Daily Attendance Report - ${date}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; }
+                    .header { text-align: center; margin-bottom: 20px; }
+                    h1 { margin: 0; color: #333; }
+                    .meta { color: #666; font-size: 14px; margin-top: 5px; }
+                    .stats { display: flex; justify-content: space-between; margin-bottom: 20px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
+                    .stat-item { text-align: center; }
+                    .stat-label { font-size: 10px; text-transform: uppercase; color: #666; font-weight: bold; }
+                    .stat-val { font-size: 18px; font-weight: bold; color: #333; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+                    th { background-color: #f3f4f6; }
+                    .status-present { color: green; font-weight: bold; }
+                    .status-absent { color: red; font-weight: bold; }
+                    .status-late { color: orange; font-weight: bold; }
+                    @media print {
+                        body { padding: 0; }
+                        button { display: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>Daily Attendance Status</h1>
+                    <div class="meta">
+                        Date: ${new Date(date).toLocaleDateString()} | Class: ${className} - ${sectionName}
+                    </div>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-title">Total</div>
+                        <div class="stat-val">${stats.total}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-title" style="color: green;">Present</div>
+                        <div class="stat-val" style="color: green;">${stats.present}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-title" style="color: red;">Absent</div>
+                        <div class="stat-val" style="color: red;">${stats.absent}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-title" style="color: orange;">Other</div>
+                        <div class="stat-val" style="color: orange;">${stats.late + stats.unmarked}</div>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">Roll</th>
+                            <th>Student Name</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${attendanceData.sort((a, b) => parseInt(a.roll_number || 0) - parseInt(b.roll_number || 0)).map(student => `
+                            <tr>
+                                <td>${student.roll_number || '-'}</td>
+                                <td>${student.name}</td>
+                                <td class="status-${student.status?.toLowerCase()}">${student.status}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <script>window.onload = function() { window.print(); }</script>
+            </body>
+            </html>
+        `;
+
+        const win = window.open('', '_blank');
+        win.document.write(printContent);
+        win.document.close();
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in">
-            <div className="flex flex-wrap items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                <input type="date" className="input max-w-[150px] bg-slate-50 border-slate-200" value={date} onChange={e => setDate(e.target.value)} />
-                <select className="input max-w-[200px] bg-slate-50 border-slate-200" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
-                    <option value="">Select Class</option>
-                    {config.classes?.map(c => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
-                </select>
-                <select
-                    className="input max-w-[200px] disabled:bg-slate-100 disabled:text-slate-400 bg-slate-50 border-slate-200"
-                    value={filterSection}
-                    onChange={e => setFilterSection(e.target.value)}
-                    disabled={availableSections.length === 0}
+            <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <div className="flex flex-wrap items-center gap-4">
+                    <input type="date" className="input max-w-[150px] bg-slate-50 border-slate-200" value={date} onChange={e => setDate(e.target.value)} />
+                    <select className="input max-w-[200px] bg-slate-50 border-slate-200" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
+                        <option value="">Select Class</option>
+                        {config.classes?.map(c => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
+                    </select>
+                    <select
+                        className="input max-w-[200px] disabled:bg-slate-100 disabled:text-slate-400 bg-slate-50 border-slate-200"
+                        value={filterSection}
+                        onChange={e => setFilterSection(e.target.value)}
+                        disabled={availableSections.length === 0}
+                    >
+                        <option value="">{availableSections.length === 0 ? 'No Sections' : 'Select Section'}</option>
+                        {availableSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                </div>
+                <button
+                    onClick={handlePrint}
+                    disabled={!filterClass || !filterSection}
+                    className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    <option value="">{availableSections.length === 0 ? 'No Sections' : 'Select Section'}</option>
-                    {availableSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
+                    <Printer size={18} />
+                    <span>Print Report</span>
+                </button>
             </div>
 
             {filterClass && (filterSection || availableSections.length === 0) ? (

@@ -265,20 +265,25 @@ const StudentManagement = ({ config, prefillData }) => {
                     <thead>
                         <tr>
                             <th style="width: 10%;">Roll No.</th>
-                            <th style="width: 30%;">Student Name</th>
-                            <th style="width: 30%;">Father's Name</th>
-                            <th style="width: 30%;">Mother's Name</th>
+                            <th style="width: 25%;">Student Name</th>
+                            <th style="width: 20%;">Last Name</th>
+                            <th style="width: 22%;">Father's Name</th>
+                            <th style="width: 23%;">Mother's Name</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${students.map(student => `
+                        ${students.map(student => {
+            const nameParts = (student.name || '').split(' ');
+            const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+            return `
                             <tr>
                                 <td>${student.roll_number || '-'}</td>
                                 <td>${student.name}</td>
+                                <td>${lastName}</td>
                                 <td>${student.father_name || '-'}</td>
                                 <td>${student.mother_name || '-'}</td>
                             </tr>
-                        `).join('')}
+                        `}).join('')}
                     </tbody>
                 </table>
                 <div class="footer">
