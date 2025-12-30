@@ -29,6 +29,7 @@ const StaffDashboard = () => {
     };
 
     // Driver Specific State
+    const [profileLoading, setProfileLoading] = useState(true);
     const [vehicles, setVehicles] = useState([]);
     const [selectedVehicle, setSelectedVehicle] = useState('');
     const [isTracking, setIsTracking] = useState(false);
@@ -37,8 +38,16 @@ const StaffDashboard = () => {
     const watchIdRef = useRef(null);
 
     const isDriver = user?.role === 'DRIVER' ||
+        user?.role === 'SCHOOL_ADMIN' ||
+        staffProfile?.role?.toLowerCase().includes('driver') ||
+        staffProfile?.role?.toLowerCase().includes('transport') ||
         staffProfile?.designation?.toLowerCase().includes('driver') ||
-        staffProfile?.department?.toLowerCase().includes('transport');
+        staffProfile?.department?.toLowerCase().includes('transport') ||
+        staffProfile?.vehicle_id ||
+        staffProfile?.transport_route_id ||
+        (staffProfile && Object.values(staffProfile).some(val =>
+            typeof val === 'string' && (val.toLowerCase().includes('driver') || val.toLowerCase().includes('transport'))
+        ));
 
     useEffect(() => {
         const fetchSchoolInfo = async () => {
@@ -51,24 +60,31 @@ const StaffDashboard = () => {
         };
 
         const fetchProfile = async () => {
+            setProfileLoading(true);
             try {
                 const res = await api.get('/staff/profile');
                 setStaffProfile(res.data);
             } catch (error) {
                 console.error("Failed to load profile", error);
+            } finally {
+                setProfileLoading(false);
             }
         };
 
         fetchSchoolInfo();
         fetchProfile();
 
-        if (isDriver && activeTab === 'transport') {
-            fetchVehicles();
-        }
         return () => {
             if (isDriver) stopTracking();
         };
-    }, [activeTab, isDriver]);
+    }, [activeTab, user?.role]); // Use user role as dependency
+
+    // Update vehicles when profile loads and identifies as driver
+    useEffect(() => {
+        if (isDriver) {
+            fetchVehicles();
+        }
+    }, [isDriver]);
 
     const fetchVehicles = async () => {
         try {
@@ -172,18 +188,20 @@ const StaffDashboard = () => {
 
                     <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">Work</p>
                     <NavButton active={activeTab === 'attendance'} onClick={() => handleTabChange('attendance')} icon={Calendar} label="My Attendance" />
+
+                    <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">Transport</p>
+                    <NavButton active={activeTab === 'fleet-map'} onClick={() => handleTabChange('fleet-map')} icon={Navigation} label="Live Fleet Map" />
                     {isDriver && (
                         <div className="px-4 py-2">
                             <button
                                 onClick={() => navigate('/driver-tracking')}
-                                className="w-full flex items-center justify-center gap-2 p-3 bg-white text-blue-600 rounded-xl text-sm font-bold shadow-lg hover:bg-blue-50 transition-all border-2 border-white/50"
+                                className="w-full flex items-center justify-center gap-2 p-3 bg-white text-indigo-600 rounded-xl text-sm font-black shadow-lg hover:bg-indigo-50 transition-all border-b-4 border-indigo-200 active:border-b-0 active:translate-y-1"
                             >
                                 <Navigation size={18} className="animate-pulse" />
                                 START GPS MODE
                             </button>
                         </div>
                     )}
-                    <NavButton active={activeTab === 'fleet-map'} onClick={() => handleTabChange('fleet-map')} icon={Navigation} label="Live Fleet Map" />
 
                     <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">Finance</p>
                     <NavButton active={activeTab === 'salary'} onClick={() => handleTabChange('salary')} icon={FileText} label="Salary Slips" />

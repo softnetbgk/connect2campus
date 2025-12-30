@@ -20,9 +20,23 @@ const Login = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
+    // Detect if running in mobile app (Capacitor or WebView with param)
+    const isMobileApp = Capacitor.isNativePlatform() || new URLSearchParams(window.location.search).get('is_mobile_app') === 'true';
+
+    // Skip welcome if navigated with state flag
+    const [showWelcome, setShowWelcome] = useState(!location.state?.skipWelcome && new URLSearchParams(window.location.search).get('skip_welcome') !== 'true');
+
+    const roles = [
+        { id: 'SCHOOL_ADMIN', label: 'School Admin', icon: School },
+        { id: 'TEACHER', label: 'Teacher', icon: Users },
+        { id: 'STUDENT', label: 'Student', icon: GraduationCap },
+        { id: 'STAFF', label: 'Staff Member', icon: Briefcase },
+        { id: 'DRIVER', label: 'Bus Driver', icon: Bus },
+    ].filter(r => !isMobileApp || r.id !== 'SCHOOL_ADMIN');
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setErrorMessage(''); // Clear previous errors
+        setErrorMessage('');
         const result = await login(email, password, role);
         if (result.success) {
             toast.success('Welcome back!');
@@ -30,7 +44,8 @@ const Login = () => {
                 case 'SCHOOL_ADMIN': navigate('/school-admin'); break;
                 case 'TEACHER': navigate('/teacher'); break;
                 case 'STUDENT': navigate('/student'); break;
-                case 'STAFF': navigate('/staff'); break;
+                case 'STAFF':
+                case 'DRIVER': navigate('/staff'); break;
                 default: navigate('/');
             }
         } else {
@@ -39,23 +54,9 @@ const Login = () => {
         }
     };
 
-    // Detect if running in mobile app (Capacitor or WebView with param)
-    const isMobileApp = Capacitor.isNativePlatform() || new URLSearchParams(window.location.search).get('is_mobile_app') === 'true';
-
-    // Skip welcome if navigated with state flag
-    const [showWelcome, setShowWelcome] = useState(!location.state?.skipWelcome && new URLSearchParams(window.location.search).get('skip_welcome') !== 'true');
-
     if (showWelcome) {
         return <Welcome onComplete={() => setShowWelcome(false)} />;
     }
-
-    const roles = [
-        // ...
-        { id: 'SCHOOL_ADMIN', label: 'School Admin', icon: School },
-        { id: 'TEACHER', label: 'Teacher', icon: Users },
-        { id: 'STUDENT', label: 'Student', icon: GraduationCap },
-        { id: 'STAFF', label: 'Staff', icon: Briefcase },
-    ].filter(role => !isMobileApp || role.id !== 'SCHOOL_ADMIN'); // Hide Admin on Mobile App
 
     return (
         <div className="relative min-h-screen w-full overflow-hidden flex items-center justify-center">
