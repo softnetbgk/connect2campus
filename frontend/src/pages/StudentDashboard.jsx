@@ -20,12 +20,29 @@ import StudentCertificates from '../components/dashboard/students/StudentCertifi
 import StudentLeaves from '../components/dashboard/students/StudentLeaves';
 import ViewAnnouncements from '../components/dashboard/calendar/ViewAnnouncements';
 import AdminLiveMap from '../components/dashboard/admin/AdminLiveMap';
+import { MobileHeader, MobileFooter } from '../components/layout/MobileAppFiles';
 
 const StudentDashboard = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const [isMobileApp, setIsMobileApp] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('overview');
+
+    // Detect Mobile App context
+    useEffect(() => {
+        const checkMobile = () => {
+            const params = new URLSearchParams(window.location.search);
+            const isApp = params.get('is_mobile_app') === 'true';
+            if (isApp) {
+                setIsMobileApp(true);
+                localStorage.setItem('is_mobile_app', 'true');
+            } else if (localStorage.getItem('is_mobile_app') === 'true') {
+                setIsMobileApp(true);
+            }
+        };
+        checkMobile();
+    }, []);
     const [studentData, setStudentData] = useState(null);
     const [schoolName, setSchoolName] = useState('');
     const [leaveNotifications, setLeaveNotifications] = useState([]);
@@ -197,9 +214,10 @@ const StudentDashboard = () => {
             )}
 
             {/* Sidebar - Blue Gradient Theme */}
-            <aside className={`w-72 bg-gradient-to-b from-sky-500 to-blue-600 text-white flex flex-col shadow-2xl z-50 transition-transform duration-300 
+            <aside className={`w-72 bg-gradient-to-b from-sky-500 to-blue-600 text-white flex flex-col shadow-2xl transition-transform duration-300 
                 fixed inset-y-0 left-0 h-screen overflow-y-auto custom-scrollbar print:hidden
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
+                ${isMobileApp ? 'z-[80]' : 'z-50'} 
                 md:translate-x-0 md:sticky md:top-0 md:flex`}>
 
                 {/* Brand Area */}
@@ -273,44 +291,55 @@ const StudentDashboard = () => {
 
             {/* Main Content Area - LIGHT THEME */}
             <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[#f1f5f9] relative z-10">
-                {/* Header */}
-                <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 h-16 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm print:hidden">
-                    <div className="flex items-center gap-4">
-                        <button
-                            className="md:hidden text-slate-600 hover:text-indigo-600 mr-2"
-                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        >
-                            <Menu size={24} />
-                        </button>
-                        <div>
-                            <h2 className="text-xl font-bold text-slate-800">
-                                {getTabTitle(activeTab)}
-                            </h2>
-                            <p className="text-xs text-slate-500 md:block hidden">Manage your academic journey here</p>
+                {/* Mobile Header (App Mode Only) */}
+                {isMobileApp && (
+                    <MobileHeader
+                        title={getTabTitle(activeTab)}
+                        schoolName={schoolName}
+                        onMenuClick={() => setIsMobileMenuOpen(true)}
+                    />
+                )}
+
+                {/* Normal Header (Web/Desktop Only) */}
+                {!isMobileApp && (
+                    <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 h-16 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm print:hidden">
+                        <div className="flex items-center gap-4">
+                            <button
+                                className="md:hidden text-slate-600 hover:text-indigo-600 mr-2"
+                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            >
+                                <Menu size={24} />
+                            </button>
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-800">
+                                    {getTabTitle(activeTab)}
+                                </h2>
+                                <p className="text-xs text-slate-500 md:block hidden">Manage your academic journey here</p>
+                            </div>
                         </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <NotificationBell />
-                        <button
-                            onClick={() => setActiveTab('leaves')}
-                            className="p-2 bg-white border border-slate-200 rounded-full text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all relative"
-                            title={leaveNotifications.length > 0 ? `${leaveNotifications.length} leave update(s)` : 'No new notifications'}
-                        >
-                            <Bell size={20} />
-                            {leaveNotifications.length > 0 && (
-                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-xs font-bold rounded-full border-2 border-white flex items-center justify-center animate-pulse">
-                                    {leaveNotifications.length}
-                                </span>
-                            )}
-                        </button>
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200">
-                            {user?.name?.[0]}
+                        <div className="flex items-center gap-4">
+                            <NotificationBell />
+                            <button
+                                onClick={() => setActiveTab('leaves')}
+                                className="p-2 bg-white border border-slate-200 rounded-full text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all relative"
+                                title={leaveNotifications.length > 0 ? `${leaveNotifications.length} leave update(s)` : 'No new notifications'}
+                            >
+                                <Bell size={20} />
+                                {leaveNotifications.length > 0 && (
+                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-xs font-bold rounded-full border-2 border-white flex items-center justify-center animate-pulse">
+                                        {leaveNotifications.length}
+                                    </span>
+                                )}
+                            </button>
+                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200">
+                                {user?.name?.[0]}
+                            </div>
                         </div>
-                    </div>
-                </header>
+                    </header>
+                )}
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+                <div className={`flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar ${isMobileApp ? 'pt-20 pb-24' : ''}`}>
                     <div className="max-w-6xl mx-auto animate-in fade-in duration-300">
                         {activeTab === 'overview' && <StudentOverview schoolName={schoolName} stats={overviewStats} />}
                         {activeTab === 'doubts' && <StudentDoubts />}
@@ -326,6 +355,15 @@ const StudentDashboard = () => {
                         {activeTab === 'calendar' && <SchoolCalendar />}
                     </div>
                 </div>
+
+                {/* Mobile Tab Bar (App Mode Only) */}
+                {isMobileApp && (
+                    <MobileFooter
+                        activeTab={activeTab}
+                        onTabChange={setActiveTab}
+                        onMenuToggle={() => setIsMobileMenuOpen(true)}
+                    />
+                )}
             </main>
         </div>
     );
