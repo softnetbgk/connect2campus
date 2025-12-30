@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
 import toast from 'react-hot-toast';
+import { MobileHeader, MobileFooter } from '../components/layout/MobileAppFiles';
 
 // Student Components
 import Overview from '../components/dashboard/Overview';
@@ -78,6 +79,23 @@ const SchoolAdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('overview'); // Default to overview
     const [activeTabState, setActiveTabState] = useState(null); // Data passed between tabs
     const [pendingLeavesCount, setPendingLeavesCount] = useState(0);
+
+    const [isMobileApp, setIsMobileApp] = useState(false);
+
+    // Detect Mobile App context
+    useEffect(() => {
+        const checkMobile = () => {
+            const params = new URLSearchParams(window.location.search);
+            const isApp = params.get('is_mobile_app') === 'true';
+            if (isApp) {
+                setIsMobileApp(true);
+                localStorage.setItem('is_mobile_app', 'true');
+            } else if (localStorage.getItem('is_mobile_app') === 'true') {
+                setIsMobileApp(true);
+            }
+        };
+        checkMobile();
+    }, []);
 
     // Sidebar Expansion States
     const [expandedSections, setExpandedSections] = useState({
@@ -389,26 +407,38 @@ const SchoolAdminDashboard = () => {
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col h-screen overflow-hidden bg-[#f1f5f9] relative z-10">
-                {/* Header */}
-                <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 h-16 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm print:hidden">
-                    <div className="flex items-center gap-4">
-                        <button
-                            className="md:hidden text-slate-600 hover:text-indigo-600 mr-2"
-                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        >
-                            <Menu size={24} />
-                        </button>
-                        <h2 className="text-xl font-bold text-slate-800">
-                            {getTabTitle(activeTab)}
-                        </h2>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <NotificationBell />
-                    </div>
-                </header>
+
+                {/* Mobile Header (App Mode Only) */}
+                {isMobileApp && (
+                    <MobileHeader
+                        title={getTabTitle(activeTab)}
+                        schoolName={academicConfig?.name}
+                        onMenuClick={() => setIsMobileMenuOpen(true)}
+                    />
+                )}
+
+                {/* Normal Header (Web/Desktop Only) - Hidden if Mobile App */}
+                {!isMobileApp && (
+                    <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 h-16 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm print:hidden">
+                        <div className="flex items-center gap-4">
+                            <button
+                                className="md:hidden text-slate-600 hover:text-indigo-600 mr-2"
+                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            >
+                                <Menu size={24} />
+                            </button>
+                            <h2 className="text-xl font-bold text-slate-800">
+                                {getTabTitle(activeTab)}
+                            </h2>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <NotificationBell />
+                        </div>
+                    </header>
+                )}
 
                 {/* Scrollable Page Content */}
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+                <main className={`flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar ${isMobileApp ? 'pt-20 pb-24' : ''}`}>
                     <div className="max-w-7xl mx-auto animate-in fade-in duration-300">
                         {activeTab === 'overview' && <Overview config={academicConfig} />}
                         {activeTab === 'student-list' && <StudentManagement config={academicConfig} prefillData={activeTabState} />}
@@ -457,7 +487,17 @@ const SchoolAdminDashboard = () => {
                         {activeTab === 'biometric-access' && <BiometricManagement />}
                     </div>
                 </main>
+
+                {/* Mobile Tab Bar (App Mode Only) */}
+                {isMobileApp && (
+                    <MobileFooter
+                        activeTab={activeTab}
+                        onTabChange={setActiveTab}
+                        onMenuToggle={() => setIsMobileMenuOpen(true)}
+                    />
+                )}
             </div>
+
         </div>
     );
 };
