@@ -86,12 +86,25 @@ const DriverTracking = () => {
             },
             (err) => {
                 console.error(err);
-                setError('GPS Signal Lost or Denied');
-                toast.error('GPS Error: ' + err.message);
+                if (err.code === 1) {
+                    setError('PERMISSION_DENIED');
+                    toast.error('Location Access Denied. Please enable GPS in browser settings.');
+                } else if (err.code === 2) {
+                    setError('POSITION_UNAVAILABLE');
+                    toast.error('GPS Signal Weak or Unavailable.');
+                } else if (err.code === 3) {
+                    setError('TIMEOUT');
+                    toast.error('Location request timed out.');
+                } else {
+                    setError('UNKNOWN_ERROR');
+                    toast.error('GPS Error: ' + err.message);
+                }
+                setIsTracking(false);
+                if (watchId) navigator.geolocation.clearWatch(watchId);
             },
             {
                 enableHighAccuracy: true,
-                timeout: 5000,
+                timeout: 10000,
                 maximumAge: 0
             }
         );
@@ -180,7 +193,32 @@ const DriverTracking = () => {
                                 </div>
                             )}
 
-                            {error && (
+                            {error === 'PERMISSION_DENIED' && (
+                                <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-slate-800 space-y-4">
+                                    <div className="flex items-center gap-2 text-red-600 font-bold">
+                                        <AlertTriangle size={20} /> Permission Denied
+                                    </div>
+                                    <p className="text-sm">To track this bus, you must allow location access. Please follow these steps:</p>
+                                    <div className="text-xs space-y-3">
+                                        <div className="p-3 bg-white rounded-lg border border-red-100">
+                                            <p className="font-bold text-slate-700 underline mb-1">Android / Chrome:</p>
+                                            <p>Tap the 🔒 (lock) icon next to the website address {'\u2192'} Select <b>"Permissions"</b> {'\u2192'} Turn on <b>"Location"</b>.</p>
+                                        </div>
+                                        <div className="p-3 bg-white rounded-lg border border-red-100">
+                                            <p className="font-bold text-slate-700 underline mb-1">iPhone / Safari:</p>
+                                            <p>Go to <b>Settings</b> {'\u2192'} <b>Privacy</b> {'\u2192'} <b>Location Services</b> {'\u2192'} <b>Safari</b> {'\u2192'} Select <b>"While Using the App"</b>.</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => window.location.reload()}
+                                        className="w-full py-2 bg-slate-800 text-white rounded-lg text-sm font-bold mt-2"
+                                    >
+                                        Try Again / Reload Page
+                                    </button>
+                                </div>
+                            )}
+
+                            {error && error !== 'PERMISSION_DENIED' && (
                                 <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg text-sm font-medium">
                                     <AlertTriangle size={18} /> {error}
                                 </div>
