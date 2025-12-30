@@ -36,7 +36,9 @@ const StaffDashboard = () => {
     const [location, setLocation] = useState(null);
     const watchIdRef = useRef(null);
 
-    const isDriver = user?.role === 'DRIVER';
+    const isDriver = user?.role === 'DRIVER' ||
+        staffProfile?.designation?.toLowerCase().includes('driver') ||
+        staffProfile?.department?.toLowerCase().includes('transport');
 
     useEffect(() => {
         const fetchSchoolInfo = async () => {
