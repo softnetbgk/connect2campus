@@ -88,6 +88,9 @@ const MainApp = () => {
         allowUniversalAccessFromFileURLs={true}
         javaScriptEnabled={true}
         domStorageEnabled={true}
+        geolocationEnabled={true}
+        mediaPlaybackRequiresUserAction={false}
+        allowsInlineMediaPlayback={true}
         style={{ flex: 1 }}
       />
     </SafeAreaView>
