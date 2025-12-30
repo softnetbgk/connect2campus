@@ -170,7 +170,17 @@ const StaffDashboard = () => {
 
                     <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">Work</p>
                     <NavButton active={activeTab === 'attendance'} onClick={() => handleTabChange('attendance')} icon={Calendar} label="My Attendance" />
-                    {isDriver && <NavButton active={activeTab === 'transport'} onClick={() => handleTabChange('transport')} icon={Bus} label="Trip Tracker" />}
+                    {isDriver && (
+                        <div className="px-4 py-2">
+                            <button
+                                onClick={() => navigate('/driver-tracking')}
+                                className="w-full flex items-center justify-center gap-2 p-3 bg-white text-blue-600 rounded-xl text-sm font-bold shadow-lg hover:bg-blue-50 transition-all border-2 border-white/50"
+                            >
+                                <Navigation size={18} className="animate-pulse" />
+                                START GPS MODE
+                            </button>
+                        </div>
+                    )}
                     <NavButton active={activeTab === 'fleet-map'} onClick={() => handleTabChange('fleet-map')} icon={Navigation} label="Live Fleet Map" />
 
                     <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">Finance</p>
@@ -258,25 +268,49 @@ const StaffDashboard = () => {
 
 // --- Sub Components ---
 
-const StaffOverview = ({ isDriver, schoolName }) => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="col-span-full mb-6">
-            <div className="overflow-hidden w-full bg-white rounded-xl p-4 border border-slate-200 shadow-sm relative">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full mix-blend-multiply filter blur-3xl opacity-70 -translate-y-1/2 translate-x-1/2"></div>
-                <h3 className="text-3xl font-black text-slate-800 tracking-tight font-serif italic relative z-10">
-                    {schoolName}
-                </h3>
+const StaffOverview = ({ isDriver, schoolName }) => {
+    const navigate = useNavigate();
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="col-span-full mb-6">
+                <div className="overflow-hidden w-full bg-white rounded-xl p-4 border border-slate-200 shadow-sm relative">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full mix-blend-multiply filter blur-3xl opacity-70 -translate-y-1/2 translate-x-1/2"></div>
+                    <h3 className="text-3xl font-black text-slate-800 tracking-tight font-serif italic relative z-10">
+                        {schoolName}
+                    </h3>
+                </div>
+                <p className="text-slate-500 text-sm mt-2 ml-1">{isDriver ? 'Driver Dashboard' : 'Staff Dashboard'}</p>
             </div>
-            <p className="text-slate-500 text-sm mt-2 ml-1">{isDriver ? 'Driver Dashboard' : 'Staff Dashboard'}</p>
-        </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-            <h3 className="font-bold text-slate-500 mb-1">Attendance</h3>
-            <div className="text-3xl font-bold text-slate-800">92%</div>
-            <div className="text-xs text-emerald-500 mt-2 font-bold">Excellent</div>
+            {isDriver && (
+                <div className="col-span-full mb-6 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 transform hover:scale-[1.01] transition-all">
+                    <div className="flex items-center gap-4">
+                        <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                            <Navigation size={40} className="animate-pulse" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold">Start Your Trip</h2>
+                            <p className="text-blue-100 text-sm">Turn on your GPS so students can track your bus.</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => navigate('/driver-tracking')}
+                        className="w-full md:w-auto px-8 py-4 bg-white text-indigo-600 rounded-xl font-black text-lg shadow-lg hover:shadow-indigo-500/40 transition-all flex items-center justify-center gap-3 active:scale-95"
+                    >
+                        <Radio size={24} className="animate-bounce" />
+                        START GPS MODE
+                    </button>
+                </div>
+            )}
+
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <h3 className="font-bold text-slate-500 mb-1">Attendance</h3>
+                <div className="text-3xl font-bold text-slate-800">92%</div>
+                <div className="text-xs text-emerald-500 mt-2 font-bold">Excellent</div>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const DriverTrackingView = ({ vehicles, selectedVehicle, setSelectedVehicle, startTracking, stopTracking, isTracking, location, logs }) => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
