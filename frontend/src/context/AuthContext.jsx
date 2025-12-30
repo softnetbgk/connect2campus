@@ -21,21 +21,19 @@ export const AuthProvider = ({ children }) => {
 
         channel.onmessage = (event) => {
             if (event.data.type === 'LOGIN_SUCCESS') {
-                // If another tab logged in, and we are not the one who just initiated it (though difficult to distinguish without ID, 
-                // but generally if we are already logged in, we might want to close/logout to enforce "single window" feel,
-                // OR arguably, if we are already logged in, do we stay? Content says "old window should close")
-
-                // If we are logged in, and someone else logs in, we should probably logout/close.
-                if (user) {
-                    // alert('New login detected in another window. This window will be closed/logged out.');
+                // Only logout if the NEW login is for the SAME user account
+                // This allows an Admin to be logged in one tab and a Student in another
+                if (user && event.data.userId === user.id) {
                     logout(false, true); // remote logout
-                    // Try to close window (often blocked by browser, but worth a try if requested)
                     try { window.close(); } catch (e) { }
                 }
             }
             if (event.data.type === 'LOGOUT') {
-                // Keep states in sync? Maybe not needed for this specific request but good practice.
-                if (user) logout(false, true);
+                // If specific user ID is passed, only logout that user, otherwise global logout?
+                // For safety, let's keep logout specific too
+                if (user && event.data.userId === user.id) {
+                    logout(false, true);
+                }
             }
         };
 
@@ -53,9 +51,9 @@ export const AuthProvider = ({ children }) => {
             sessionStorage.setItem('user', JSON.stringify(user));
             setUser(user);
 
-            // Broadcast login to other tabs
+            // Broadcast login to other tabs with User ID
             const channel = new BroadcastChannel('school_auth_channel');
-            channel.postMessage({ type: 'LOGIN_SUCCESS' });
+            channel.postMessage({ type: 'LOGIN_SUCCESS', userId: user.id });
             channel.close();
 
             return { success: true };
@@ -73,7 +71,7 @@ export const AuthProvider = ({ children }) => {
             if (!isRemote && !isAutoLogout) {
                 // Only broadcast if WE initiated the logout
                 const channel = new BroadcastChannel('school_auth_channel');
-                channel.postMessage({ type: 'LOGOUT' });
+                channel.postMessage({ type: 'LOGOUT', userId: user?.id });
                 channel.close();
 
                 // Call API

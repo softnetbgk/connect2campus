@@ -9,6 +9,10 @@ const TeacherManagement = ({ config }) => {
     const [showModal, setShowModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [isClassTeacher, setIsClassTeacher] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    // State for field-specific errors
+    const [fieldErrors, setFieldErrors] = useState({});
 
     // Form Data
     const [formData, setFormData] = useState({
@@ -32,12 +36,15 @@ const TeacherManagement = ({ config }) => {
     };
 
     const fetchTeachers = async () => {
+        setLoading(true);
         try { const res = await api.get('/teachers'); setTeachers(res.data); }
         catch (e) { toast.error('Failed to load teachers'); }
+        finally { setLoading(false); }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setFieldErrors({}); // Clear previous errors
 
         // Validation
         if (formData.phone && !/^\d{10}$/.test(formData.phone)) return toast.error('Phone must be 10 digits');
@@ -61,7 +68,18 @@ const TeacherManagement = ({ config }) => {
             }
             setShowModal(false);
             fetchTeachers();
-        } catch (e) { toast.error('Failed to save teacher'); }
+        } catch (error) {
+            const msg = error.response?.data?.message || 'Failed to save teacher';
+
+            // Check for specific duplicate errors
+            if (msg.toLowerCase().includes('phone number already exists')) {
+                setFieldErrors(prev => ({ ...prev, phone: msg }));
+            } else if (msg.toLowerCase().includes('email already exists')) {
+                setFieldErrors(prev => ({ ...prev, email: msg }));
+            } else {
+                toast.error(msg);
+            }
+        }
     };
 
     const handleDelete = async (id) => {
@@ -72,6 +90,7 @@ const TeacherManagement = ({ config }) => {
 
     const openAddModal = () => {
         setIsEditing(false);
+        setFieldErrors({});
         setFormData(prev => ({
             name: '', email: '', phone: '', subject_specialization: '',
             gender: '', address: '', join_date: new Date().toISOString().split('T')[0],
@@ -109,50 +128,73 @@ const TeacherManagement = ({ config }) => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {teachers.map(t => (
-                                <tr key={t.id} className="group hover:bg-slate-50/50 transition-colors">
-                                    <td className="p-4 pl-6 font-mono text-slate-400 text-xs">{t.employee_id || '-'}</td>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">
-                                                {t.name.charAt(0)}
+                            {loading ? (
+                                [...Array(5)].map((_, i) => (
+                                    <tr key={i} className="animate-pulse">
+                                        <td className="p-4 pl-6"><div className="h-4 w-12 bg-slate-200 rounded"></div></td>
+                                        <td className="p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-slate-200"></div>
+                                                <div className="space-y-2">
+                                                    <div className="h-4 w-32 bg-slate-200 rounded"></div>
+                                                    <div className="h-3 w-20 bg-slate-200 rounded"></div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <div className="font-bold text-slate-700">{t.name}</div>
-                                                <div className="text-xs text-slate-500 font-medium bg-slate-100 inline-block px-1.5 py-0.5 rounded mt-0.5">{t.subject_specialization}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        {t.class_name ? (
-                                            <span className="px-3 py-1 bg-violet-50 text-violet-700 rounded-lg text-xs font-bold border border-violet-100 inline-flex items-center gap-1 shadow-sm">
-                                                {t.class_name} - {t.section_name}
-                                            </span>
-                                        ) : <span className="text-slate-300 text-xs italic">Not Assigned</span>}
-                                    </td>
-                                    <td className="p-4">
-                                        <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg font-bold text-xs border border-emerald-100">
-                                            ₹{t.salary_per_day || 0}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="text-slate-600 text-sm">{t.phone}</div>
-                                        <div className="text-slate-400 text-xs">{t.email}</div>
-                                    </td>
-                                    <td className="p-4 pr-6 text-right">
-                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => { setIsEditing(true); setSelectedId(t.id); setFormData({ ...t, assign_class_id: t.assigned_class_id || '', assign_section_id: t.assigned_section_id || '' }); setIsClassTeacher(!!t.assigned_class_id); setShowModal(true); }} className="text-indigo-500 hover:bg-indigo-50 p-2 rounded-lg transition-colors"><Edit2 size={18} /></button>
-                                            <button onClick={() => handleDelete(t.id)} className="text-rose-500 hover:bg-rose-50 p-2 rounded-lg transition-colors"><Trash2 size={18} /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {teachers.length === 0 && (
-                                <tr>
-                                    <td colSpan={6} className="p-12 text-center text-slate-400">
-                                        No teachers found. Add one to get started.
-                                    </td>
-                                </tr>
+                                        </td>
+                                        <td className="p-4"><div className="h-6 w-24 bg-slate-200 rounded"></div></td>
+                                        <td className="p-4"><div className="h-6 w-16 bg-slate-200 rounded"></div></td>
+                                        <td className="p-4"><div className="h-4 w-28 bg-slate-200 rounded"></div></td>
+                                        <td className="p-4"><div className="h-8 w-8 bg-slate-200 rounded ml-auto"></div></td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <>
+                                    {teachers.map(t => (
+                                        <tr key={t.id} className="group hover:bg-slate-50/50 transition-colors">
+                                            <td className="p-4 pl-6 font-mono text-slate-400 text-xs">{t.employee_id || '-'}</td>
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">
+                                                        {t.name.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold text-slate-700">{t.name}</div>
+                                                        <div className="text-xs text-slate-500 font-medium bg-slate-100 inline-block px-1.5 py-0.5 rounded mt-0.5">{t.subject_specialization}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                {t.class_name ? (
+                                                    <span className="px-3 py-1 bg-violet-50 text-violet-700 rounded-lg text-xs font-bold border border-violet-100 inline-flex items-center gap-1 shadow-sm">
+                                                        {t.class_name} - {t.section_name}
+                                                    </span>
+                                                ) : <span className="text-slate-300 text-xs italic">Not Assigned</span>}
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg font-bold text-xs border border-emerald-100">
+                                                    ₹{t.salary_per_day || 0}
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="text-slate-600 text-sm">{t.phone}</div>
+                                                <div className="text-slate-400 text-xs">{t.email}</div>
+                                            </td>
+                                            <td className="p-4 pr-6 text-right">
+                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => { setIsEditing(true); setFieldErrors({}); setSelectedId(t.id); setFormData({ ...t, assign_class_id: t.assigned_class_id || '', assign_section_id: t.assigned_section_id || '' }); setIsClassTeacher(!!t.assigned_class_id); setShowModal(true); }} className="text-indigo-500 hover:bg-indigo-50 p-2 rounded-lg transition-colors"><Edit2 size={18} /></button>
+                                                    <button onClick={() => handleDelete(t.id)} className="text-rose-500 hover:bg-rose-50 p-2 rounded-lg transition-colors"><Trash2 size={18} /></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {teachers.length === 0 && (
+                                        <tr>
+                                            <td colSpan={6} className="p-12 text-center text-slate-400">
+                                                No teachers found. Add one to get started.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </>
                             )}
                         </tbody>
                     </table>
@@ -208,7 +250,7 @@ const TeacherManagement = ({ config }) => {
                                 <div>
                                     <label className="label">Phone <span className="text-red-500">*</span></label>
                                     <input
-                                        className="input"
+                                        className={`input ${fieldErrors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
                                         placeholder="Phone"
                                         required
                                         maxLength={10}
@@ -216,13 +258,16 @@ const TeacherManagement = ({ config }) => {
                                         value={formData.phone}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}
+                                        onClick={() => setFieldErrors(prev => ({ ...prev, phone: '' }))}
+                                        onFocus={() => setFieldErrors(prev => ({ ...prev, phone: '' }))}
                                         onChange={e => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                                     />
+                                    {fieldErrors.phone && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.phone}</p>}
                                 </div>
                                 <div>
                                     <label className="label">Email <span className="text-red-500">*</span></label>
                                     <input
-                                        className="input"
+                                        className={`input ${fieldErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
                                         placeholder="Email"
                                         required
                                         type="email"
@@ -230,8 +275,11 @@ const TeacherManagement = ({ config }) => {
                                         value={formData.email}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}
+                                        onClick={() => setFieldErrors(prev => ({ ...prev, email: '' }))}
+                                        onFocus={() => setFieldErrors(prev => ({ ...prev, email: '' }))}
                                         onChange={e => setFormData({ ...formData, email: e.target.value.replace(/\s/g, '') })}
                                     />
+                                    {fieldErrors.email && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.email}</p>}
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">

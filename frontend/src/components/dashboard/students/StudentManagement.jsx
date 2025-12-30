@@ -11,6 +11,9 @@ const StudentManagement = ({ config, prefillData }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [searchQuery, setSearchQuery] = useState(''); // Added Search State
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
+    const [loading, setLoading] = useState(true);
 
     const [formData, setFormData] = useState({
         admission_no: '',
@@ -78,12 +81,17 @@ const StudentManagement = ({ config, prefillData }) => {
     }, [filterClass]);
 
     useEffect(() => {
-        if (filterClass || filterSection) {
-            fetchStudents(); // Only fetch if filters active, or rely on initial empty fetch?
-        } else {
-            fetchStudents();
-        }
-    }, [filterClass, filterSection]);
+        const delayDebounceFn = setTimeout(() => {
+            setPage(1); // Reset to page 1 on search/filter
+            fetchStudents(1);
+        }, 500);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [filterClass, filterSection, searchQuery]);
+
+    useEffect(() => {
+        if (page > 1) fetchStudents(page);
+    }, [page]);
 
     // Auto-calculate Age
     useEffect(() => {
@@ -99,15 +107,25 @@ const StudentManagement = ({ config, prefillData }) => {
         }
     }, [formData.dob]);
 
-    const fetchStudents = async () => {
+    const fetchStudents = async (targetPage = page) => {
+        setLoading(true);
         try {
-            const params = {};
+            const params = {
+                page: targetPage,
+                limit: 50,
+                search: searchQuery
+            };
             if (filterClass) params.class_id = filterClass;
             if (filterSection) params.section_id = filterSection;
+
             const res = await api.get('/students', { params });
-            setStudents(res.data);
+            setStudents(res.data.data || []);
+            setPagination(res.data.pagination || { total: 0, totalPages: 1 });
         } catch (error) {
+            console.error('Fetch error:', error);
             toast.error('Failed to load students');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -358,7 +376,7 @@ const StudentManagement = ({ config, prefillData }) => {
                         autoComplete="off"
                         className="bg-slate-50 border border-slate-200 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-indigo-400 w-40 md:w-56 transition-all"
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''))}
+                        onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9 ]/g, '').replace(/^\s+/, ''))}
                     />
                     <button
                         onClick={handlePrint}
@@ -409,60 +427,127 @@ const StudentManagement = ({ config, prefillData }) => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {students.filter(student =>
-                                (student.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-                                (student.admission_no?.toLowerCase() || '').includes(searchQuery.toLowerCase())
-                            ).map(student => (
-                                <tr key={student.id} className="group hover:bg-slate-50/50 transition-colors">
-                                    <td className="p-4 pl-6">
-                                        <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold font-mono text-xs border border-slate-200">
-                                            {student.roll_number || '-'}
-                                        </div>
-                                    </td>
-                                    <td className="p-4 font-mono text-slate-500 text-xs">
-                                        {student.admission_date ? new Date(student.admission_date).toLocaleDateString() : (student.created_at ? new Date(student.created_at).toLocaleDateString() : '-')}
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="font-bold text-slate-700">{student.name}</div>
-                                        <div className="text-[10px] text-indigo-500 font-mono font-medium bg-indigo-50 inline-block px-1.5 py-0.5 rounded mt-0.5 border border-indigo-100">ID: {student.admission_no}</div>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className="bg-white text-slate-600 px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 shadow-sm">
-                                            {student.class_name} - {student.section_name}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="text-slate-600 text-xs font-medium">{student.gender}</div>
-                                        <div className="text-slate-400 text-[10px]">{student.age} Years Old</div>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="text-xs font-bold text-slate-700">{student.father_name}</span>
-                                            <span className="text-[10px] text-slate-400">{student.mother_name}</span>
-                                            <span className="text-xs text-indigo-600 font-medium">{student.contact_number}</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 pr-6 text-right">
-                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => handleEdit(student)} className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"><Edit2 size={18} /></button>
-                                            <button onClick={() => handleDelete(student.id)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"><Trash2 size={18} /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {students.length === 0 && (
-                                <tr>
-                                    <td colSpan={7} className="p-12 text-center text-slate-400">
-                                        <div className="flex flex-col items-center justify-center">
-                                            <p className="font-medium text-slate-500 mb-1">No students found</p>
-                                            <p className="text-xs">Try changing filters or add a new student.</p>
-                                        </div>
-                                    </td>
-                                </tr>
+                            {loading ? (
+                                [...Array(5)].map((_, i) => (
+                                    <tr key={i} className="animate-pulse">
+                                        <td className="p-4 pl-6"><div className="h-8 w-8 bg-slate-200 rounded-lg"></div></td>
+                                        <td className="p-4"><div className="h-4 w-24 bg-slate-200 rounded"></div></td>
+                                        <td className="p-4">
+                                            <div className="space-y-2">
+                                                <div className="h-4 w-32 bg-slate-200 rounded"></div>
+                                                <div className="h-3 w-16 bg-slate-200 rounded"></div>
+                                            </div>
+                                        </td>
+                                        <td className="p-4"><div className="h-6 w-20 bg-slate-200 rounded"></div></td>
+                                        <td className="p-4">
+                                            <div className="space-y-2">
+                                                <div className="h-3 w-12 bg-slate-200 rounded"></div>
+                                                <div className="h-3 w-16 bg-slate-200 rounded"></div>
+                                            </div>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="space-y-1">
+                                                <div className="h-3 w-24 bg-slate-200 rounded"></div>
+                                                <div className="h-3 w-20 bg-slate-200 rounded"></div>
+                                                <div className="h-3 w-24 bg-slate-200 rounded"></div>
+                                            </div>
+                                        </td>
+                                        <td className="p-4"><div className="h-8 w-8 bg-slate-200 rounded ml-auto"></div></td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <>
+                                    {students.map(student => (
+                                        <tr key={student.id} className="group hover:bg-slate-50/50 transition-colors">
+                                            <td className="p-4 pl-6">
+                                                <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold font-mono text-xs border border-slate-200">
+                                                    {student.roll_number || '-'}
+                                                </div>
+                                            </td>
+                                            <td className="p-4 font-mono text-slate-500 text-xs">
+                                                {student.admission_date ? new Date(student.admission_date).toLocaleDateString() : (student.created_at ? new Date(student.created_at).toLocaleDateString() : '-')}
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="font-bold text-slate-700">{student.name}</div>
+                                                <div className="text-[10px] text-indigo-500 font-mono font-medium bg-indigo-50 inline-block px-1.5 py-0.5 rounded mt-0.5 border border-indigo-100">ID: {student.admission_no}</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="bg-white text-slate-600 px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 shadow-sm">
+                                                    {student.class_name} - {student.section_name}
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="text-slate-600 text-xs font-medium">{student.gender}</div>
+                                                <div className="text-slate-400 text-[10px]">{student.age} Years Old</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-xs font-bold text-slate-700">{student.father_name}</span>
+                                                    <span className="text-[10px] text-slate-400">{student.mother_name}</span>
+                                                    <span className="text-xs text-indigo-600 font-medium">{student.contact_number}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 pr-6 text-right">
+                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => handleEdit(student)} className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"><Edit2 size={18} /></button>
+                                                    <button onClick={() => handleDelete(student.id)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"><Trash2 size={18} /></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {students.length === 0 && (
+                                        <tr>
+                                            <td colSpan={7} className="p-12 text-center text-slate-400">
+                                                <div className="flex flex-col items-center justify-center">
+                                                    <p className="font-medium text-slate-500 mb-1">No students found</p>
+                                                    <p className="text-xs">Try changing filters or add a new student.</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </>
                             )}
                         </tbody>
                     </table>
                 </div>
+                {/* Pagination Footer */}
+                {pagination.totalPages > 1 && (
+                    <div className="bg-slate-50 border-t border-slate-200 p-4 flex items-center justify-between">
+                        <div className="text-xs text-slate-500">
+                            Showing <span className="font-bold text-slate-700">{students.length}</span> of <span className="font-bold text-slate-700">{pagination.total}</span> students
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                disabled={page === 1}
+                                onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                                className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-100 transition-colors"
+                            >
+                                Previous
+                            </button>
+                            <div className="flex items-center gap-1">
+                                {[...Array(Math.min(5, pagination.totalPages))].map((_, i) => {
+                                    const pageNum = i + 1; // Basic logic, could be improved with sliding window
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => setPage(pageNum)}
+                                            className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${page === pageNum ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <button
+                                disabled={page === pagination.totalPages}
+                                onClick={() => setPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                                className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 disabled:opacity-50 hover:bg-slate-100 transition-colors"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Modal */}

@@ -3,7 +3,21 @@ import { Search, CreditCard, History, CheckCircle, AlertCircle, Edit, Trash2, In
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
 
-const FeeCollection = ({ config }) => {
+const FeeCollection = ({ config: initialConfig }) => {
+    // Fallback: If config is not passed, try to use a local state that we fetch ourselves
+    const [config, setConfig] = useState(initialConfig || {});
+
+    // Safety check: Update local config when prop changes
+    useEffect(() => {
+        if (initialConfig) setConfig(initialConfig);
+    }, [initialConfig]);
+
+    // Safety fallback: Fetch my-school if config is empty (handle missing props case)
+    useEffect(() => {
+        if (!initialConfig?.name) {
+            api.get('/schools/my-school').then(res => setConfig(res.data)).catch(console.error);
+        }
+    }, []);
     const [selectedClass, setSelectedClass] = useState('');
     const [selectedSection, setSelectedSection] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
@@ -139,7 +153,19 @@ const FeeCollection = ({ config }) => {
     };
 
     const generateReceiptHTML = (payment, student) => {
-        const school = config?.classes?.find(c => c.class_id == student.class_id)?.class_name || 'School';
+        const schoolName = config?.name || 'School Name';
+        const schoolAddress = config?.address || '';
+        const schoolContact = [config?.contact_number, config?.contact_email].filter(Boolean).join(' | ');
+
+        const classObj = config?.classes?.find(c => c.class_id == student.class_id);
+        const className = classObj?.class_name || 'N/A';
+        // Attempt to find section name if section_id is available in student object or if we can infer it
+        // Note: student object here is the selectedStudent state
+        const sectionName = classObj?.sections?.find(s => s.id == student.section_id)?.name || '';
+        const fullClass = sectionName ? `${className} - ${sectionName}` : className;
+
+        const totalPending = feeDetails.reduce((sum, f) => sum + Math.max(0, parseFloat(f.balance)), 0);
+
         return `
             <!DOCTYPE html>
             <html>
@@ -148,61 +174,111 @@ const FeeCollection = ({ config }) => {
                 <title>Fee Receipt - ${payment.receipt_no}</title>
                 <style>
                     * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body { font-family: Arial, sans-serif; padding: 20px; background: white; }
-                    .receipt { max-width: 400px; margin: 0 auto; border: 2px solid #333; padding: 20px; }
-                    .header { text-align: center; border-bottom: 2px dashed #ccc; padding-bottom: 15px; margin-bottom: 15px; }
-                    h1 { font-size: 20px; margin-bottom: 5px; }
-                    .receipt-no { background: #4f46e5; color: white; padding: 5px 10px; font-size: 14px; font-weight: bold; display: inline-block; m
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: white; -webkit-print-color-adjust: exact; }
+                    .receipt { max-width: 80mm; margin: 0 auto; border: 1px solid #ddd; padding: 15px; position: relative; }
+                    
+                    /* Header */
+                    .header { text-align: center; margin-bottom: 15px; }
+                    .school-name { font-size: 18px; font-weight: bold; color: #1e293b; text-transform: uppercase; line-height: 1.2; margin-bottom: 5px; }
+                    .school-info { font-size: 10px; color: #64748b; margin-bottom: 2px; }
+                    
+                    .divider { border-top: 2px dashed #cbd5e1; margin: 10px 0; }
+                    
+                    /* Class Info Strip */
+                    .class-strip { background: #f1f5f9; text-align: center; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0; margin-bottom: 15px; }
+                    .class-text { font-size: 12px; font-weight: bold; color: #334155; }
+                    
+                    /* Rows */
+                    .row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 11px; }
+                    .label { color: #64748b; font-weight: 500; }
+                    .value { color: #0f172a; font-weight: 700; text-align: right; max-width: 60%; }
+                    
+                    /* Amount Box */
+                    .amount-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px; border-radius: 6px; margin: 15px 0; }
+                    .amount-label { font-size: 12px; color: #15803d; font-weight: 600; }
+                    .amount-value { font-size: 20px; color: #16a34a; font-weight: bold; display: block; margin-top: 2px; }
+                    
+                    /* Pending */
+                    .pending-box { background: #fef2f2; border: 1px dashed #fecaca; padding: 6px; border-radius: 4px; margin-top: 5px; text-align: center; }
+                    .pending-text { color: #b91c1c; font-size: 10px; font-weight: bold; }
 
-argin: 10px 0; }
-                    .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
-                    .label { font-weight: bold; color: #666; font-size: 12px; }
-                    .value { font-weight: bold; color: #333; font-size: 14px; }
-                    .amount-row { background: #f0fdf4; padding: 12px; margin: 15px 0; border-radius: 8px; }
-                    .amount { font-size: 24px; color: #16a34a; font-weight: bold; }
-                    .footer { text-align: center; margin-top: 20px; padding-top: 15px; border-top: 2px dashed #ccc; font-size: 11px; color: #666; }
+                    /* Signatures */
+                    .signatures { margin-top: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
+                    .sign-box { text-align: center; }
+                    .sign-line { width: 80px; border-bottom: 1px solid #94a3b8; margin-bottom: 4px; }
+                    .sign-label { font-size: 8px; color: #64748b; font-weight: bold; text-transform: uppercase; }
+
+                    .footer { text-align: center; margin-top: 15px; font-size: 9px; color: #94a3b8; }
+
                     @media print {
                         body { padding: 0; }
-                        @page { margin: 0.5cm; }
+                        .receipt { border: none; width: 100%; max-width: 100%; padding: 0; }
+                        @page { margin: 0.2cm; }
+                        .no-print { display: none !important; }
                     }
                 </style>
             </head>
             <body>
+                <div class="no-print" style="position: sticky; top: 0; background: white; padding: 10px; border-bottom: 1px solid #eee; text-align: center; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <button onclick="window.print()" style="background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);">
+                        🖨️ Print Receipt
+                    </button>
+                    <p style="font-size: 11px; color: #666; margin-top: 8px;">(Click button if print dialog doesn't appear automatically)</p>
+                </div>
+
                 <div class="receipt">
-                    <div class="header">
-                        <h1 style="color: #4f46e5; text-transform: uppercase; letter-spacing: 1px;">${school}</h1>
-                        <p style="font-size: 12px; color: #666; font-weight: bold;">OFFICIAL FEE RECEIPT</p>
-                        <div class="receipt-no">RECEIPT #${payment.receipt_no}</div>
+                    <div class="header" style="border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px;">
+                        <h1 class="school-name" style="font-size: 24px; font-weight: 900; margin: 0; color: #1a1a1a; letter-spacing: 0.5px;">${schoolName}</h1>
+                        <div style="font-size: 12px; color: #555; margin-top: 4px; font-weight: 500;">
+                            ${schoolAddress ? `<div>${schoolAddress}</div>` : ''}
+                            ${schoolContact ? `<div>${schoolContact}</div>` : ''}
+                        </div>
                     </div>
-                    <div class="row"><span class="label">Payment Date:</span> <span class="value">${new Date(payment.payment_date).toLocaleDateString('en-GB')}</span></div>
-                    <div class="row"><span class="label">Student Name:</span> <span class="value">${student.name}</span></div>
-                    <div class="row"><span class="label">Admission No:</span> <span class="value">${student.admission_no}</span></div>
-                    <div class="row"><span class="label">Class/Section:</span> <span class="value">${school}</span></div>
-                    <div class="row"><span class="label">Fee Category:</span> <span class="value">${payment.fee_title}</span></div>
-                    <div class="row"><span class="label">Method:</span> <span class="value">${payment.payment_method}</span></div>
-                    ${payment.remarks ? `<div class="row"><span class="label">Reference:</span> <span class="value">${payment.remarks}</span></div>` : ''}
-             
-                    <div class="amount-row">
-                        <div class="row" style="border: none;">
-                            <span class="label" style="font-size: 14px; color: #16a34a;">Amount Paid:</span> 
-                            <span class="amount">₹${parseFloat(payment.amount_paid).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    
+                    <div style="text-align: center; font-size: 10px; font-weight: 900; letter-spacing: 1px; color: #475569; margin-bottom: 5px;">FEE RECEIPT / ACKNOWLEDGEMENT</div>
+
+                    <div class="class-strip">
+                        <div class="class-text">CLASS: ${fullClass}</div>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <div class="row"><span class="label">Receipt No</span> <span class="value">#${payment.receipt_no}</span></div>
+                        <div class="row"><span class="label">Date</span> <span class="value">${new Date(payment.payment_date).toLocaleDateString('en-GB')}</span></div>
+                        <div class="row"><span class="label">Student</span> <span class="value">${student.name}</span></div>
+                        <div class="row"><span class="label">Admission No</span> <span class="value">${student.admission_no}</span></div>
+                        <div class="divider"></div>
+                        <div class="row"><span class="label">Fee Title</span> <span class="value">${payment.fee_title}</span></div>
+                        <div class="row"><span class="label">Payment Mode</span> <span class="value">${payment.payment_method}</span></div>
+                        ${payment.remarks ? `<div class="row"><span class="label">Ref/Notes</span> <span class="value">${payment.remarks}</span></div>` : ''}
+                    </div>
+
+                    <div class="amount-box">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="amount-label">AMOUNT PAID</span>
+                            <span class="amount-value">₹${parseFloat(payment.amount_paid).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                         </div>
                     </div>
 
-                    <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: flex-end;">
-                        <div style="text-align: center;">
-                            <div style="width: 120px; border-bottom: 1px solid #333; margin-bottom: 5px;"></div>
-                            <p style="font-size: 10px; font-weight: bold; color: #666;">Student/Parent Sign</p>
+                    ${totalPending > 0 ? `
+                    <div class="pending-box">
+                        <span class="pending-text">OUTSTANDING DUES: ₹${totalPending.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    ` : ''}
+
+                    <div class="signatures">
+                        <div class="sign-box">
+                            <div class="sign-line"></div>
+                            <div class="sign-label">Depositor</div>
                         </div>
-                        <div style="text-align: center;">
-                            <div style="width: 120px; border-bottom: 1px solid #333; margin-bottom: 5px;"></div>
-                            <p style="font-size: 10px; font-weight: bold; color: #666;">Authorized Signatory</p>
+                        <div class="sign-box">
+                            <div class="sign-line"></div>
+                            <div class="sign-label">Cashier / Auth Sign</div>
                         </div>
                     </div>
 
                     <div class="footer">
-                        <p>Thank you for your payment!</p>
-                        <p>Generated on: ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
+                        Generated on ${new Date().toLocaleString('en-IN')}
+                        <br/>This is a computer generated receipt.
                     </div>
                 </div>
                 <script>window.onload = function() { window.print(); }</script>
@@ -223,10 +299,15 @@ argin: 10px 0; }
                 <meta charset="UTF-8">
                 <title>Fee Collection Report - ${className} ${sectionName}</title>
                 <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body { font-family: Arial, sans-serif; padding: 20px; background: white; }
-                    h1 { text-align: center; color: #333; font-size: 20px; margin-bottom: 5px; }
-                    h2 { text-align: center; color: #666; font-size: 16px; margin-bottom: 20px; }
+                </style>
+            </head>
+            <body>
+                <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px;">
+                    <h1 style="margin:0; font-size: 22px; font-weight:900; color:#1a1a1a; text-transform: uppercase;">${config?.name || 'School Name'}</h1>
+                    <div style="font-size: 11px; color: #666; margin-top: 4px;">${config?.address || ''}</div>
+                    <div style="font-size: 11px; color: #666;">${[config?.contact_number, config?.contact_email].filter(Boolean).join(' | ')}</div>
+                </div>
+                <h2>Fee Collection Report - ${className} ${sectionName != 'All Sections' ? '- ' + sectionName : ''}</h2>
                     table { width: 100%; border-collapse: collapse; font-size: 11px; }
                     th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
                     th { background-color: #4f46e5; color: white; font-weight: bold; }
@@ -257,7 +338,7 @@ argin: 10px 0; }
                                 <td>${s.admission_no}</td>
                                 <td>₹${formatCurrency(s.total_fee)}</td>
                                 <td>₹${formatCurrency(s.paid)}</td>
-                                <td>₹${formatCurrency(s.balance)}</td>
+                                <td>₹${formatCurrency(Math.max(0, s.balance))}</td>
                                 <td><span class="status-${s.status.toLowerCase()}">${s.status}</span></td>
                             </tr>
                         `).join('')}
@@ -267,7 +348,7 @@ argin: 10px 0; }
                             <td colspan="2">Total (${filteredStudents.length} students)</td>
                             <td>₹${formatCurrency(overview.summary.total_expected)}</td>
                             <td>₹${formatCurrency(overview.summary.total_collected)}</td>
-                            <td>₹${formatCurrency(overview.summary.total_pending)}</td>
+                            <td>₹${formatCurrency(filteredStudents.reduce((acc, s) => acc + Math.max(0, s.balance), 0))}</td>
                             <td></td>
                         </tr>
                     </tfoot>
@@ -296,7 +377,7 @@ argin: 10px 0; }
                         </div>
                         <div className="text-center md:text-right">
                             <p className="text-xs text-indigo-200 uppercase font-bold">Total Dues Available</p>
-                            <p className="text-3xl font-bold">₹{formatCurrency(feeDetails.reduce((sum, f) => sum + f.balance, 0))}</p>
+                            <p className="text-3xl font-bold">₹{formatCurrency(feeDetails.reduce((sum, f) => sum + Math.max(0, f.balance), 0))}</p>
                         </div>
                     </div>
 
@@ -319,7 +400,7 @@ argin: 10px 0; }
                                                 <td className="p-4 text-gray-500">{new Date(f.due_date).toLocaleDateString('en-GB')}</td>
                                                 <td className="p-4 font-mono">₹{formatCurrency(f.total_amount)}</td>
                                                 <td className="p-4 text-green-600 font-mono">₹{formatCurrency(f.paid_amount)}</td>
-                                                <td className="p-4 text-red-600 font-bold font-mono">₹{formatCurrency(f.balance)}</td>
+                                                <td className="p-4 text-red-600 font-bold font-mono">₹{formatCurrency(Math.max(0, f.balance))}</td>
                                                 <td className="p-4 text-right">
                                                     {f.balance > 0 && (
                                                         <button onClick={() => { setPayModal(f); setAmount(f.balance); }} className="btn-primary py-1.5 text-xs">
@@ -586,7 +667,9 @@ argin: 10px 0; }
                                 <AlertCircle size={16} />
                             </div>
                         </div>
-                        <p className="text-2xl font-bold text-rose-600">₹{formatCurrency(overview.summary.total_pending)}</p>
+                        <p className="text-2xl font-bold text-rose-600">₹{
+                            formatCurrency(overview.students.reduce((acc, s) => acc + Math.max(0, s.balance), 0))
+                        }</p>
                     </div>
                 </div>
             )}

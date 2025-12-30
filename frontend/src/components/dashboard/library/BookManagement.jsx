@@ -10,6 +10,7 @@ const BookManagement = () => {
     const [showModal, setShowModal] = useState(false);
     const [formData, setFormData] = useState({
         book_number: '',
+        to_book_number: '',
         quantity: 1,
         title: '',
         author: '',
@@ -32,25 +33,68 @@ const BookManagement = () => {
         }
     };
 
+    // Helper to separate prefix and number
+    const getPrefixAndNumber = (str) => {
+        if (typeof str !== 'string' || !str) return { prefix: '', num: null };
+        let i = str.length - 1;
+        while (i >= 0) {
+            const code = str.charCodeAt(i);
+            if (code >= 48 && code <= 57) { // 0-9
+                i--;
+            } else {
+                break;
+            }
+        }
+        const prefix = str.slice(0, i + 1);
+        const numberPart = str.slice(i + 1);
+        return { prefix, num: numberPart ? parseInt(numberPart, 10) : null };
+    };
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+
+        let newFormData = { ...formData, [name]: value };
+
+        // Auto-calculate quantity if From or To changes
+        if (name === 'book_number' || name === 'to_book_number') {
+            const fromVal = name === 'book_number' ? value : formData.book_number;
+            const toVal = name === 'to_book_number' ? value : formData.to_book_number;
+
+            if (fromVal && toVal) {
+                const start = getPrefixAndNumber(fromVal);
+                const end = getPrefixAndNumber(toVal);
+
+                if (start.prefix === end.prefix && start.num !== null && end.num !== null && end.num >= start.num) {
+                    newFormData.quantity = end.num - start.num + 1;
+                }
+            } else if (!toVal) {
+                // If To is cleared, default to 1 (or keep user's manual quantity if we tracked it, but simpler to reset or leave editable)
+                // For safety with the "From" logic, let's allow manual quantity if To is empty.
+                // We don't force it to 1 here to allow user to type in quantity field freely unless they just cleared To.
+                // Actually, if they clear To, we should probably reset Qty to 1 to avoid confusion, or leave it.
+                // Let's reset to 1 if it looks like they are switching modes.
+                if (name === 'to_book_number') newFormData.quantity = 1;
+            }
+        }
+
         if (name === 'quantity') {
             const qty = parseInt(value);
-            setFormData({ ...formData, [name]: qty > 0 ? qty : 1 });
-        } else {
-            setFormData({ ...formData, [name]: value });
+            newFormData.quantity = qty > 0 ? qty : 1;
         }
+
+        setFormData(newFormData);
     };
 
     const [isEditing, setIsEditing] = useState(false);
     const [editId, setEditId] = useState(null);
-    const [addMode, setAddMode] = useState('single'); // 'single' (default) - implicitly handles quantity if > 1
+    const [addMode, setAddMode] = useState('single');
 
     const handleDuplicate = (book) => {
         setIsEditing(false);
         setEditId(null);
         setFormData({
             book_number: '',
+            to_book_number: '',
             quantity: 1,
             title: book.title,
             author: book.author || '',
@@ -64,6 +108,7 @@ const BookManagement = () => {
         setEditId(book.id);
         setFormData({
             book_number: book.book_number,
+            to_book_number: '', // Edit usually single book
             quantity: 1,
             title: book.title,
             author: book.author || '',
@@ -88,31 +133,21 @@ const BookManagement = () => {
     const generateBookNumbers = (startStr, count) => {
         if (typeof startStr !== 'string' || !startStr) return [];
 
-        let i = startStr.length - 1;
-        while (i >= 0) {
-            const code = startStr.charCodeAt(i);
-            if (code >= 48 && code <= 57) { // 0-9
-                i--;
-            } else {
-                break;
-            }
-        }
-
-        // i is now at the last non-digit character (or -1 if all are digits)
-        // number part is from i+1 to end
-        const numberPart = startStr.slice(i + 1);
-        const prefix = startStr.slice(0, i + 1);
-
-        if (numberPart.length === 0) {
-            // No number at end
+        const { prefix, num } = getPrefixAndNumber(startStr);
+        if (num === null) {
+            // No number at end, suffix with -1, -2 etc
             return Array.from({ length: count }, (_, idx) => `${startStr}-${idx + 1}`);
         }
 
-        const startNum = parseInt(numberPart, 10);
-        const len = numberPart.length;
+        // We need to preserve padding.
+        // Re-extracting number string length for padding
+        // This is a bit inefficient but safe:
+        // slice(prefix.length) gives the number part string
+        const numStr = startStr.slice(prefix.length);
+        const len = numStr.length;
 
         return Array.from({ length: count }, (_, idx) => {
-            return `${prefix}${String(startNum + idx).padStart(len, '0')}`;
+            return `${prefix}${String(num + idx).padStart(len, '0')}`;
         });
     };
 
@@ -134,7 +169,7 @@ const BookManagement = () => {
                 setShowModal(false);
                 setIsEditing(false);
                 setEditId(null);
-                setFormData({ book_number: '', quantity: 1, title: '', author: '', category: '' });
+                setFormData({ book_number: '', to_book_number: '', quantity: 1, title: '', author: '', category: '' });
                 fetchBooks();
             } catch (error) {
                 console.error('Update Error:', error);
@@ -144,10 +179,36 @@ const BookManagement = () => {
         }
 
         let bookNumbers = [];
-        const quantity = parseInt(formData.quantity) || 1;
+        let quantity = parseInt(formData.quantity) || 1;
         const enteredBookNumber = formData.book_number ? formData.book_number.trim() : '';
+        const enteredToBookNumber = formData.to_book_number ? formData.to_book_number.trim() : '';
 
-        console.log('Form Submit:', { quantity, enteredBookNumber, formData });
+        // STRICT Validation for Range
+        if (enteredToBookNumber) {
+            if (!enteredBookNumber) {
+                toast.error('Please enter a Start Book Number to use a range.');
+                return;
+            }
+            const start = getPrefixAndNumber(enteredBookNumber);
+            const end = getPrefixAndNumber(enteredToBookNumber);
+
+            if (start.prefix !== end.prefix) {
+                toast.error(`Prefix mismatch! Start: "${start.prefix}", End: "${end.prefix}". They must be same.`);
+                return;
+            }
+            if (start.num === null || end.num === null) {
+                toast.error('Could not detect numbers in the book codes.');
+                return;
+            }
+            if (end.num < start.num) {
+                toast.error('End number cannot be smaller than Start number.');
+                return;
+            }
+            // Recalculate quantity to be super safe
+            quantity = end.num - start.num + 1;
+        }
+
+        console.log('Form Submit:', { quantity, enteredBookNumber, enteredToBookNumber, formData });
 
         // Generation Logic
         if (!enteredBookNumber) {
@@ -201,7 +262,7 @@ const BookManagement = () => {
             if (successCount > 0) {
                 toast.success(`${successCount} book(s) added successfully`);
                 setShowModal(false);
-                setFormData({ book_number: '', quantity: 1, title: '', author: '', category: '' });
+                setFormData({ book_number: '', to_book_number: '', quantity: 1, title: '', author: '', category: '' });
                 fetchBooks();
             }
 
@@ -269,7 +330,7 @@ const BookManagement = () => {
                         setIsEditing(false);
                         setEditId(null);
                         setAddMode('single');
-                        setFormData({ book_number: '', quantity: 1, title: '', author: '', category: '' });
+                        setFormData({ book_number: '', to_book_number: '', quantity: 1, title: '', author: '', category: '' });
                         setShowModal(true);
                     }}
                     className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
@@ -453,37 +514,85 @@ const BookManagement = () => {
                             <div className="flex gap-4">
                                 <div className="flex-1">
                                     <label className="block text-sm font-medium text-slate-700 mb-1">
-                                        {formData.quantity > 1 ? 'Start Book Number' : 'Book Number'} <span className="text-slate-400 text-xs font-normal">(Auto-generated if empty)</span>
+                                        Start Book Number <span className="text-slate-400 text-xs font-normal">(e.g. A-01)</span>
                                     </label>
                                     <input
                                         type="text"
                                         name="book_number"
                                         autoComplete="off"
                                         className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                                        placeholder="e.g. LIB-001 (Optional)"
+                                        placeholder="Start Number"
                                         value={formData.book_number}
                                         onChange={handleInputChange}
                                     />
-                                    {formData.quantity <= 1 && !isEditing && (
-                                        <p className="text-xs text-slate-400 mt-1">Leave empty to auto-generate, or use comma-separated values.</p>
-                                    )}
                                 </div>
                                 {!isEditing && (
-                                    <div className="w-1/3">
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Quantity</label>
-                                        <input
-                                            type="number"
-                                            name="quantity"
-                                            min="1"
-                                            max="100"
-                                            autoComplete="off"
-                                            className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                                            value={formData.quantity}
-                                            onChange={handleInputChange}
-                                        />
-                                    </div>
+                                    <>
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                                                End Book Number <span className="text-slate-400 text-xs font-normal">(Optional)</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="to_book_number"
+                                                autoComplete="off"
+                                                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                                placeholder="End Number"
+                                                value={formData.to_book_number}
+                                                onChange={handleInputChange}
+                                            />
+                                        </div>
+                                    </>
                                 )}
                             </div>
+
+                            {!isEditing && (
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 transition-all">
+                                    {formData.to_book_number ? (
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-slate-600 font-medium">Quantity to Add:</span>
+                                                <span className={`text-2xl font-bold ${(() => {
+                                                        const s = getPrefixAndNumber(formData.book_number);
+                                                        const e = getPrefixAndNumber(formData.to_book_number);
+                                                        return s.prefix !== e.prefix || e.num < s.num;
+                                                    })() ? 'text-red-500' : 'text-indigo-600'
+                                                    }`}>
+                                                    {(() => {
+                                                        const s = getPrefixAndNumber(formData.book_number);
+                                                        const e = getPrefixAndNumber(formData.to_book_number);
+                                                        if (s.prefix !== e.prefix) return "Error";
+                                                        if (e.num < s.num) return "Error";
+                                                        return formData.quantity;
+                                                    })()}
+                                                </span>
+                                            </div>
+                                            {(() => {
+                                                const s = getPrefixAndNumber(formData.book_number);
+                                                const e = getPrefixAndNumber(formData.to_book_number);
+                                                if (!formData.book_number) return <p className="text-sm text-red-500">Start Book Number is required to calculate range.</p>;
+                                                if (s.prefix !== e.prefix) return <p className="text-sm text-red-500">Prefix mismatch! Start and End must share the same prefix (e.g. <b>LIB</b>-01 and <b>LIB</b>-10).</p>;
+                                                if (e.num < s.num) return <p className="text-sm text-red-500">End number cannot be smaller than Start number.</p>;
+                                                return <p className="text-sm text-indigo-600">Calculated automatically from {formData.book_number} to {formData.to_book_number}</p>;
+                                            })()}
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1">Quantity</label>
+                                            <input
+                                                type="number"
+                                                name="quantity"
+                                                min="1"
+                                                max="1000"
+                                                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                                                value={formData.quantity}
+                                                onChange={handleInputChange}
+                                            />
+                                            <p className="text-xs text-slate-400 mt-1">Enter Quantity manually or use 'End Book Number' to auto-calculate.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Book Title <span className="text-red-500">*</span></label>

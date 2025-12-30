@@ -20,32 +20,37 @@ const Overview = ({ config }) => {
         const fetchStats = async () => {
             try {
                 // Fetch all data in parallel
+                // Requesting large limit for students to get accurate distribution stats
                 const [studentsRes, teachersRes, staffRes] = await Promise.all([
-                    api.get('/students'),
+                    api.get('/students?limit=10000'),
                     api.get('/teachers'),
                     api.get('/staff')
                 ]);
 
-                const students = studentsRes.data;
-                const teachers = teachersRes.data; // Assuming plain list
-                const staff = staffRes.data;       // Assuming plain list
+                // Handle Student Response (which might be paginated)
+                const studentsData = studentsRes.data;
+                const studentsList = Array.isArray(studentsData) ? studentsData : (studentsData.data || []);
+                const totalStudents = studentsData.pagination?.total || studentsList.length;
 
-                const male = students.filter(s => s.gender === 'Male').length;
-                const female = students.filter(s => s.gender === 'Female').length;
+                const teachers = teachersRes.data || [];
+                const staff = staffRes.data || [];
+
+                const male = studentsList.filter(s => s.gender === 'Male').length;
+                const female = studentsList.filter(s => s.gender === 'Female').length;
 
                 // Group by Class
                 const classDist = {};
-                students.forEach(s => {
+                studentsList.forEach(s => {
                     const cls = s.class_name || 'Unassigned';
                     classDist[cls] = (classDist[cls] || 0) + 1;
                 });
 
                 setStats({
-                    total: students.length,
+                    total: totalStudents,
                     male,
                     female,
-                    teachers: teachers.length || 0,
-                    staff: staff.length || 0,
+                    teachers: teachers.length,
+                    staff: staff.length,
                     classDistribution: Object.entries(classDist).map(([name, count]) => ({ name, count }))
                 });
             } catch (error) {

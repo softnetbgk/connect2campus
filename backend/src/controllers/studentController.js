@@ -105,11 +105,13 @@ exports.addStudent = async (req, res) => {
     }
 };
 
-// Get students with filters
+// Get students with filters and pagination
 exports.getStudents = async (req, res) => {
     try {
         const school_id = req.user.schoolId;
-        const { class_id, section_id } = req.query;
+        const { class_id, section_id, page = 1, limit = 50, search = '' } = req.query;
+
+        const offset = (page - 1) * limit;
 
         let query = `
             SELECT s.*, c.name as class_name, sec.name as section_name 
@@ -120,31 +122,56 @@ exports.getStudents = async (req, res) => {
         `;
         const params = [school_id];
 
-        // ...
-        if (class_id || section_id || req.query.search) {
-            if (class_id) {
-                params.push(class_id);
-                query += ` AND s.class_id = $${params.length}`;
-            }
-            if (section_id) {
-                params.push(section_id);
-                query += ` AND s.section_id = $${params.length}`;
-            }
-            if (req.query.search) {
-                params.push(`%${req.query.search}%`);
-                query += ` AND (s.name ILIKE $${params.length} OR s.admission_no ILIKE $${params.length})`;
-            }
-            query += ` ORDER BY s.roll_number ASC, s.name ASC`;
-        } else {
-            // ...
-            // Default: Recent 10
-            query += ` ORDER BY s.id DESC LIMIT 10`;
+        if (class_id) {
+            params.push(class_id);
+            query += ` AND s.class_id = $${params.length}`;
+        }
+        if (section_id) {
+            params.push(section_id);
+            query += ` AND s.section_id = $${params.length}`;
+        }
+        if (search) {
+            params.push(`%${search}%`);
+            query += ` AND (s.name ILIKE $${params.length} OR s.admission_no ILIKE $${params.length})`;
         }
 
+        // Add sorting and pagination
+        query += ` ORDER BY s.id DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        params.push(limit, offset);
+
         const result = await pool.query(query, params);
-        res.json(result.rows);
+
+        // Get total count for pagination metadata
+        let countQuery = `SELECT COUNT(*) FROM students WHERE school_id = $1`;
+        const countParams = [school_id];
+
+        if (class_id) {
+            countParams.push(class_id);
+            countQuery += ` AND class_id = $${countParams.length}`;
+        }
+        if (section_id) {
+            countParams.push(section_id);
+            countQuery += ` AND section_id = $${countParams.length}`;
+        }
+        if (search) {
+            countParams.push(`%${search}%`);
+            countQuery += ` AND (name ILIKE $${countParams.length} OR admission_no ILIKE $${countParams.length})`;
+        }
+
+        const countResult = await pool.query(countQuery, countParams);
+        const total = parseInt(countResult.rows[0].count);
+
+        res.json({
+            data: result.rows,
+            pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(total / limit)
+            }
+        });
     } catch (error) {
-        console.error(error);
+        console.error('Error in getStudents:', error);
         res.status(500).json({ message: 'Server error fetching students' });
     }
 };
@@ -203,42 +230,50 @@ exports.deleteStudent = async (req, res) => {
     }
 };
 
-// Mark Attendance (Bulk)
+// Mark Attendance (Bulk - Optimized for Scale)
 exports.markAttendance = async (req, res) => {
     const client = await pool.connect();
     try {
         const { date, attendanceData } = req.body; // attendanceData: [{ student_id, status }]
         const school_id = req.user.schoolId;
 
+        if (!attendanceData || attendanceData.length === 0) {
+            return res.status(400).json({ message: 'No attendance data provided' });
+        }
+
         await client.query('BEGIN');
 
-        for (const record of attendanceData) {
-            await client.query(
-                `INSERT INTO attendance(school_id, student_id, date, status)
-                VALUES($1, $2, $3, $4)
-                ON CONFLICT(student_id, date) 
-                DO UPDATE SET status = EXCLUDED.status`,
-                [school_id, record.student_id, date, record.status]
-            );
+        // Extract arrays for bulk insertion using UNNEST
+        const studentIds = attendanceData.map(r => r.student_id);
+        const statuses = attendanceData.map(r => r.status);
 
-            // Send Notification (Fire & Forget to avoid blocking bulk update)
-            // Querying student details for each might be slow for large classes, optimize later
-            if (record.status === 'Present' || record.status === 'Absent') {
-                client.query('SELECT name, contact_number FROM students WHERE id = $1', [record.student_id])
-                    .then(res => {
-                        if (res.rows.length > 0) {
-                            sendAttendanceNotification(res.rows[0], record.status);
-                        }
-                    })
-                    .catch(err => console.error('Error fetching student for notification', err));
+        const bulkQuery = `
+            INSERT INTO attendance (school_id, student_id, date, status)
+            SELECT $1, unnest($2::int[]), $3, unnest($4::text[])
+            ON CONFLICT (student_id, date) 
+            DO UPDATE SET status = EXCLUDED.status
+        `;
+
+        await client.query(bulkQuery, [school_id, studentIds, date, statuses]);
+
+        // Send notifications asynchronously without blocking response
+        // Note: For 100k scale, you'd usually push these to a background worker (Redis/BullMQ)
+        attendanceData.forEach(async (record) => {
+            if (record.status === 'Absent') {
+                try {
+                    const studentRes = await pool.query('SELECT name, contact_number FROM students WHERE id = $1', [record.student_id]);
+                    if (studentRes.rows.length > 0) {
+                        sendAttendanceNotification(studentRes.rows[0], record.status);
+                    }
+                } catch (e) { console.error('Notification error:', e); }
             }
-        }
+        });
 
         await client.query('COMMIT');
         res.json({ message: 'Attendance updated successfully' });
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error(error);
+        console.error('Bulk attendance error:', error);
         res.status(500).json({ message: 'Server error marking attendance' });
     } finally {
         client.release();

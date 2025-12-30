@@ -219,7 +219,7 @@ const IssueReturn = () => {
                                             className={`w-full pl-10 pr-4 py-2.5 border rounded-xl focus:ring-2 outline-none ${verifiedBook?.valid === false ? 'border-red-300 focus:ring-red-200' : 'border-slate-300 focus:ring-indigo-500'}`}
                                             placeholder="Search by Title or Number..."
                                             value={issueData.book_number}
-                                            onChange={(e) => handleBookSearch(e.target.value)}
+                                            onChange={(e) => handleBookSearch(e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''))}
                                             onBlur={() => setTimeout(() => setBookSearchResults([]), 200)} // Delay hide to allow click
                                             autoComplete="off"
                                         />
@@ -271,7 +271,7 @@ const IssueReturn = () => {
                                             className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none text-lg"
                                             placeholder="Scan Transaction ID or Book No..."
                                             value={returnData.book_number}
-                                            onChange={(e) => setReturnData({ ...returnData, book_number: e.target.value })}
+                                            onChange={(e) => setReturnData({ ...returnData, book_number: e.target.value.replace(/[^a-zA-Z0-9 ]/g, '') })}
                                         />
                                     </div>
                                     <p className="text-xs text-slate-500 mt-2 ml-1">Currently supporting returns by Book Number only.</p>
@@ -308,8 +308,8 @@ const IssueReturn = () => {
                                     key={filter.key}
                                     onClick={() => setTimeFilter(filter.key)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${timeFilter === filter.key
-                                            ? 'bg-indigo-600 text-white shadow-md'
-                                            : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600'
+                                        ? 'bg-indigo-600 text-white shadow-md'
+                                        : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600'
                                         }`}
                                 >
                                     {filter.label}

@@ -92,7 +92,7 @@ const CertificateGenerator = () => {
     });
 
     const handleSearch = async (e) => {
-        const value = e.target.value;
+        const value = e.target.value.replace(/[^a-zA-Z0-9 ]/g, '');
         setSearchTerm(value);
         if (value.length > 2) {
             try {

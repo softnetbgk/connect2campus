@@ -9,16 +9,28 @@ const StaffManagement = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', role: '', gender: '', address: '', join_date: new Date().toISOString().split('T')[0], salary_per_day: '' });
     const [selectedId, setSelectedId] = useState(null);
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => { fetchStaff(); }, []);
 
     const fetchStaff = async () => {
+        setLoading(true);
         try { const res = await api.get('/staff'); setStaff(res.data); }
         catch (e) { toast.error('Failed to load staff'); }
+        finally { setLoading(false); }
+    };
+
+    const openAddModal = () => {
+        setIsEditing(false);
+        setFieldErrors({});
+        setFormData({ name: '', email: '', phone: '', role: '', gender: '', address: '', join_date: new Date().toISOString().split('T')[0], salary_per_day: '' });
+        setShowModal(true);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setFieldErrors({});
 
         // Validation
         if (formData.phone && !/^\d{10}$/.test(formData.phone)) return toast.error('Phone must be 10 digits');
@@ -30,7 +42,16 @@ const StaffManagement = () => {
             if (isEditing) { await api.put(`/staff/${selectedId}`, formData); toast.success('Staff updated'); }
             else { await api.post('/staff', formData); toast.success('Staff added'); }
             setShowModal(false); fetchStaff();
-        } catch (e) { toast.error('Failed to save staff'); }
+        } catch (error) {
+            const msg = error.response?.data?.message || 'Failed to save staff';
+            if (msg.toLowerCase().includes('phone number already exists')) {
+                setFieldErrors(prev => ({ ...prev, phone: msg }));
+            } else if (msg.toLowerCase().includes('email already exists')) {
+                setFieldErrors(prev => ({ ...prev, email: msg }));
+            } else {
+                toast.error(msg);
+            }
+        }
     };
 
     const handleDelete = async (id) => {
@@ -46,7 +67,7 @@ const StaffManagement = () => {
                     <h2 className="text-xl font-bold text-slate-800">Staff Management</h2>
                     <p className="text-slate-500 text-sm">Manage non-teaching staff members</p>
                 </div>
-                <button type="button" onClick={() => { setIsEditing(false); setFormData({ name: '', email: '', phone: '', role: '', gender: '', address: '', join_date: new Date().toISOString().split('T')[0], salary_per_day: '' }); setShowModal(true); }} className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95"><Plus size={20} /> Add New Staff</button>
+                <button type="button" onClick={openAddModal} className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95"><Plus size={20} /> Add New Staff</button>
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -62,43 +83,65 @@ const StaffManagement = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {staff.map(t => (
-                                <tr key={t.id} className="group hover:bg-slate-50/50 transition-colors">
-                                    <td className="p-4 pl-6 font-mono text-slate-400 text-xs">{t.employee_id || '-'}</td>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">
-                                                {t.name.charAt(0)}
+                            {loading ? (
+                                [...Array(5)].map((_, i) => (
+                                    <tr key={i} className="animate-pulse">
+                                        <td className="p-4 pl-6"><div className="h-4 w-12 bg-slate-200 rounded"></div></td>
+                                        <td className="p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-slate-200"></div>
+                                                <div className="space-y-2">
+                                                    <div className="h-4 w-32 bg-slate-200 rounded"></div>
+                                                    <div className="h-3 w-20 bg-slate-200 rounded"></div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <div className="font-bold text-slate-700">{t.name}</div>
-                                                <div className="text-xs text-slate-500 uppercase tracking-wide font-semibold">{t.role}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg font-bold text-xs border border-emerald-100">
-                                            ₹{t.salary_per_day || 0}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="text-slate-600 text-sm">{t.phone}</div>
-                                        <div className="text-slate-400 text-xs">{t.email}</div>
-                                    </td>
-                                    <td className="p-4 pr-6 text-right">
-                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => { setIsEditing(true); setSelectedId(t.id); setFormData(t); setShowModal(true); }} className="text-indigo-500 hover:bg-indigo-50 p-2 rounded-lg transition-colors"><Edit2 size={18} /></button>
-                                            <button onClick={() => handleDelete(t.id)} className="text-rose-500 hover:bg-rose-50 p-2 rounded-lg transition-colors"><Trash2 size={18} /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {staff.length === 0 && (
-                                <tr>
-                                    <td colSpan={5} className="p-12 text-center text-slate-400">
-                                        No staff members found. Add one to get started.
-                                    </td>
-                                </tr>
+                                        </td>
+                                        <td className="p-4"><div className="h-6 w-16 bg-slate-200 rounded"></div></td>
+                                        <td className="p-4"><div className="h-4 w-28 bg-slate-200 rounded"></div></td>
+                                        <td className="p-4"><div className="h-8 w-8 bg-slate-200 rounded ml-auto"></div></td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <>
+                                    {staff.map(t => (
+                                        <tr key={t.id} className="group hover:bg-slate-50/50 transition-colors">
+                                            <td className="p-4 pl-6 font-mono text-slate-400 text-xs">{t.employee_id || '-'}</td>
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">
+                                                        {t.name.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold text-slate-700">{t.name}</div>
+                                                        <div className="text-xs text-slate-500 uppercase tracking-wide font-semibold">{t.role}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg font-bold text-xs border border-emerald-100">
+                                                    ₹{t.salary_per_day || 0}
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="text-slate-600 text-sm">{t.phone}</div>
+                                                <div className="text-slate-400 text-xs">{t.email}</div>
+                                            </td>
+                                            <td className="p-4 pr-6 text-right">
+                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => { setIsEditing(true); setFieldErrors({}); setSelectedId(t.id); setFormData(t); setShowModal(true); }} className="text-indigo-500 hover:bg-indigo-50 p-2 rounded-lg transition-colors"><Edit2 size={18} /></button>
+                                                    <button onClick={() => handleDelete(t.id)} className="text-rose-500 hover:bg-rose-50 p-2 rounded-lg transition-colors"><Trash2 size={18} /></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {staff.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} className="p-12 text-center text-slate-400">
+                                                No staff members found. Add one to get started.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </>
                             )}
                         </tbody>
                     </table>
@@ -160,7 +203,7 @@ const StaffManagement = () => {
                                 <div>
                                     <label className="label">Phone <span className="text-red-500">*</span></label>
                                     <input
-                                        className="input"
+                                        className={`input ${fieldErrors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
                                         placeholder="Phone"
                                         required
                                         maxLength={10}
@@ -168,21 +211,27 @@ const StaffManagement = () => {
                                         value={formData.phone}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}
+                                        onClick={() => setFieldErrors(prev => ({ ...prev, phone: '' }))}
+                                        onFocus={() => setFieldErrors(prev => ({ ...prev, phone: '' }))}
                                         onChange={e => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                                     />
+                                    {fieldErrors.phone && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.phone}</p>}
                                 </div>
                                 <div>
                                     <label className="label">Email</label>
                                     <input
-                                        className="input"
+                                        className={`input ${fieldErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-200' : ''}`}
                                         placeholder="Email"
                                         type="email"
                                         autoComplete="off"
                                         value={formData.email}
                                         onCopy={e => e.preventDefault()}
                                         onPaste={e => e.preventDefault()}
+                                        onClick={() => setFieldErrors(prev => ({ ...prev, email: '' }))}
+                                        onFocus={() => setFieldErrors(prev => ({ ...prev, email: '' }))}
                                         onChange={e => setFormData({ ...formData, email: e.target.value.replace(/\s/g, '') })}
                                     />
+                                    {fieldErrors.email && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.email}</p>}
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">

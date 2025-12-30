@@ -71,7 +71,7 @@ const TeacherMyStudents = ({ teacherProfile }) => {
                             placeholder="Search student..."
                             className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-all font-medium text-slate-700"
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''))}
                         />
                     </div>
                 </div>

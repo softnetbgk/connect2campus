@@ -74,6 +74,8 @@ const StudentAttendanceMarking = ({ config }) => {
         }
     };
 
+    const isEditable = date === new Date().toISOString().split('T')[0];
+
     return (
         <div className="space-y-6 animate-in fade-in">
             <div className="flex flex-wrap items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
@@ -102,13 +104,15 @@ const StudentAttendanceMarking = ({ config }) => {
                                 <p className="text-xs text-slate-500">Mark attendance for {date}</p>
                             </div>
                             <div className="flex gap-2">
-                                <button className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors"
-                                    onClick={() => {
-                                        const newAttendance = {};
-                                        students.forEach(s => newAttendance[s.id] = 'Present');
-                                        setAttendance(newAttendance);
-                                    }}
-                                >Mark All Present</button>
+                                {isEditable && (
+                                    <button className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors"
+                                        onClick={() => {
+                                            const newAttendance = {};
+                                            students.forEach(s => newAttendance[s.id] = 'Present');
+                                            setAttendance(newAttendance);
+                                        }}
+                                    >Mark All Present</button>
+                                )}
                             </div>
                         </div>
 
@@ -133,13 +137,14 @@ const StudentAttendanceMarking = ({ config }) => {
                                                 {['Present', 'Absent', 'Late'].map(status => (
                                                     <button
                                                         key={status}
+                                                        disabled={!isEditable}
                                                         onClick={() => handleMark(student.id, status)}
                                                         className={`w-24 py-2 rounded-lg text-xs font-bold transition-all border shadow-sm ${attendance[student.id] === status
                                                             ? status === 'Present' ? 'bg-emerald-500 text-white border-emerald-600 shadow-emerald-500/20'
                                                                 : status === 'Absent' ? 'bg-rose-500 text-white border-rose-600 shadow-rose-500/20'
                                                                     : 'bg-amber-500 text-white border-amber-600 shadow-amber-500/20'
                                                             : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300 hover:text-slate-600'
-                                                            }`}
+                                                            } ${!isEditable ? 'opacity-70 cursor-not-allowed' : ''}`}
                                                     >
                                                         {status}
                                                     </button>
@@ -157,11 +162,13 @@ const StudentAttendanceMarking = ({ config }) => {
                                 </tbody>
                             </table>
                         </div>
-                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end sticky bottom-0 z-10">
-                            <button onClick={handleSave} className="bg-gradient-to-r from-indigo-600 to-indigo-500 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20 hover:translate-y-[-1px] transition-all flex items-center gap-2">
-                                <Check size={18} /> Save Attendance
-                            </button>
-                        </div>
+                        {isEditable && (
+                            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end sticky bottom-0 z-10">
+                                <button onClick={handleSave} className="bg-gradient-to-r from-indigo-600 to-indigo-500 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20 hover:translate-y-[-1px] transition-all flex items-center gap-2">
+                                    <Check size={18} /> Save Attendance
+                                </button>
+                            </div>
+                        )}
                     </>
                 ) : (
                     <div className="p-20 text-center flex flex-col items-center justify-center text-slate-400">

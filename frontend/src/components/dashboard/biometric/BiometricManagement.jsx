@@ -149,8 +149,8 @@ const EnrollmentPanel = () => {
                     <button
                         onClick={checkDevice}
                         className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border transition-colors ${deviceStatus === 'connected' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                deviceStatus === 'disconnected' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                                    'bg-slate-50 text-slate-600 border-slate-200'
+                            deviceStatus === 'disconnected' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                'bg-slate-50 text-slate-600 border-slate-200'
                             }`}
                     >
                         {deviceStatus === 'checking' && <div className="w-2 h-2 rounded-full bg-slate-400 animate-pulse"></div>}
@@ -173,7 +173,7 @@ const EnrollmentPanel = () => {
                             className="w-full p-2 border rounded-lg"
                             placeholder="Search by Name, ID, or Email..."
                             value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
+                            onChange={e => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9 ]/g, ''))}
                         />
                         <button type="submit" className="bg-indigo-600 text-white p-2 rounded-lg"><Search /></button>
                     </form>

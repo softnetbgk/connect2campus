@@ -28,6 +28,8 @@ const StaffAttendanceMarking = () => {
         } catch (e) { toast.error('Failed to save'); }
     };
 
+    const isEditable = date === new Date().toISOString().split('T')[0];
+
     return (
         <div className="space-y-6 animate-in fade-in">
             <div className="flex flex-wrap justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-slate-200 gap-4">
@@ -36,16 +38,20 @@ const StaffAttendanceMarking = () => {
                     <input type="date" className="input max-w-[150px] bg-slate-50 border-slate-200" value={date} onChange={e => setDate(e.target.value)} />
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
-                    <button className="flex-1 md:flex-none text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2.5 rounded-xl hover:bg-emerald-100 transition-colors"
-                        onClick={() => {
-                            const newAttendance = {};
-                            staff.forEach(s => newAttendance[s.id] = 'Present');
-                            setAttendance(newAttendance);
-                        }}
-                    >Mark All Present</button>
-                    <button onClick={handleSave} className="flex-1 md:flex-none bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95">
-                        <Check size={18} /> <span className="hidden sm:inline">Save Attendance</span><span className="sm:hidden">Save</span>
-                    </button>
+                    {isEditable && (
+                        <>
+                            <button className="flex-1 md:flex-none text-xs font-bold text-emerald-600 bg-emerald-50 px-4 py-2.5 rounded-xl hover:bg-emerald-100 transition-colors"
+                                onClick={() => {
+                                    const newAttendance = {};
+                                    staff.forEach(s => newAttendance[s.id] = 'Present');
+                                    setAttendance(newAttendance);
+                                }}
+                            >Mark All Present</button>
+                            <button onClick={handleSave} className="flex-1 md:flex-none bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95">
+                                <Check size={18} /> <span className="hidden sm:inline">Save Attendance</span><span className="sm:hidden">Save</span>
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -65,13 +71,16 @@ const StaffAttendanceMarking = () => {
                                     <td className="p-4">
                                         <div className="flex flex-wrap gap-2">
                                             {['Present', 'Absent', 'Late', 'Leave'].map(s => (
-                                                <button key={s} onClick={() => setAttendance(p => ({ ...p, [t.id]: s }))}
+                                                <button key={s}
+                                                    disabled={!isEditable}
+                                                    onClick={() => setAttendance(p => ({ ...p, [t.id]: s }))}
                                                     className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border shadow-sm ${attendance[t.id] === s
                                                         ? s === 'Present' ? 'bg-emerald-500 text-white border-emerald-600 shadow-emerald-500/20'
                                                             : s === 'Absent' ? 'bg-rose-500 text-white border-rose-600 shadow-rose-500/20'
                                                                 : s === 'Late' ? 'bg-amber-500 text-white border-amber-600 shadow-amber-500/20'
                                                                     : 'bg-blue-500 text-white border-blue-600 shadow-blue-500/20'
-                                                        : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:border-slate-300'}`}>
+                                                        : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                                                        } ${!isEditable ? 'opacity-70 cursor-not-allowed' : ''}`}>
                                                     {s}
                                                 </button>
                                             ))}
