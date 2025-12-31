@@ -3,6 +3,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { Bus, Navigation, StopCircle, RefreshCw, AlertTriangle, ArrowLeft } from 'lucide-react';
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
+import { Geolocation } from '@capacitor/geolocation';
+import { Capacitor } from '@capacitor/core';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -34,10 +36,27 @@ const DriverTracking = () => {
     const [error, setError] = useState(null);
     const wakeLockRef = useRef(null);
 
+    // Detect if running in native app
+    const isApp = Capacitor.isNativePlatform();
+
     useEffect(() => {
         fetchVehicles();
+        if (isApp) {
+            checkPermissions();
+        }
         return () => stopTracking(); // Cleanup on unmount
     }, []);
+
+    const checkPermissions = async () => {
+        try {
+            const perm = await Geolocation.checkPermissions();
+            if (perm.location !== 'granted') {
+                await Geolocation.requestPermissions();
+            }
+        } catch (err) {
+            console.error('Permission check failed', err);
+        }
+    };
 
     const fetchVehicles = async () => {
         try {
