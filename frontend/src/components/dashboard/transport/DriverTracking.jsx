@@ -38,16 +38,30 @@ const DriverTracking = () => {
     const [error, setError] = useState(null);
     const wakeLockRef = useRef(null);
 
-    // Detect if running in native app
-    const isApp = Capacitor.isNativePlatform();
+    const [isMobileApp, setIsMobileApp] = useState(false);
 
+    // Detect if running in native app
     useEffect(() => {
+        const checkMobile = () => {
+            if (Capacitor.isNativePlatform()) {
+                setIsMobileApp(true);
+                return;
+            }
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('is_mobile_app') === 'true' || localStorage.getItem('is_mobile_app') === 'true') {
+                setIsMobileApp(true);
+            }
+        };
+        checkMobile();
         fetchVehicles();
-        if (isApp) {
-            checkPermissions();
-        }
         return () => stopTracking(); // Cleanup on unmount
     }, []);
+
+    useEffect(() => {
+        if (isMobileApp) {
+            checkPermissions();
+        }
+    }, [isMobileApp]);
 
     const checkPermissions = async () => {
         try {
@@ -140,7 +154,7 @@ const DriverTracking = () => {
 
     // Handle App State changes (Call, Backgrounding)
     useEffect(() => {
-        if (!isApp) return;
+        if (!isMobileApp) return;
 
         const handleResume = () => {
             if (isTracking) {
