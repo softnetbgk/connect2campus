@@ -1,9 +1,5 @@
 {
   "appId": "com.school.app",
   "appName": "SchoolApp",
-  "webDir": "dist",
-  "server": {
-    "url": "https://school-software-tan.vercel.app",
-    "cleartext": true
-  }
+  "webDir": "dist"
 }
