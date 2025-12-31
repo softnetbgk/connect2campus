@@ -428,8 +428,8 @@ const SchoolAdminDashboard = () => {
 
                 {/* Normal Header (Web/Desktop Only) - Hidden if Mobile App */}
                 {!isMobileApp && (
-                    <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 h-16 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm print:hidden">
-                        <div className="flex items-center gap-4">
+                    <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 min-h-[5rem] flex items-end justify-between px-8 sticky top-0 z-20 shadow-sm print:hidden safe-area-top pb-3">
+                        <div className="flex items-center gap-4 py-2">
                             <button
                                 className="md:hidden text-slate-600 hover:text-indigo-600 mr-2"
                                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -440,14 +440,15 @@ const SchoolAdminDashboard = () => {
                                 {getTabTitle(activeTab)}
                             </h2>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 py-2">
                             <NotificationBell />
                         </div>
                     </header>
                 )}
 
                 {/* Scrollable Page Content */}
-                <main className={`flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar ${isMobileApp ? 'pt-[calc(4rem+env(safe-area-inset-top)+1rem)] pb-[calc(4rem+env(safe-area-inset-bottom)+1rem)]' : ''}`}>
+                <main className={`flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar ${isMobileApp ? 'pt-[calc(4rem+var(--sat)+1rem)] pb-[calc(4rem+var(--sab)+1rem)]' : 'pt-[calc(var(--sat)+1rem)]'}`}>
+
                     <div className="max-w-7xl mx-auto animate-in fade-in duration-300">
                         {activeTab === 'overview' && <Overview config={academicConfig} />}
                         {activeTab === 'student-list' && <StudentManagement config={academicConfig} prefillData={activeTabState} />}

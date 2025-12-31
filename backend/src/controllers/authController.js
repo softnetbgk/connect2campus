@@ -302,4 +302,16 @@ const resetPassword = async (req, res) => {
     }
 };
 
-module.exports = { login, setupSuperAdmin, logout, forgotPassword, resetPassword };
+const registerFcmToken = async (req, res) => {
+    const { token } = req.body;
+    const userId = req.user.id;
+    try {
+        await pool.query('UPDATE users SET fcm_token = $1 WHERE id = $2', [token, userId]);
+        res.json({ message: 'Push notifications linked successfully' });
+    } catch (error) {
+        console.error('FCM Registration Error:', error);
+        res.status(500).json({ message: 'Failed to register device' });
+    }
+};
+
+module.exports = { login, setupSuperAdmin, logout, forgotPassword, resetPassword, registerFcmToken };

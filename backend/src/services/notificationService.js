@@ -1,17 +1,12 @@
 const { pool } = require('../config/db');
+const { sendPushNotification: sendRealPush } = require('./firebaseService');
 
 // Mock SMS Service for now
 // In production, integrate with Twilio, MSG91, TextLocal, etc.
 const sendSMS = async (phoneNumber, message) => {
     try {
         if (!phoneNumber) return;
-
-        // Log to console implies sending
         console.log(`[SMS GATEWAY] To: ${phoneNumber} | Message: ${message}`);
-
-        // You would await the actual API call here
-        // await axios.post('https://api.sms-provider.com/...', { ... });
-
         return true;
     } catch (error) {
         console.error('Failed to send SMS:', error);
@@ -19,12 +14,12 @@ const sendSMS = async (phoneNumber, message) => {
     }
 };
 
-// Mock Push Notification Service (Firebase/FCM)
+// Real Push Notification Service (Firebase/FCM)
 // AND Save to DB for In-App Notification Center
 const sendPushNotification = async (recipientId, title, body, roleHint = null) => {
     const client = await pool.connect();
     try {
-        console.log(`[APP PUSH] Recipient: ${recipientId} | Title: ${title} | Body: ${body}`);
+        console.log(`[PUSH REQUEST] Recipient: ${recipientId} | Title: ${title}`);
 
         // 1. Resolve 'users' table ID for DB persistence
         let dbUserId = null;
@@ -43,14 +38,13 @@ const sendPushNotification = async (recipientId, title, body, roleHint = null) =
         if (!finalRole) finalRole = 'Student';
 
         if (finalRole === 'Student') {
-            // Link via email or admission_no logic used in auth
-            // Simple join: users.email = students.email OR users.email = admission_no based email
+            // Check both standard ID (numeric) and Admission Number
             const res = await client.query(`
                 SELECT u.id 
                 FROM users u 
                 JOIN students s ON (LOWER(u.email) = LOWER(s.email) OR u.email = LOWER(s.admission_no) || '@student.school.com')
-                WHERE s.id = $1
-             `, [recipientId]);
+                WHERE (s.id::text = $1 OR s.admission_no ILIKE $1)
+             `, [recipientId.toString()]);
             if (res.rows.length > 0) dbUserId = res.rows[0].id;
 
         } else if (finalRole === 'Teacher') {
@@ -58,8 +52,8 @@ const sendPushNotification = async (recipientId, title, body, roleHint = null) =
                 SELECT u.id 
                 FROM users u 
                 JOIN teachers t ON (LOWER(u.email) = LOWER(t.email) OR u.email = t.employee_id || '@teacher.school.com')
-                WHERE t.id = $1
-             `, [recipientId]);
+                WHERE (t.id::text = $1 OR t.employee_id = $1)
+             `, [recipientId.toString()]);
             if (res.rows.length > 0) dbUserId = res.rows[0].id;
 
         } else if (finalRole === 'Staff') {
@@ -67,8 +61,8 @@ const sendPushNotification = async (recipientId, title, body, roleHint = null) =
                 SELECT u.id 
                 FROM users u 
                 JOIN staff s ON (LOWER(u.email) = LOWER(s.email) OR u.email = s.employee_id || '@staff.school.com')
-                WHERE s.id = $1
-             `, [recipientId]);
+                WHERE (s.id::text = $1 OR s.employee_id = $1)
+             `, [recipientId.toString()]);
             if (res.rows.length > 0) dbUserId = res.rows[0].id;
         }
 
@@ -78,9 +72,17 @@ const sendPushNotification = async (recipientId, title, body, roleHint = null) =
                 'INSERT INTO notifications (user_id, title, message, type) VALUES ($1, $2, $3, $4)',
                 [dbUserId, title, body, 'ALERT']
             );
-            console.log(`[DB NOTIFICATION] Saved for User ID: ${dbUserId}`);
+
+            // 3. Send via Firebase
+            const userTokenRes = await client.query('SELECT fcm_token FROM users WHERE id = $1', [dbUserId]);
+            const token = userTokenRes.rows[0]?.fcm_token;
+            if (token) {
+                await sendRealPush(token, title, body, { role: finalRole });
+            }
+
+            console.log(`[REAL PUSH] Processed for User ID: ${dbUserId}`);
         } else {
-            console.warn(`[NOTIFICATION WARNING] Could not resolve User Table ID for recipient: ${recipientId} (${finalRole})`);
+            console.warn(`[PUSH WARNING] Could not resolve User Table ID for recipient: ${recipientId} (${finalRole})`);
         }
 
         return true;

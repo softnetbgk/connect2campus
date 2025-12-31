@@ -232,8 +232,8 @@ const StaffDashboard = () => {
             {/* Main Content Area - LIGHT THEME */}
             <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[#f1f5f9] relative z-10">
                 {/* Header */}
-                <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 min-h-[5rem] flex items-center justify-between px-6 sticky top-0 z-20 shadow-sm print:hidden safe-area-top pb-2">
-                    <div className="flex items-center gap-4 mt-auto py-2">
+                <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 min-h-[5rem] flex items-end justify-between px-6 sticky top-0 z-20 shadow-sm print:hidden safe-area-top pb-3">
+                    <div className="flex items-center gap-4 py-2">
                         <button
                             className="text-slate-800 hover:text-indigo-600 bg-slate-100 p-2.5 rounded-xl md:hidden"
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -247,7 +247,7 @@ const StaffDashboard = () => {
                             <p className="text-xs text-slate-500 md:block hidden">Manage your work and profile</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 py-2">
                         <NotificationBell />
                         <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold border border-orange-200">
                             {user?.name?.[0]}
@@ -256,7 +256,8 @@ const StaffDashboard = () => {
                 </header>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pt-[calc(var(--sat)+1rem)]">
+
                     <div className="max-w-6xl mx-auto animate-in fade-in duration-300">
                         {activeTab === 'overview' && <StaffOverview isDriver={isDriver} schoolName={schoolName} />}
                         {activeTab === 'attendance' && <StaffMyAttendance />}

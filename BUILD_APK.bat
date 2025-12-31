@@ -1,9 +1,9 @@
 @echo off
 echo 🔨 Setting up Android Environment...
-echo sdk.dir=%LOCALAPPDATA%\Android\Sdk > mobile-app\android\local.properties
+echo sdk.dir=%LOCALAPPDATA%\Android\Sdk > frontend\android\local.properties
 
 echo 🚀 Building APK (This may take 5-10 minutes)...
-cd mobile-app\android
+cd frontend\android
 call gradlew assembleRelease
 
 if %ERRORLEVEL% NEQ 0 (

@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const { sendPushNotification } = require('../services/firebaseService');
 
 // Get notifications for the logged-in user
 const getMyNotifications = async (req, res) => {
@@ -53,16 +54,27 @@ const markAllAsRead = async (req, res) => {
 };
 
 // Create a notification (Internal or Admin use)
-const createNotification = async (userId, title, message, type = 'INFO') => {
+const createNotification = async (userId, title, message, type = 'INFO', data = {}) => {
     try {
+        // 1. Save to Database
         const result = await pool.query(
             'INSERT INTO notifications (user_id, title, message, type) VALUES ($1, $2, $3, $4) RETURNING *',
             [userId, title, message, type]
         );
+
+        // 2. Try to Send Push Notification
+        const userRes = await pool.query('SELECT fcm_token FROM users WHERE id = $1', [userId]);
+        const token = userRes.rows[0]?.fcm_token;
+
+        if (token) {
+            // FIRE AND FORGET - Don't wait for push to finish to save DB record
+            sendPushNotification(token, title, message, { ...data, type })
+                .catch(err => console.error('Push delivery failed:', err));
+        }
+
         return result.rows[0];
     } catch (error) {
         console.error('Error creating notification:', error);
-        // Don't throw to avoid crashing main flows
         return null;
     }
 };

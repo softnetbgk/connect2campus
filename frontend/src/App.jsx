@@ -45,18 +45,23 @@ import Welcome from './pages/Welcome';
 
 function App() {
   React.useEffect(() => {
-    if (Capacitor.isNativePlatform()) {
-      try {
-        // Prevent content from overlapping status bar
-        StatusBar.setOverlaysWebView({ overlay: false });
-        // Set background color to match our primary theme (indigo-600)
-        StatusBar.setBackgroundColor({ color: '#4f46e5' });
-        StatusBar.setStyle({ style: Style.Dark });
-      } catch (err) {
-        console.error('StatusBar setup failed', err);
+    // Handle StatusBar for Capacitor Native App
+    const setupStatusBar = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          // Explicitly don't overlay to prevent content from going behind timing/battery bar
+          await StatusBar.setOverlaysWebView({ overlay: false });
+          // Use a neutral background or match theme
+          await StatusBar.setBackgroundColor({ color: '#ffffff' });
+          await StatusBar.setStyle({ style: Style.Light });
+        } catch (err) {
+          console.log('StatusBar plugin not available or failed', err);
+        }
       }
-    }
+    };
+    setupStatusBar();
   }, []);
+
 
   return (
     <ErrorBoundary>

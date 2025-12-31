@@ -3,7 +3,7 @@ import { Home, Users, CreditCard, Menu, UserCheck, GraduationCap } from 'lucide-
 
 export const MobileHeader = ({ title, onMenuClick, schoolName }) => {
     return (
-        <div className="fixed top-0 left-0 right-0 bg-indigo-600 text-white z-[60] shadow-md safe-area-top flex flex-col justify-end md:hidden min-h-[5rem] pb-1">
+        <div className="fixed top-0 left-0 right-0 bg-indigo-600 text-white z-[60] shadow-md safe-area-top flex flex-col justify-end md:hidden min-h-[5rem] pb-2">
             <div className="h-14 w-full flex items-center px-4 justify-between">
                 <div className="flex items-center gap-3">
                     {/* Logo/Icon */}
@@ -11,7 +11,7 @@ export const MobileHeader = ({ title, onMenuClick, schoolName }) => {
                         <GraduationCap size={20} className="text-white" />
                     </div>
                     <div>
-                        <h1 className="text-xs font-black text-white tracking-[0.2em] leading-none drop-shadow-md uppercase">Connect to Campus</h1>
+                        <h1 className="text-[10px] font-black text-white tracking-[0.2em] leading-none drop-shadow-md uppercase">Connect to Campus</h1>
                         <p className="text-[10px] text-indigo-200 font-bold uppercase tracking-wider mt-1">{schoolName || 'Software'}</p>
                     </div>
                 </div>
@@ -30,7 +30,7 @@ export const MobileFooter = ({ activeTab, onTabChange, onMenuToggle }) => {
     ];
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-[60] pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:hidden">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-[60] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:hidden pt-1" style={{ paddingBottom: 'var(--sab)' }}>
             <div className="h-16 flex items-center justify-around">
                 {tabs.map((tab) => {
                     const isActive = activeTab === tab.id;
@@ -59,3 +59,4 @@ export const MobileFooter = ({ activeTab, onTabChange, onMenuToggle }) => {
         </div>
     );
 };
+
