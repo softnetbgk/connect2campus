@@ -104,7 +104,7 @@ const DriverTracking = () => {
             },
             {
                 enableHighAccuracy: true,
-                timeout: 10000,
+                timeout: 30000,
                 maximumAge: 0
             }
         );
@@ -203,17 +203,17 @@ const DriverTracking = () => {
                             {error === 'PERMISSION_DENIED' && (
                                 <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-slate-800 space-y-4">
                                     <div className="flex items-center gap-2 text-red-600 font-bold">
-                                        <AlertTriangle size={20} /> PLEASE ENABLE GPS IN BROWSER SETTINGS
+                                        <AlertTriangle size={20} /> PLEASE ENABLE GPS IN DEVICE SETTINGS
                                     </div>
-                                    <p className="text-sm">To track this bus, you must allow location access. Follow these steps if it's denied:</p>
+                                    <p className="text-sm font-bold">Location access is denied. Please follow these steps to fix it:</p>
                                     <div className="text-xs space-y-3">
                                         <div className="p-3 bg-white rounded-lg border border-red-100">
-                                            <p className="font-bold text-slate-700 underline mb-1">Android / Chrome:</p>
-                                            <p>Tap the 🔒 (lock) icon next to the website address {'\u2192'} Select <b>"Permissions"</b> {'\u2192'} Turn on <b>"Location"</b>.</p>
+                                            <p className="font-bold text-slate-700 underline mb-1">On Mobile App:</p>
+                                            <p>Long press the <b>School App icon</b> {'\u2192'} Tap <b>"App Info" (ⓘ)</b> {'\u2192'} <b>Permissions</b> {'\u2192'} <b>Location</b> {'\u2192'} Select <b>"Allow all the time"</b> or <b>"While using the app"</b>.</p>
                                         </div>
                                         <div className="p-3 bg-white rounded-lg border border-red-100">
-                                            <p className="font-bold text-slate-700 underline mb-1">iPhone / Safari:</p>
-                                            <p>Go to <b>Settings</b> {'\u2192'} <b>Privacy</b> {'\u2192'} <b>Location Services</b> {'\u2192'} <b>Safari</b> {'\u2192'} Select <b>"While Using the App"</b>.</p>
+                                            <p className="font-bold text-slate-700 underline mb-1">On Web Browser:</p>
+                                            <p>Tap the 🔒 (lock) icon next to the address {'\u2192'} Select <b>"Permissions"</b> {'\u2192'} Turn on <b>"Location"</b>.</p>
                                         </div>
                                     </div>
                                     <button
