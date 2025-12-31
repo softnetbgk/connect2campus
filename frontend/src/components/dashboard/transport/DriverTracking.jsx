@@ -37,7 +37,6 @@ const DriverTracking = () => {
     const [watchId, setWatchId] = useState(null);
     const [error, setError] = useState(null);
     const wakeLockRef = useRef(null);
-
     const [isMobileApp, setIsMobileApp] = useState(false);
 
     // Detect if running in native app
@@ -54,7 +53,7 @@ const DriverTracking = () => {
         };
         checkMobile();
         fetchVehicles();
-        return () => stopTracking(); // Cleanup on unmount
+        return () => stopTracking();
     }, []);
 
     useEffect(() => {
@@ -97,7 +96,7 @@ const DriverTracking = () => {
         if (!selectedVehicle) return toast.error('Please select a vehicle first');
 
         try {
-            if (isMobileApp) { // Use isMobileApp here
+            if (isMobileApp) {
                 const perm = await Geolocation.checkPermissions();
                 if (perm.location !== 'granted') {
                     const req = await Geolocation.requestPermissions();
@@ -106,33 +105,29 @@ const DriverTracking = () => {
                         return;
                     }
                 }
-            } else if (!navigator.geolocation) {
-                return toast.error('Geolocation is not supported by your browser');
             }
-
-            setIsTracking(true);
-            requestWakeLock();
-            toast.success('Tracking Started - Keep this screen open');
 
             const id = await Geolocation.watchPosition(
                 {
                     enableHighAccuracy: true,
-                    timeout: 15000,
+                    timeout: 10000,
                     maximumAge: 0
                 },
                 async (position, err) => {
                     if (err) {
-                        console.error('Watch error', err);
+                        console.error('GPS Error', err);
                         handleGpsError(err);
                         return;
                     }
+
                     if (position) {
                         const { latitude, longitude } = position.coords;
                         setLastPosition([latitude, longitude]);
                         setLastUpdated(new Date());
                         setError(null);
+                        setIsTracking(true);
+                        requestWakeLock();
 
-                        // Send update to server
                         try {
                             await api.put(`/transport/vehicles/${selectedVehicle}/location`, {
                                 lat: latitude,
@@ -140,7 +135,6 @@ const DriverTracking = () => {
                             });
                         } catch (err) {
                             console.error('Failed to sync location', err);
-                            setError('Failed to sync with server');
                         }
                     }
                 }
@@ -152,51 +146,9 @@ const DriverTracking = () => {
         }
     };
 
-    // Handle App State changes (Call, Backgrounding)
-    useEffect(() => {
-        if (!isMobileApp) return;
-
-        const handleResume = () => {
-            if (isTracking) {
-                console.log('App resumed, refreshing tracking...');
-                toast.success('System Resumed - GPS Tracking Active', { icon: '✅' });
-            }
-        };
-
-        const handlePause = () => {
-            if (isTracking) {
-                toast('Tracking in background - Try to keep app visible', {
-                    icon: '⚠️',
-                    duration: 3000
-                });
-            }
-        };
-
-        document.addEventListener('resume', handleResume);
-        document.addEventListener('pause', handlePause);
-
-        return () => {
-            document.removeEventListener('resume', handleResume);
-            document.removeEventListener('pause', handlePause);
-        };
-    }, [isTracking, isApp]);
-
     const handleGpsError = (err) => {
-        const code = err.code || (err.message && err.message.includes('denied') ? 1 : 0);
-        if (code === 1 || err.message?.toLowerCase().includes('denied')) {
-            setError('PERMISSION_DENIED');
-            toast.error('Location Access Denied. Please enable GPS in app settings.');
-        } else if (code === 2 || err.message?.toLowerCase().includes('unavailable')) {
-            setError('POSITION_UNAVAILABLE');
-            toast.error('GPS Signal Weak or Unavailable.');
-        } else if (code === 3 || err.message?.toLowerCase().includes('timeout')) {
-            setError('TIMEOUT');
-            toast.error('Location request timed out.');
-        } else {
-            setError('UNKNOWN_ERROR');
-            toast.error('GPS Error: ' + (err.message || 'Please check your device GPS.'));
-        }
-        setIsTracking(false);
+        if (err.code === 1) setError('PERMISSION_DENIED');
+        else toast.error('GPS Signal Weak. Trying to reconnect...');
     };
 
     const stopTracking = async () => {
@@ -214,69 +166,71 @@ const DriverTracking = () => {
         }
         setIsTracking(false);
         toast.dismiss();
-        toast('Tracking Stopped', { icon: '🛑' });
     };
 
     return (
-        <div className="min-h-screen bg-white flex flex-col">
-            {/* 1. SIMPLE HEADER (Not Fixed) */}
-            <header className="bg-indigo-600 text-white safe-area-top shadow-lg">
-                <div className="px-4 h-16 flex items-center justify-between">
+        <div className="min-h-screen bg-slate-100 flex flex-col relative">
+            {/* 1. BULLETPROOF FIXED HEADER - RED BACK BUTTON */}
+            <header className="fixed top-0 left-0 right-0 bg-indigo-700 text-white z-[9999] shadow-2xl safe-area-top">
+                <div className="px-5 h-20 flex items-center justify-between">
                     <button
                         onClick={() => navigate(-1)}
-                        className="flex items-center gap-2 p-2 px-4 bg-white/20 rounded-xl active:scale-95 border border-white/30 font-black text-xs"
+                        className="flex items-center gap-2 p-4 px-6 bg-red-600 hover:bg-red-700 rounded-2xl active:scale-95 border-2 border-white/50 shadow-2xl font-black text-sm text-white transition-all"
                     >
-                        <ArrowLeft size={20} strokeWidth={3} />
-                        BACK
+                        <ArrowLeft size={24} strokeWidth={4} />
+                        BACK TO DASHBOARD
                     </button>
-                    <div className="text-right">
-                        <h1 className="text-[10px] font-black uppercase tracking-widest leading-none">CONNECT TO CAMPUS</h1>
-                        <p className="text-[10px] text-indigo-200 font-bold uppercase mt-1">DRIVER GPS MODE</p>
+                    <div className="text-right flex flex-col items-end">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">Driver Mode</span>
+                            <div className={`w-2 h-2 rounded-full ${isTracking ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`}></div>
+                        </div>
                     </div>
                 </div>
             </header>
 
-            {/* 2. MAIN CONTENT AREA */}
-            <main className="p-4 flex-1 bg-slate-50 overflow-y-auto">
-                <div className="max-w-md mx-auto space-y-4">
+            {/* SPACER */}
+            <div className="h-24 safe-area-top"></div>
 
-                    {/* EMERGENCY BACK BUTTON (ALWAYS VISIBLE AT TOP OF CONTENT) */}
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="w-full py-3 bg-white border-2 border-slate-200 rounded-2xl flex items-center justify-center gap-2 text-slate-600 font-black text-xs shadow-sm active:scale-95"
-                    >
-                        <ArrowLeft size={16} /> RETURN TO DASHBOARD
-                    </button>
+            <main className="p-4 flex-1">
+                <div className="max-w-md mx-auto space-y-6">
 
-                    <div className="bg-white rounded-[2rem] shadow-xl border border-slate-200 overflow-hidden ring-1 ring-slate-200">
-                        <div className="bg-slate-900 p-8 text-white text-center relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
-                            <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 rotate-3 shadow-2xl relative z-10">
-                                <Bus size={32} className="text-white" />
+                    {/* ALERT IF TRACKING */}
+                    {isTracking && (
+                        <div className="bg-emerald-600 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between px-6 animate-pulse">
+                            <div className="flex items-center gap-3">
+                                <div className="w-3 h-3 bg-white rounded-full animate-ping"></div>
+                                <span className="font-black text-sm">LIVE TRACKING ACTIVE</span>
                             </div>
-                            <h2 className="text-2xl font-black italic tracking-tighter relative z-10">TRIP TRACKER</h2>
+                            <button onClick={stopTracking} className="bg-white text-emerald-700 px-3 py-1 rounded-lg font-bold text-xs">STOP</button>
+                        </div>
+                    )}
+
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden">
+                        <div className="bg-slate-900 p-10 text-white text-center relative overflow-hidden">
+                            <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-4 rotate-3 shadow-2xl border-4 border-white/5 relative z-10">
+                                <Bus size={40} className="text-white" />
+                            </div>
+                            <h2 className="text-3xl font-black italic tracking-tighter relative z-10 uppercase">Trip Monitor</h2>
                         </div>
 
-                        <div className="p-6 space-y-6">
+                        <div className="p-8 space-y-6">
                             {!isTracking && (
-                                <div className="space-y-4">
-                                    <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl text-indigo-700">
-                                        <p className="text-sm font-bold flex items-center gap-2">
-                                            <Navigation size={18} /> Ready to start the trip?
-                                        </p>
-                                        <p className="text-xs mt-1 opacity-80 text-indigo-600 font-medium">Please select your vehicle from the list below to begin broadcasting your location.</p>
+                                <div className="space-y-6">
+                                    <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
+                                        <p className="text-xs text-indigo-700 font-bold uppercase tracking-wider text-center">Select your vehicle to begin</p>
                                     </div>
 
-                                    <div>
-                                        <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-3 ml-1">Assigned Vehicle</label>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Assigned Vehicle</label>
                                         <select
-                                            className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-500 font-bold text-slate-800 transition-all shadow-sm"
+                                            className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-slate-800 outline-none focus:border-indigo-500"
                                             value={selectedVehicle}
                                             onChange={e => setSelectedVehicle(e.target.value)}
                                         >
-                                            <option value="">-- Choose Bus/Vehicle --</option>
+                                            <option value="">-- Select Bus --</option>
                                             {vehicles.map(v => (
-                                                <option key={v.id} value={v.id}>{v.vehicle_number} ({v.driver_name || 'Driver'})</option>
+                                                <option key={v.id} value={v.id}>{v.vehicle_number} ({v.driver_name})</option>
                                             ))}
                                         </select>
                                     </div>
@@ -284,27 +238,24 @@ const DriverTracking = () => {
                                     <button
                                         onClick={startTracking}
                                         disabled={!selectedVehicle}
-                                        className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-2xl font-black text-lg shadow-xl shadow-indigo-500/30 transition-all disabled:opacity-30 disabled:scale-100 disabled:shadow-none uppercase tracking-wider"
+                                        className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-2xl font-black text-xl shadow-xl shadow-indigo-500/30 transition-all disabled:opacity-30 disabled:shadow-none uppercase tracking-widest"
                                     >
-                                        Start Live Tracking
+                                        Start My Trip
                                     </button>
                                 </div>
                             )}
 
                             {isTracking && (
                                 <div className="space-y-6">
-                                    <div className="bg-emerald-50 border-2 border-emerald-100 rounded-2xl p-5 text-center shadow-inner">
-                                        <div className="animate-pulse flex items-center justify-center gap-2 text-emerald-700 font-black mb-1 uppercase tracking-tighter">
-                                            <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
-                                            LIVE: TRACKING ACTIVE
-                                        </div>
-                                        <p className="text-[10px] text-emerald-600 font-bold">
-                                            Last Sync: {lastUpdated ? lastUpdated.toLocaleTimeString() : 'Connecting...'}
+                                    <div className="bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 text-center">
+                                        <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-1">Current Sync</p>
+                                        <p className="text-xl font-black text-indigo-600">
+                                            {lastUpdated ? lastUpdated.toLocaleTimeString() : 'Establishing...'}
                                         </p>
                                     </div>
 
                                     {lastPosition && (
-                                        <div className="h-64 bg-slate-100 rounded-2xl overflow-hidden border-2 border-slate-100 shadow-lg relative">
+                                        <div className="h-64 rounded-2xl overflow-hidden border-2 border-slate-100 shadow-xl">
                                             <MapContainer
                                                 center={lastPosition}
                                                 zoom={15}
@@ -315,61 +266,30 @@ const DriverTracking = () => {
                                             >
                                                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                                                 <RecenterMap lat={lastPosition[0]} lng={lastPosition[1]} />
-                                                <Marker position={lastPosition}>
-                                                    <Popup>Broadcasting Location</Popup>
-                                                </Marker>
+                                                <Marker position={lastPosition} />
                                             </MapContainer>
-                                            <div className="absolute inset-0 pointer-events-none ring-1 ring-inset ring-black/5 rounded-2xl"></div>
-                                        </div>
-                                    )}
-
-                                    {error === 'PERMISSION_DENIED' && (
-                                        <div className="bg-red-50 border-2 border-red-100 rounded-2xl p-6 text-slate-800 space-y-4">
-                                            <div className="flex items-center gap-2 text-red-600 font-black uppercase tracking-tighter">
-                                                <AlertTriangle size={22} className="animate-bounce" /> ENABLE GPS PERMISSION
-                                            </div>
-                                            <div className="text-xs space-y-4">
-                                                <div className="p-3 bg-white rounded-xl shadow-sm border border-red-50">
-                                                    <p className="font-bold text-slate-700 underline mb-2">Instructions:</p>
-                                                    <ol className="list-decimal list-inside space-y-2 text-slate-600 font-medium">
-                                                        <li>Long press the <b>School App</b> icon</li>
-                                                        <li>Select <b>"App Info"</b> or <b>ⓘ</b></li>
-                                                        <li>Go to <b>"Permissions"</b></li>
-                                                        <li>Allow <b>"Location"</b> (Always)</li>
-                                                    </ol>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => window.location.reload()}
-                                                className="w-full py-3 bg-red-600 text-white rounded-xl text-sm font-black shadow-lg"
-                                            >
-                                                FIXED? RELOAD APP
-                                            </button>
                                         </div>
                                     )}
 
                                     <button
                                         onClick={stopTracking}
-                                        className="w-full py-5 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-red-500/30 transition-all active:scale-95 flex items-center justify-center gap-3 uppercase"
+                                        className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-all uppercase"
                                     >
-                                        <StopCircle size={28} /> Stop Tracking
+                                        Stop Signal
                                     </button>
+                                </div>
+                            )}
 
-                                    <div className="bg-slate-100 p-4 rounded-2xl border border-slate-200">
-                                        <p className="text-center text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed">
-                                            ⚠️ KEEP THIS SCREEN OPEN<br />
-                                            WAKE LOCK IS PREVENTING SLEEP
-                                        </p>
-                                    </div>
+                            {error === 'PERMISSION_DENIED' && (
+                                <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 text-red-700">
+                                    <h4 className="font-black uppercase tracking-tight mb-2">GPS Restricted</h4>
+                                    <p className="text-xs font-bold leading-relaxed">
+                                        Please enable Location permissions in your phone settings for the School App.
+                                    </p>
                                 </div>
                             )}
                         </div>
                     </div>
-                    {!isTracking && (
-                        <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest pb-8">
-                            Version 1.2.0 • Secured GPS Link
-                        </p>
-                    )}
                 </div>
             </main>
         </div>
