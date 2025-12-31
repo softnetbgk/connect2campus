@@ -3,8 +3,8 @@ import { Home, Users, CreditCard, Menu, UserCheck, GraduationCap } from 'lucide-
 
 export const MobileHeader = ({ title, onMenuClick, schoolName }) => {
     return (
-        <div className="fixed top-0 left-0 right-0 bg-indigo-600 text-white z-[60] shadow-md safe-area-top flex flex-col justify-end md:hidden">
-            <div className="h-16 w-full flex items-center px-4 justify-between">
+        <div className="fixed top-0 left-0 right-0 bg-indigo-600 text-white z-[60] shadow-md safe-area-top flex flex-col justify-end md:hidden min-h-[5rem] pb-1">
+            <div className="h-14 w-full flex items-center px-4 justify-between">
                 <div className="flex items-center gap-3">
                     {/* Logo/Icon */}
                     <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">

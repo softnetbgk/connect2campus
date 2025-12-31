@@ -302,13 +302,13 @@ const StudentDashboard = () => {
 
                 {/* Normal Header (Web/Desktop Only) */}
                 {!isMobileApp && (
-                    <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 h-24 flex items-center justify-between px-6 sticky top-0 z-10 shadow-sm print:hidden safe-area-top pt-4">
-                        <div className="flex items-center gap-4">
+                    <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 min-h-[5rem] flex items-center justify-between px-6 sticky top-0 z-20 shadow-sm print:hidden safe-area-top pb-2">
+                        <div className="flex items-center gap-4 mt-auto py-2">
                             <button
-                                className="md:hidden text-slate-800 hover:text-indigo-600 bg-slate-100 p-2 rounded-lg"
+                                className="text-slate-800 hover:text-indigo-600 bg-slate-100 p-2.5 rounded-xl md:hidden"
                                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                             >
-                                <Menu size={24} />
+                                <Menu size={22} />
                             </button>
                             <div>
                                 <h2 className="text-xl font-bold text-slate-800">

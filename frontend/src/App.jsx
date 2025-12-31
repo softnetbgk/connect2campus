@@ -15,6 +15,7 @@ import StudentDashboard from './pages/StudentDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import StaffDashboard from './pages/StaffDashboard';
 import DriverTracking from './components/dashboard/transport/DriverTracking';
+import NotificationRegistration from './components/NotificationRegistration';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, role }) => {
@@ -45,6 +46,7 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <NotificationProvider>
+          <NotificationRegistration />
           <Router>
             <div className="min-h-screen bg-gray-50">
               <Toaster position="top-center" />
