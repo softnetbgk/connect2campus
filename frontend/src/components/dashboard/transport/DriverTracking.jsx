@@ -77,62 +77,92 @@ const DriverTracking = () => {
         }
     };
 
-    const startTracking = () => {
+    const startTracking = async () => {
         if (!selectedVehicle) return toast.error('Please select a vehicle first');
-        if (!navigator.geolocation) return toast.error('Geolocation is not supported by your browser');
 
-        setIsTracking(true);
-        requestWakeLock();
-        toast.success('Tracking Started - Keep this screen open');
-
-        const id = navigator.geolocation.watchPosition(
-            async (position) => {
-                const { latitude, longitude } = position.coords;
-                setLastPosition([latitude, longitude]);
-                setLastUpdated(new Date());
-                setError(null);
-
-                // Send update to server
-                try {
-                    await api.put(`/transport/vehicles/${selectedVehicle}/location`, {
-                        lat: latitude,
-                        lng: longitude
-                    });
-                } catch (err) {
-                    console.error('Failed to sync location', err);
-                    setError('Failed to sync with server');
+        try {
+            if (isApp) {
+                const perm = await Geolocation.checkPermissions();
+                if (perm.location !== 'granted') {
+                    const req = await Geolocation.requestPermissions();
+                    if (req.location !== 'granted') {
+                        setError('PERMISSION_DENIED');
+                        return;
+                    }
                 }
-            },
-            (err) => {
-                console.error(err);
-                if (err.code === 1) {
-                    setError('PERMISSION_DENIED');
-                    toast.error('Location Access Denied. Please enable GPS in browser settings.');
-                } else if (err.code === 2) {
-                    setError('POSITION_UNAVAILABLE');
-                    toast.error('GPS Signal Weak or Unavailable.');
-                } else if (err.code === 3) {
-                    setError('TIMEOUT');
-                    toast.error('Location request timed out.');
-                } else {
-                    setError('UNKNOWN_ERROR');
-                    toast.error('GPS Error: ' + err.message);
-                }
-                setIsTracking(false);
-                if (watchId) navigator.geolocation.clearWatch(watchId);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 30000,
-                maximumAge: 0
+            } else if (!navigator.geolocation) {
+                return toast.error('Geolocation is not supported by your browser');
             }
-        );
-        setWatchId(id);
+
+            setIsTracking(true);
+            requestWakeLock();
+            toast.success('Tracking Started - Keep this screen open');
+
+            const id = await Geolocation.watchPosition(
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 0
+                },
+                async (position, err) => {
+                    if (err) {
+                        console.error('Watch error', err);
+                        handleGpsError(err);
+                        return;
+                    }
+                    if (position) {
+                        const { latitude, longitude } = position.coords;
+                        setLastPosition([latitude, longitude]);
+                        setLastUpdated(new Date());
+                        setError(null);
+
+                        // Send update to server
+                        try {
+                            await api.put(`/transport/vehicles/${selectedVehicle}/location`, {
+                                lat: latitude,
+                                lng: longitude
+                            });
+                        } catch (err) {
+                            console.error('Failed to sync location', err);
+                            setError('Failed to sync with server');
+                        }
+                    }
+                }
+            );
+            setWatchId(id);
+        } catch (err) {
+            console.error('Start tracking failed', err);
+            handleGpsError(err);
+        }
     };
 
-    const stopTracking = () => {
+    const handleGpsError = (err) => {
+        // Handle both Capacitor and Browser errors
+        const code = err.code || (err.message && err.message.includes('denied') ? 1 : 0);
+
+        if (code === 1 || err.message?.toLowerCase().includes('denied')) {
+            setError('PERMISSION_DENIED');
+            toast.error('Location Access Denied. Please enable GPS in app settings.');
+        } else if (code === 2 || err.message?.toLowerCase().includes('unavailable')) {
+            setError('POSITION_UNAVAILABLE');
+            toast.error('GPS Signal Weak or Unavailable.');
+        } else if (code === 3 || err.message?.toLowerCase().includes('timeout')) {
+            setError('TIMEOUT');
+            toast.error('Location request timed out.');
+        } else {
+            setError('UNKNOWN_ERROR');
+            toast.error('GPS Error: ' + (err.message || 'Please check your device GPS.'));
+        }
+        setIsTracking(false);
+    };
+
+    const stopTracking = async () => {
         if (watchId !== null) {
-            navigator.geolocation.clearWatch(watchId);
+            try {
+                await Geolocation.clearWatch({ id: watchId });
+            } catch (err) {
+                console.error('Clear watch failed', err);
+            }
             setWatchId(null);
         }
         if (wakeLockRef.current) {
@@ -143,6 +173,7 @@ const DriverTracking = () => {
         toast.dismiss();
         toast('Tracking Stopped', { icon: '🛑' });
     };
+
 
     return (
         <div className="p-4 max-w-md mx-auto min-h-screen bg-slate-50">

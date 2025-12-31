@@ -14,12 +14,15 @@ import StaffMyAttendance from '../components/dashboard/staff/StaffMyAttendance';
 import TeacherTransportMap from '../components/dashboard/teachers/TeacherTransportMap';
 import StaffSalarySlips from '../components/dashboard/staff/StaffSalarySlips';
 import AdminLiveMap from '../components/dashboard/admin/AdminLiveMap';
+import { Geolocation } from '@capacitor/geolocation';
+import { Capacitor } from '@capacitor/core';
 
 const StaffDashboard = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('overview');
+    const [isMobileApp, setIsMobileApp] = useState(Capacitor.isNativePlatform());
     const [schoolName, setSchoolName] = useState('');
     const [staffProfile, setStaffProfile] = useState(null);
 
@@ -96,31 +99,58 @@ const StaffDashboard = () => {
         }
     };
 
-    const startTracking = () => {
+    const startTracking = async () => {
         if (!selectedVehicle) return toast.error('Please select a vehicle first');
-        if (!navigator.geolocation) return toast.error('Geolocation is not supported');
 
-        setIsTracking(true);
-        addLog('Tracking started...');
+        try {
+            if (isMobileApp) {
+                const perm = await Geolocation.checkPermissions();
+                if (perm.location !== 'granted') {
+                    const req = await Geolocation.requestPermissions();
+                    if (req.location !== 'granted') {
+                        return toast.error('Location permission denied. Please enable it in phone settings.');
+                    }
+                }
+            } else if (!navigator.geolocation) {
+                return toast.error('Geolocation is not supported by your browser');
+            }
 
-        watchIdRef.current = navigator.geolocation.watchPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
-                setLocation({ lat: latitude, lng: longitude });
-                sendLocationUpdate(latitude, longitude);
-            },
-            (error) => {
-                console.error(error);
-                addLog(`Error: ${error.message}`);
-                toast.error('GPS Error: ' + error.message);
-            },
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-        );
+            setIsTracking(true);
+            addLog('Tracking started...');
+
+            const id = await Geolocation.watchPosition(
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                },
+                async (position, err) => {
+                    if (err) {
+                        console.error('GPS Watch Error:', err);
+                        addLog(`GPS Error: ${err.message}`);
+                        return;
+                    }
+                    if (position) {
+                        const { latitude, longitude } = position.coords;
+                        setLocation({ lat: latitude, lng: longitude });
+                        sendLocationUpdate(latitude, longitude);
+                    }
+                }
+            );
+            watchIdRef.current = id;
+        } catch (err) {
+            console.error('Failed to start tracking', err);
+            toast.error('Could not start GPS. Please check settings.');
+        }
     };
 
-    const stopTracking = () => {
+    const stopTracking = async () => {
         if (watchIdRef.current !== null) {
-            navigator.geolocation.clearWatch(watchIdRef.current);
+            try {
+                await Geolocation.clearWatch({ id: watchIdRef.current });
+            } catch (err) {
+                console.error('Clear watch failed', err);
+            }
             watchIdRef.current = null;
         }
         setIsTracking(false);
