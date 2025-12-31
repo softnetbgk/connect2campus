@@ -14,7 +14,8 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo ✅ Build Successful!
 echo 📦 Moving APK to download location...
-copy app\build\outputs\apk\release\app-release.apk ..\..\backend\public\app.apk
+copy app\build\outputs\apk\release\app-release.apk ..\..\frontend\public\SchoolApp.apk
+copy app\build\outputs\apk\release\app-release.apk ..\..\backend\public\SchoolApp.apk
 
 echo.
 echo 🎉 DONE! You can now download the new APK from the Login Page.
