@@ -40,7 +40,7 @@ const DriverTracking = ({ navigation }) => {
     const startTracking = async () => {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permission denied', 'Allow location access to track the bus.');
+            Alert.alert('Permission denied', 'enable GPS IN BROWSER Setting / Location Settings to track the bus.');
             return;
         }
 
@@ -91,7 +91,7 @@ const DriverTracking = ({ navigation }) => {
     if (!transportData) {
         return (
             <View style={styles.container}>
-                <ScreenHeader title="GPS Tracking" onBack={() => navigation.goBack()} />
+                <ScreenHeader title="GPS Tracking" onBack={() => navigation.navigate('StaffDashboard')} />
                 <View style={styles.emptyContainer}>
                     <Text style={styles.emptyIcon}>🚌</Text>
                     <Text style={styles.emptyText}>No vehicle assigned to you.</Text>
@@ -102,7 +102,7 @@ const DriverTracking = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            <ScreenHeader title="Bus Tracking" onBack={() => navigation.goBack()} />
+            <ScreenHeader title="Bus Tracking" onBack={() => navigation.navigate('StaffDashboard')} />
 
             <View style={styles.content}>
                 <LinearGradient
