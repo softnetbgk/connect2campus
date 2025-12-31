@@ -43,11 +43,18 @@
         "expo-build-properties",
         {
           "android": {
-            "usesCleartextTraffic": true,
-            "kotlinVersion": "1.9.24"
+            "usesCleartextTraffic": true
           }
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysPermission": "Allow Connect to Campus to access your location even when the app is in the background to track the bus trip.",
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      "react-native-maps"
     ],
     "web": {
       "favicon": "./assets/favicon.png"
