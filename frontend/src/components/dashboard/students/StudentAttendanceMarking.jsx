@@ -4,7 +4,8 @@ import toast from 'react-hot-toast';
 import api from '../../../api/axios';
 
 const StudentAttendanceMarking = ({ config }) => {
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    // Force date to always be TODAY
+    const date = new Date().toISOString().split('T')[0];
     const [filterClass, setFilterClass] = useState('');
     const [filterSection, setFilterSection] = useState('');
     const [students, setStudents] = useState([]);
@@ -79,7 +80,15 @@ const StudentAttendanceMarking = ({ config }) => {
     return (
         <div className="space-y-6 animate-in fade-in">
             <div className="flex flex-wrap items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                <input type="date" max={new Date().toISOString().split('T')[0]} className="input max-w-[150px] bg-slate-50 border-slate-200" value={date} onChange={e => setDate(e.target.value)} />
+                <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Date</span>
+                    <input
+                        type="date"
+                        readOnly
+                        className="input max-w-[150px] bg-slate-100/50 border-slate-200 text-slate-500 font-bold cursor-not-allowed opacity-80"
+                        value={new Date().toISOString().split('T')[0]}
+                    />
+                </div>
                 <select className="input max-w-[200px] bg-slate-50 border-slate-200" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
                     <option value="">Select Class</option>
                     {config.classes?.map(c => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
