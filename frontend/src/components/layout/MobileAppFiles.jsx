@@ -24,7 +24,17 @@ export const MobileHeader = ({ title, onMenuClick, schoolName, onBack }) => {
                     </div>
                 </div>
 
-                {/* Right Side Actions could go here */}
+                {/* Right Side Actions */}
+                <div className="flex items-center gap-2">
+                    {onMenuClick && (
+                        <button
+                            onClick={onMenuClick}
+                            className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors active:scale-95"
+                        >
+                            <Menu size={22} />
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
