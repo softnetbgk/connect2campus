@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Hardcoded fallback for production to bypass Netlify Env Var permissions issue
+const PROD_URL = 'https://school-backend-kepp.onrender.com/api';
+const baseURL = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'production' ? PROD_URL : 'http://localhost:5000/api');
 
 // Debug: Log the API URL being used
 console.log('🔗 API Base URL:', baseURL);
