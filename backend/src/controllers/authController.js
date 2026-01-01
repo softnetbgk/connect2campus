@@ -227,7 +227,7 @@ const forgotPassword = async (req, res) => {
         await pool.query('UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE id = $3', [resetToken, resetExpires, user.id]);
 
         // Send Email
-        const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+        const resetLink = `https://connect2campus.netlify.app/reset-password/${resetToken}`;
 
         // Log for development (always visible)
         console.log('----- PASSWORD RESET LINK (Dev Mode) -----');
