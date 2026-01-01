@@ -245,7 +245,10 @@ const forgotPassword = async (req, res) => {
                     auth: {
                         user: process.env.EMAIL_USER,
                         pass: process.env.EMAIL_PASS
-                    }
+                    },
+                    connectionTimeout: 5000, // Fail after 5 seconds if cannot connect
+                    greetingTimeout: 5000,
+                    socketTimeout: 10000
                 });
 
                 const mailOptions = {
