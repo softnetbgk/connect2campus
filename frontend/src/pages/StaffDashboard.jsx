@@ -16,7 +16,7 @@ import StaffSalarySlips from '../components/dashboard/staff/StaffSalarySlips';
 import AdminLiveMap from '../components/dashboard/admin/AdminLiveMap';
 import { Geolocation } from '@capacitor/geolocation';
 import { Capacitor } from '@capacitor/core';
-import { MobileHeader } from '../components/layout/MobileAppFiles';
+import { MobileHeader, MobileFooter } from '../components/layout/MobileAppFiles';
 
 const StaffDashboard = () => {
     const { user, logout } = useAuth();
@@ -205,9 +205,10 @@ const StaffDashboard = () => {
             )}
 
             {/* Sidebar - Blue Gradient Theme */}
-            <aside className={`w-72 bg-gradient-to-b from-sky-500 to-blue-600 text-white flex flex-col shadow-2xl z-50 transition-transform duration-300 
+            <aside className={`w-72 bg-gradient-to-b from-sky-500 to-blue-600 text-white flex flex-col shadow-2xl transition-transform duration-300 
                 fixed inset-y-0 left-0 h-screen overflow-y-auto custom-scrollbar print:hidden
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
+                ${isMobileApp ? 'z-[80]' : 'z-50'}
                 md:translate-x-0 md:sticky md:top-0 md:flex`}>
 
                 {/* Brand Area */}
@@ -240,17 +241,15 @@ const StaffDashboard = () => {
 
                     <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">Transport</p>
                     <NavButton active={activeTab === 'fleet-map'} onClick={() => handleTabChange('fleet-map')} icon={Navigation} label="Live Fleet Map" />
-                    {isDriver && (
-                        <div className="px-4 py-2">
-                            <button
-                                onClick={() => navigate('/driver-tracking')}
-                                className="w-full flex items-center justify-center gap-2 p-3 bg-white text-indigo-600 rounded-xl text-sm font-black shadow-lg hover:bg-indigo-50 transition-all border-b-4 border-indigo-200 active:border-b-0 active:translate-y-1"
-                            >
-                                <Navigation size={18} className="animate-pulse" />
-                                START GPS MODE
-                            </button>
-                        </div>
-                    )}
+                    <div className="px-4 py-2">
+                        <button
+                            onClick={() => navigate('/driver-tracking')}
+                            className="w-full flex items-center justify-center gap-2 p-3 bg-white text-indigo-600 rounded-xl text-sm font-black shadow-lg hover:bg-indigo-50 transition-all border-b-4 border-indigo-200 active:border-b-0 active:translate-y-1"
+                        >
+                            <Navigation size={18} className="animate-pulse" />
+                            START GPS MODE
+                        </button>
+                    </div>
 
                     <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">Finance</p>
                     <NavButton active={activeTab === 'salary'} onClick={() => handleTabChange('salary')} icon={FileText} label="Salary Slips" />
@@ -317,7 +316,7 @@ const StaffDashboard = () => {
                 )}
 
                 {/* Scrollable Content */}
-                <div className={`flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar ${isMobileApp ? 'pt-[calc(4rem+var(--sat)+1rem)]' : 'pt-[calc(var(--sat)+1rem)]'}`}>
+                <div className={`flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar ${isMobileApp ? 'pt-[calc(4rem+var(--sat)+1rem)] pb-[calc(4rem+var(--sab)+1rem)]' : 'pt-[calc(var(--sat)+1rem)]'}`}>
 
 
                     <div className="max-w-6xl mx-auto animate-in fade-in duration-300">
@@ -345,6 +344,21 @@ const StaffDashboard = () => {
                     </div>
                 </div>
             </main>
+
+            {/* Mobile Tab Bar (App Mode Only) */}
+            {isMobileApp && (
+                <MobileFooter
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                    onMenuToggle={() => setIsMobileMenuOpen(true)}
+                    tabs={[
+                        { id: 'overview', label: 'Home', icon: LayoutDashboard },
+                        { id: 'attendance', label: 'Attendance', icon: Calendar },
+                        ...(isDriver ? [{ id: 'transport', label: 'Trip', icon: Bus }] : [{ id: 'salary', label: 'Salary', icon: FileText }]),
+                        { id: 'announcements', label: 'Notices', icon: Bell },
+                    ]}
+                />
+            )}
         </div>
     );
 };
@@ -365,26 +379,24 @@ const StaffOverview = ({ isDriver, schoolName }) => {
                 <p className="text-slate-500 text-sm mt-2 ml-1">{isDriver ? 'Driver Dashboard' : 'Staff Dashboard'}</p>
             </div>
 
-            {isDriver && (
-                <div className="col-span-full mb-6 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 transform hover:scale-[1.01] transition-all">
-                    <div className="flex items-center gap-4">
-                        <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                            <Navigation size={40} className="animate-pulse" />
-                        </div>
-                        <div>
-                            <h2 className="text-2xl font-bold">Start Your Trip</h2>
-                            <p className="text-blue-100 text-sm">Turn on your GPS so students can track your bus.</p>
-                        </div>
+            <div className="col-span-full mb-6 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 transform hover:scale-[1.01] transition-all">
+                <div className="flex items-center gap-4">
+                    <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                        <Navigation size={40} className="animate-pulse" />
                     </div>
-                    <button
-                        onClick={() => navigate('/driver-tracking')}
-                        className="w-full md:w-auto px-8 py-4 bg-white text-indigo-600 rounded-xl font-black text-lg shadow-lg hover:shadow-indigo-500/40 transition-all flex items-center justify-center gap-3 active:scale-95"
-                    >
-                        <Radio size={24} className="animate-bounce" />
-                        START GPS MODE
-                    </button>
+                    <div>
+                        <h2 className="text-2xl font-bold">Start Your Trip</h2>
+                        <p className="text-blue-100 text-sm">Turn on your GPS so students can track your bus.</p>
+                    </div>
                 </div>
-            )}
+                <button
+                    onClick={() => navigate('/driver-tracking')}
+                    className="w-full md:w-auto px-8 py-4 bg-white text-indigo-600 rounded-xl font-black text-lg shadow-lg hover:shadow-indigo-500/40 transition-all flex items-center justify-center gap-3 active:scale-95"
+                >
+                    <Radio size={24} className="animate-bounce" />
+                    START GPS MODE
+                </button>
+            </div>
 
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
                 <h3 className="font-bold text-slate-500 mb-1">Attendance</h3>

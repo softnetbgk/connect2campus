@@ -3,7 +3,7 @@
   "appName": "SchoolApp",
   "webDir": "dist",
   "server": {
-    "url": "https://school-backend-kepp.onrender.com/app-launch",
+    "url": "https://connect2campus.netlify.app",
     "cleartext": true,
     "allowNavigation": [
       "school-backend-kepp.onrender.com",

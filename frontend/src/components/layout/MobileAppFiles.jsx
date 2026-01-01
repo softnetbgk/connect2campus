@@ -40,18 +40,20 @@ export const MobileHeader = ({ title, onMenuClick, schoolName, onBack }) => {
     );
 };
 
-export const MobileFooter = ({ activeTab, onTabChange, onMenuToggle }) => {
-    const tabs = [
+export const MobileFooter = ({ activeTab, onTabChange, onMenuToggle, tabs }) => {
+    const defaultTabs = [
         { id: 'overview', label: 'Home', icon: Home },
         { id: 'student-list', label: 'Students', icon: Users },
         { id: 'fee-collection', label: 'Fees', icon: CreditCard },
         { id: 'student-attendance', label: 'Attendance', icon: UserCheck },
     ];
 
+    const displayTabs = tabs || defaultTabs;
+
     return (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-[60] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:hidden pt-1" style={{ paddingBottom: 'var(--sab)' }}>
             <div className="h-16 flex items-center justify-around">
-                {tabs.map((tab) => {
+                {displayTabs.map((tab) => {
                     const isActive = activeTab === tab.id;
                     const Icon = tab.icon;
                     return (

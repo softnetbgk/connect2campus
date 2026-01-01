@@ -253,19 +253,24 @@ const EnrollmentPanel = () => {
                         <div className="flex items-start gap-3">
                             <Shield className="text-amber-600 mt-1" size={20} />
                             <div>
-                                <h4 className="font-bold text-amber-900">Scanner Setup Required</h4>
-                                <p className="mt-1">To use the fingerprint scanner, you must install the <strong>RD Service (Registered Device) Driver</strong> on this computer.</p>
-                                <ul className="list-disc list-inside mt-2 space-y-1 text-xs opacity-90">
-                                    <li>Install <strong>Securye / Mantra RD Service</strong>.</li>
-                                    <li>Ensure the USB cable is connected.</li>
-                                    <li><strong>Restart</strong> the service if already installed.</li>
-                                    <li>Check taskbar for the Service icon.</li>
-                                </ul>
+                                <h4 className="font-bold text-amber-900">USB Scanner Not Detected</h4>
+                                <p className="mt-1">
+                                    <strong>Are you using a LAN / WiFi Device?</strong><br />
+                                    <span className="text-emerald-700 font-bold">Good News: You do NOT need any drivers!</span><br />
+                                    LAN devices connect directly to the server. You can ignore this message and proceed to enroll users directly on the machine.
+                                </p>
+                                <div className="mt-3 border-t border-amber-200 pt-2 opacity-80">
+                                    <p className="text-xs mb-1 font-bold">Only for USB Devices:</p>
+                                    <ul className="list-disc list-inside space-y-1 text-xs">
+                                        <li>Install <strong>RD Service Driver</strong>.</li>
+                                        <li>Connect USB cable.</li>
+                                    </ul>
+                                </div>
                                 <button
                                     onClick={() => checkDevice()}
                                     className="mt-3 bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-700"
                                 >
-                                    Try Again
+                                    Re-Scan USB
                                 </button>
                             </div>
                         </div>
@@ -282,52 +287,59 @@ const EnrollmentPanel = () => {
                                 {selectedUser.name[0]}
                             </div>
                             <h3 className="font-bold text-lg">{selectedUser.name}</h3>
-                            <p className="text-slate-500 text-sm">Managing Credentials</p>
+                            <p className="text-slate-500 text-sm">Managing Biometric Access</p>
 
-                            {/* Device Warning */}
-                            {deviceStatus === 'disconnected' && (
-                                <div className="mt-2 text-xs bg-rose-50 text-rose-600 p-2 rounded border border-rose-100">
-                                    ⚠️ Scanner not detected. Please install RD Service.
-                                </div>
-                            )}
+                            {/* Device Warning - Hidden for LAN Mode correctness */}
+                            {/* LAN Devices are 'Pushed' to server, so browser doesn't detect them directly */}
+                            <div className="mt-2 text-xs bg-indigo-50 text-indigo-700 p-2 rounded border border-indigo-100 flex items-center justify-center gap-2">
+                                <Check size={14} /> Ready for LAN Enrollment
+                            </div>
                         </div>
 
-                        {/* ID Column */}
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase block mb-2">ID Card / Barcode</label>
+                        {/* ID Assignment Section (Critical for LAN Devices) */}
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <label className="text-xs font-bold text-indigo-900 uppercase block mb-2 flex items-center gap-2">
+                                <ScanLine size={14} /> Biometric ID / Device User ID
+                            </label>
                             <div className="flex gap-2">
                                 <input
-                                    className="w-full p-2 border rounded-lg font-mono text-sm"
-                                    placeholder="Scan Card..."
+                                    className="w-full p-2.5 border-2 border-slate-200 rounded-lg font-mono text-lg font-bold text-slate-700 focus:border-indigo-500 outline-none"
+                                    placeholder="e.g. 101"
                                     value={cardInput}
                                     onChange={e => setCardInput(e.target.value)}
                                 />
                                 <button
                                     onClick={() => handleUpdate('rfid_card_id', cardInput)}
-                                    className="bg-indigo-600 text-white px-3 rounded-lg text-sm font-bold"
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 rounded-lg text-sm font-bold shadow-md active:scale-95 transition-all"
                                 >
                                     Save
                                 </button>
                             </div>
-                            <p className="text-xs text-slate-400 mt-1">Focus input and scan barcode</p>
+                            <p className="text-[10px] text-slate-500 mt-2 leading-relaxed">
+                                <strong>Instructions for LAN Device:</strong><br />
+                                1. Enter a unique ID above (e.g. {selectedUser.id}) and click Save.<br />
+                                2. Go to your Biometric Machine &rarr; Menu &rarr; User Mgt &rarr; Enroll.<br />
+                                3. Enter this same ID <strong>({cardInput || '...'})</strong> on the machine.<br />
+                                4. Place the person's finger/face to enroll.
+                            </p>
                         </div>
 
-                        {/* Fingerprint Column */}
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Biometric</label>
+                        {/* Legacy/USB Fingerprint Column */}
+                        <div className="opacity-70">
+                            <label className="text-xs font-bold text-slate-400 uppercase block mb-2">USB Scanner Enrollment (Optional)</label>
                             <button
                                 onClick={captureFingerprint}
-                                className={`w-full py-3 rounded-lg border-2 border-dashed flex items-center justify-center gap-2 font-bold transition-colors ${selectedUser.biometric_template ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-300 text-slate-500 hover:border-indigo-400 hover:text-indigo-600'}`}
+                                className={`w-full py-3 rounded-lg border-2 border-dashed flex items-center justify-center gap-2 font-bold transition-colors ${selectedUser.biometric_template ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-300 text-slate-400 hover:border-indigo-400 hover:text-indigo-600'}`}
                             >
                                 <Fingerprint />
-                                {selectedUser.biometric_template ? 'Re-Scan Fingerprint' : 'Enroll Fingerprint'}
+                                {selectedUser.biometric_template ? 'Re-Scan Legacy Template' : 'Scan via USB Device'}
                             </button>
                         </div>
                     </div>
                 ) : (
                     <div className="text-center text-slate-400 py-10">
                         <Shield size={48} className="mx-auto mb-4 opacity-50" />
-                        <p>Select a user to manage credentials</p>
+                        <p>Select a Student, Teacher, or Staff member to manage their biometric ID.</p>
                     </div>
                 )}
             </div>

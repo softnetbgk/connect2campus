@@ -188,9 +188,10 @@ const SchoolAdminDashboard = () => {
             )}
 
             {/* Sidebar - Dark Glass Design */}
-            <aside className={`w-72 bg-black/40 backdrop-blur-xl border-r border-white/10 text-gray-300 flex flex-col shadow-2xl z-50 transition-transform duration-300 
+            <aside className={`w-72 bg-black/40 backdrop-blur-xl border-r border-white/10 text-gray-300 flex flex-col shadow-2xl transition-transform duration-300 
                 fixed inset-y-0 left-0 h-screen overflow-y-auto custom-scrollbar print:hidden
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
+                ${isMobileApp ? 'z-[80]' : 'z-50'}
                 md:translate-x-0 md:sticky md:top-0 md:flex`}>
                 {/* Brand Area */}
                 <div className="p-6 flex items-center justify-between border-b border-white/10">

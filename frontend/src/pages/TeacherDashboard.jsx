@@ -108,9 +108,10 @@ const TeacherDashboard = () => {
             )}
 
             {/* Sidebar - Blue Gradient Theme */}
-            <aside className={`w-72 bg-gradient-to-b from-sky-500 to-blue-600 text-white flex flex-col shadow-2xl z-50 transition-transform duration-300 
+            <aside className={`w-72 bg-gradient-to-b from-sky-500 to-blue-600 text-white flex flex-col shadow-2xl transition-transform duration-300 
                 fixed inset-y-0 left-0 h-screen overflow-y-auto custom-scrollbar print:hidden
                 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
+                ${isMobileApp ? 'z-[80]' : 'z-50'}
                 md:translate-x-0 md:sticky md:top-0 md:flex`}>
 
                 {/* Brand Area */}
@@ -212,7 +213,7 @@ const TeacherDashboard = () => {
                 )}
 
                 {/* Scrollable Content */}
-                <div className={`flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar ${isMobileApp ? 'pt-[calc(4rem+var(--sat)+1rem)]' : 'pt-[calc(var(--sat)+1rem)]'}`}>
+                <div className={`flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar ${isMobileApp ? 'pt-[calc(4rem+var(--sat)+1rem)] pb-[calc(4rem+var(--sab)+1rem)]' : 'pt-[calc(var(--sat)+1rem)]'}`}>
 
                     <div className="max-w-6xl mx-auto animate-in fade-in duration-300">
                         {loading ? (
@@ -245,8 +246,23 @@ const TeacherDashboard = () => {
                         )}
                     </div>
                 </div>
-            </main >
-        </div >
+            </main>
+
+            {/* Mobile Tab Bar (App Mode Only) */}
+            {isMobileApp && (
+                <MobileFooter
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                    onMenuToggle={() => setIsMobileMenuOpen(true)}
+                    tabs={[
+                        { id: 'overview', label: 'Home', icon: LayoutDashboard },
+                        { id: 'attendance', label: 'Class', icon: CheckSquare },
+                        { id: 'timetable', label: 'Time', icon: Calendar },
+                        { id: 'doubts', label: 'Doubts', icon: MessageSquare },
+                    ]}
+                />
+            )}
+        </div>
     );
 };
 
