@@ -4,6 +4,7 @@ import {
     Plus, Trash2, Save, CheckCircle, BrainCircuit, Type, Layers
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import api from '../../../../api/axios';
 
 const QuestionPaperGenerator = ({ config: academicConfig }) => {
     const [mode, setMode] = useState('text'); // 'text' or 'image'
@@ -37,31 +38,46 @@ const QuestionPaperGenerator = ({ config: academicConfig }) => {
         return selectedClass?.subjects?.map(s => s.name) || ['General Knowledge', 'Science', 'Math'];
     }, [academicConfig, paperConfig.classId]);
 
-    // Mock AI Generation Logic
+    // Real AI Generation Logic
     const handleGenerate = async () => {
         if (mode === 'text' && !paperConfig.topic) return toast.error("Please enter a topic");
-        if (mode === 'image' && files.length === 0) return toast.error("Please upload an image");
+        if (mode === 'image' && files.length === 0) return toast.error("Please upload an image (Image analysis coming soon!)");
 
         setGenerating(true);
         setQuestions([]); // Clear previous
 
-        // Simulate AI Delay
-        setTimeout(() => {
-            const newQuestions = generateMockQuestions(paperConfig.topic || "Uploaded Image Context", paperConfig.questionCount);
-            setQuestions(newQuestions);
-            setGenerating(false);
-            toast.success("Questions Generated Successfully!");
-        }, 2000);
-    };
+        try {
+            // resolve class name
+            const selectedClass = academicConfig?.classes?.find(c => c.class_id.toString() === paperConfig.classId.toString());
+            const className = selectedClass ? selectedClass.class_name : 'Grade 10';
 
-    const generateMockQuestions = (topic, count) => {
-        return Array.from({ length: count }).map((_, i) => ({
-            id: Date.now() + i,
-            type: Math.random() > 0.5 ? 'MCQ' : 'Descriptive',
-            question: `Explain the core concepts of ${topic} and how it relates to modern applications? (Generated Q${i + 1})`,
-            options: ['Option A', 'Option B', 'Option C', 'Option D'],
-            marks: Math.floor(Math.random() * 5) + 1
-        }));
+            const payload = {
+                topic: paperConfig.topic,
+                subject: paperConfig.subject,
+                classLevel: className,
+                difficulty: paperConfig.difficulty,
+                questionCount: paperConfig.questionCount,
+                type: paperConfig.type
+            };
+
+            const res = await api.post('/ai/generate-questions', payload);
+
+            if (res.data.questions) {
+                setQuestions(res.data.questions);
+                toast.success("Questions Generated Successfully!");
+            }
+
+        } catch (error) {
+            console.error(error);
+            if (error.response?.data?.missingKey) {
+                toast.error("AI Key Missing in Backend. Please contact Admin.");
+                // Optional: Prompt user for key here if you want to support BYOK (Bring Your Own Key)
+            } else {
+                toast.error(error.response?.data?.message || "Failed to generate questions");
+            }
+        } finally {
+            setGenerating(false);
+        }
     };
 
     const handleDeleteQuestion = (id) => {
