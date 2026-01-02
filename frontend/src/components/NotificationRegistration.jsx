@@ -3,6 +3,7 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
+import toast from 'react-hot-toast';
 
 const NotificationRegistration = () => {
     const { user } = useAuth();
@@ -41,13 +42,23 @@ const NotificationRegistration = () => {
                 // Handle incoming notifications (Foreground)
                 PushNotifications.addListener('pushNotificationReceived', (notification) => {
                     console.log('Notification Received (Foreground):', notification);
-                    // You could show a local toast here if you want
+                    // Show Popup
+                    toast(
+                        (t) => (
+                            <div className="flex items-start gap-3" onClick={() => toast.dismiss(t.id)}>
+                                <div className="flex-1">
+                                    <h4 className="font-bold text-sm text-slate-800">{notification.title}</h4>
+                                    <p className="text-xs text-slate-500 mt-1">{notification.body}</p>
+                                </div>
+                            </div>
+                        ),
+                        { duration: 5000, position: 'top-center', style: { borderRadius: '16px', background: 'white', color: '#333', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' } }
+                    );
                 });
 
                 // Handle notification clicks
                 PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
                     console.log('Notification Clicked:', action);
-                    // Redirect logic can go here based on data in action.notification.data
                 });
 
             } catch (error) {
