@@ -44,9 +44,32 @@ To let your Firebase Backend talk to an external database (like Render/Supabase)
 *   **Why?** The Free (Spark) plan blocks all outgoing network requests to non-Google services.
 *   **Cost:** For a school app, it is usually **$0 (Free)** because the free quota is huge, but Google *requires* a Credit Card on file to unlock the feature.
 
-**If you cannot add a Credit Card:**
-You cannot use Firebase for the Backend. You should keep the Backend on **Render** (which is free without card) and only use Firebase for the Frontend.
+**If you cannot add a Credit Card (Spark Plan Only):**
 
-## Testing
-To test if your backend connects, run:
-`node backend/test_firebase.js` (make sure you have the key file for this test).
+You **CANNOT** host the Backend on Firebase. You must use the **Split Hosting Strategy**:
+
+1.  **Frontend**: Hosted on Firebase (Fast, Free).
+2.  **Backend**: Must stay on **Render** (Free).
+3.  **Database**: Must stay on **Render/Neon** (Free).
+
+### How to Configure Spark Plan Mode
+
+1.  **Modify `firebase.json`**:
+    Remove the `functions` section and the `rewrites` section completely. Your `firebase.json` should only look like this:
+    ```json
+    {
+      "hosting": {
+        "public": "frontend/dist",
+        "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+        "rewrites": [ { "source": "**", "destination": "/index.html" } ]
+      }
+    }
+    ```
+
+2.  **Verify Frontend URL**:
+    Your frontend code ALREADY points to Render (`https://school-backend-kepp.onrender.com/api`) in `src/api/axios.js`. **So you don't need to change any code!**
+
+3.  **Deploy**:
+    Run `firebase deploy --only hosting` (This only uploads the frontend).
+
+**Result:** Your app loads fast from Google, but the data comes from Render. This works perfectly on the Free Spark Plan.
