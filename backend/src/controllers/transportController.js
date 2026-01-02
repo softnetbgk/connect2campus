@@ -222,7 +222,7 @@ exports.updateLocation = async (req, res) => {
         const school_id = req.user.schoolId;
 
         const result = await pool.query(
-            `UPDATE transport_vehicles SET current_lat = $1, current_lng = $2 
+            `UPDATE transport_vehicles SET current_lat = $1, current_lng = $2, status = 'Active', last_updated = NOW()
              WHERE id = $3 AND school_id = $4 RETURNING *`,
             [lat, lng, id, school_id]
         );

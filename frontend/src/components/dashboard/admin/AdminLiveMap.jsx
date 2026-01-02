@@ -18,6 +18,23 @@ let DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
+// Create custom bus icon - Identical to Student/Transport Map for consistency
+const createBusIcon = () => {
+    return L.divIcon({
+        className: 'custom-bus-icon',
+        html: `<div style="background-color: #fbbf24; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid #000; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: relative;">
+                <div style="position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid #000;"></div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 6v6"></path><path d="M15 6v6"></path><path d="M2 12h19.6"></path><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"></path><circle cx="7" cy="18" r="2"></circle><path d="M9 18h5"></path><circle cx="17" cy="18" r="2"></circle>
+                </svg>
+               </div>`,
+        iconSize: [40, 40],
+        iconAnchor: [20, 48], // Tip of the triangle at bottom
+        popupAnchor: [0, -48],
+    });
+};
+
+
 // Internal component to fit bounds
 const FitBounds = ({ vehicles }) => {
     const map = useMap();
@@ -25,10 +42,15 @@ const FitBounds = ({ vehicles }) => {
 
     useEffect(() => {
         if (!fitted && vehicles.length > 0) {
-            const bounds = L.latLngBounds(vehicles.map(v => [v.lat, v.lng]));
-            map.fitBounds(bounds, { padding: [50, 50] });
-            setFitted(true);
+            const validVehicles = vehicles.filter(v => v.lat && v.lng);
+            if (validVehicles.length > 0) {
+                const bounds = L.latLngBounds(validVehicles.map(v => [v.lat, v.lng]));
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+                setFitted(true);
+            }
         }
+        // Fix for grey tiles on first load
+        map.invalidateSize();
     }, [vehicles, map, fitted]);
     return null;
 };
@@ -64,6 +86,8 @@ const AdminLiveMap = () => {
                 isLive: !!(v.current_lat && v.current_lng)
             }));
 
+            // Only update if data changed to avoid re-renders? 
+            // Better to just set it to ensure latest positions are reflected
             setVehicles(allVehicles);
         } catch (error) {
             console.error("Failed to load map data", error);
@@ -72,10 +96,10 @@ const AdminLiveMap = () => {
         }
     };
 
-    // Polling every 5 seconds
+    // Polling every 3 seconds for smoother updates
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 5000);
+        const interval = setInterval(fetchData, 3000);
         return () => clearInterval(interval);
     }, []);
 
@@ -96,7 +120,7 @@ const AdminLiveMap = () => {
                         Total Fleet: {vehicles.length}
                     </div>
                     <div className="text-xs font-bold text-indigo-500 bg-white px-3 py-1 rounded-full border border-indigo-200">
-                        Auto-updating every 5s
+                        Auto-updating every 3s
                     </div>
                 </div>
             </div>
@@ -120,14 +144,17 @@ const AdminLiveMap = () => {
                         <MapController focusTarget={focusTarget} />
 
                         {vehicles.filter(v => v.isLive).map(v => (
-                            <Marker key={v.id} position={[v.lat, v.lng]}>
+                            <Marker key={v.id} position={[v.lat, v.lng]} icon={createBusIcon()}>
                                 <Popup>
-                                    <div className="p-1">
-                                        <div className="font-bold text-indigo-700 flex items-center gap-1">
-                                            <Bus size={14} /> {v.number}
+                                    <div className="py-2 px-1 min-w-[140px] text-center">
+                                        <div className="font-black text-slate-800 text-lg flex justify-center items-center gap-2 mb-1">
+                                            {v.number}
                                         </div>
-                                        <div className="text-xs text-slate-600 mt-1">Driver: {v.driver}</div>
-                                        <div className="text-[10px] text-emerald-600 font-bold uppercase mt-1">Live Signal</div>
+                                        <div className="text-xs font-bold text-slate-500 bg-slate-50 border border-slate-100 p-1.5 rounded mb-2">Driver: {v.driver}</div>
+                                        <div className="text-[10px] text-emerald-600 font-black uppercase tracking-wider flex items-center justify-center gap-1 animate-pulse">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                            Live Signal Active
+                                        </div>
                                     </div>
                                 </Popup>
                             </Marker>
@@ -144,7 +171,7 @@ const AdminLiveMap = () => {
                         key={v.id}
                         onClick={() => v.isLive && setFocusTarget({ lat: v.lat, lng: v.lng, id: v.id })}
                         disabled={!v.isLive}
-                        className={`p-3 rounded-xl border shadow-sm flex items-center gap-3 transition-all ${!v.isLive ? 'opacity-60 bg-slate-50 cursor-not-allowed grayscale' : focusTarget?.id === v.id ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-200' : 'bg-white border-slate-200 hover:border-indigo-300'}`}
+                        className={`p-3 rounded-xl border shadow-sm flex items-center gap-3 transition-all ${!v.isLive ? 'opacity-60 bg-slate-50 cursor-not-allowed grayscale' : focusTarget?.id === v.id ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-200' : 'bg-white border-slate-200 hover:border-indigo-300 active:scale-95'}`}
                     >
                         <div className={`w-2 h-2 rounded-full ${v.isLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></div>
                         <div className="text-left overflow-hidden w-full">

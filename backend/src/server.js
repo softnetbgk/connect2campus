@@ -1,4 +1,16 @@
-require('dotenv').config();
+const path = require('path');
+const dotenv = require('dotenv');
+
+// Explicitly load .env from root of backend
+const result = dotenv.config({ path: path.join(__dirname, '../.env') });
+
+if (result.error) {
+    console.error("❌ Failed to load .env file:", result.error);
+} else {
+    console.log("✅ .env file loaded successfully.");
+    console.log("   GEMINI_API_KEY Present:", !!process.env.GEMINI_API_KEY);
+    console.log("   EMAIL_USER Present:", !!process.env.EMAIL_USER);
+}
 const app = require('./app');
 const { pool } = require('./config/db');
 

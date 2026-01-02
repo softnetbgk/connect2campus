@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { Bus, Navigation, StopCircle, RefreshCw, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { MapPin, Navigation, Bus, Clock, TriangleAlert, Battery, ArrowLeft, RefreshCw } from 'lucide-react';
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
 import { Geolocation } from '@capacitor/geolocation';
@@ -22,7 +22,14 @@ L.Marker.prototype.options.icon = DefaultIcon;
 const RecenterMap = ({ lat, lng }) => {
     const map = useMap();
     useEffect(() => {
-        map.setView([lat, lng], map.getZoom());
+        if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
+            // Only recenter if distance is significant or first load to avoid jitter
+            const currentCenter = map.getCenter();
+            const distance = map.distance(currentCenter, [lat, lng]);
+            if (distance > 10) { // Only move if change is > 10 meters
+                map.setView([lat, lng], 16, { animate: true }); // Use 16 zoom for closer view
+            }
+        }
     }, [lat, lng, map]);
     return null;
 };
@@ -92,8 +99,18 @@ const DriverTracking = () => {
         }
     };
 
-    const startTracking = async () => {
+    const [initGPS, setInitGPS] = useState(false);
+    const watchIdRef = useRef(null); // Use Ref to track watchId across renders/closures
+    const lastUpdatedRef = useRef(null); // Track last update time for closures
+
+    const startTracking = async (accuracyArg = true) => {
+        // Handle Event object if called from onClick
+        const useHighAccuracy = typeof accuracyArg === 'boolean' ? accuracyArg : true;
+
         if (!selectedVehicle) return toast.error('Please select a vehicle first');
+
+        if (initGPS) return;
+        setInitGPS(true);
 
         try {
             if (isMobileApp) {
@@ -102,36 +119,75 @@ const DriverTracking = () => {
                     const req = await Geolocation.requestPermissions();
                     if (req.location !== 'granted') {
                         setError('PERMISSION_DENIED');
+                        setInitGPS(false);
                         return;
                     }
                 }
             }
 
+            // Clear existing watch if any using Ref
+            if (watchIdRef.current !== null) {
+                await Geolocation.clearWatch({ id: watchIdRef.current });
+                watchIdRef.current = null;
+            }
+
             const id = await Geolocation.watchPosition(
                 {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
+                    enableHighAccuracy: useHighAccuracy,
+                    timeout: 15000, // Fail faster (15s) to switch to network mode if needed
+                    maximumAge: 0 // FORCE FRESH GPS DATA - NO CACHE
                 },
                 async (position, err) => {
                     if (err) {
                         console.error('GPS Error', err);
+
+                        // If TIMEOUT (code 3) and we are using High Accuracy, fallback to Low Accuracy
+                        if (err.code === 3 && useHighAccuracy === true) {
+                            toast.error("GPS Signal Weak. Switching to Network Mode...");
+                            startTracking(false);
+                            return;
+                        }
+
                         handleGpsError(err);
                         return;
                     }
 
                     if (position) {
-                        const { latitude, longitude } = position.coords;
+                        const { latitude, longitude, accuracy, speed } = position.coords;
+
+                        // Sanity Check: Ignore invalid 0,0 which some GPS chips return on cold start
+                        if (latitude === 0 && longitude === 0) return;
+                        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return;
+
+                        // Allow first point regardless of accuracy to initialize map
+                        // Then filter updates for jumps
+                        // BUT if we are in fallback mode (Low Accuracy), we accept up to 500m
+                        const maxAccuracy = useHighAccuracy ? 100 : 500;
+                        const isFirstPoint = !lastUpdatedRef.current; // Need a ref for this to be reliable inside closure
+
+                        // Log for debugging
+                        console.log('GPS Update:', latitude, longitude, accuracy, isFirstPoint);
+
+                        if (!isFirstPoint && accuracy > maxAccuracy) {
+                            console.warn(`GPS Accuracy low (${accuracy}m). Ignoring.`);
+                            return;
+                        }
+
                         setLastPosition([latitude, longitude]);
-                        setLastUpdated(new Date());
+                        const now = new Date();
+                        setLastUpdated(now);
+                        lastUpdatedRef.current = now; // Update ref
+
                         setError(null);
-                        setIsTracking(true);
                         requestWakeLock();
 
                         try {
+                            // Also update status to Active to ensure visibility
                             await api.put(`/transport/vehicles/${selectedVehicle}/location`, {
                                 lat: latitude,
-                                lng: longitude
+                                lng: longitude,
+                                speed: speed,
+                                status: 'Active'
                             });
                         } catch (err) {
                             console.error('Failed to sync location', err);
@@ -139,25 +195,33 @@ const DriverTracking = () => {
                     }
                 }
             );
-            setWatchId(id);
+
+            watchIdRef.current = id; // Store in ref
+            setWatchId(id); // Keep state for UI rendering if needed
+            setIsTracking(true); // Switch UI immediately to 'Establishing...'
         } catch (err) {
             console.error('Start tracking failed', err);
             handleGpsError(err);
+        } finally {
+            setInitGPS(false);
         }
     };
 
     const handleGpsError = (err) => {
         if (err.code === 1) setError('PERMISSION_DENIED');
-        else toast.error('GPS Signal Weak. Trying to reconnect...');
+        else if (err.code === 2) toast.error('GPS Signal Lost. Move to open area.');
+        else if (err.code === 3) toast.error('GPS Timeout. Low Network/Signal.');
+        else toast.error('GPS Error: ' + (err.message || 'Unknown'));
     };
 
     const stopTracking = async () => {
-        if (watchId !== null) {
+        if (watchIdRef.current !== null) {
             try {
-                await Geolocation.clearWatch({ id: watchId });
+                await Geolocation.clearWatch({ id: watchIdRef.current });
             } catch (err) {
                 console.error('Clear watch failed', err);
             }
+            watchIdRef.current = null;
             setWatchId(null);
         }
         if (wakeLockRef.current) {
@@ -165,6 +229,8 @@ const DriverTracking = () => {
             wakeLockRef.current = null;
         }
         setIsTracking(false);
+        setLastPosition(null); // Clear last position on stop
+        lastUpdatedRef.current = null;
         toast.dismiss();
     };
 
@@ -216,7 +282,7 @@ const DriverTracking = () => {
 
                         <div className="p-8 space-y-6">
                             {!isTracking && (
-                                <div className="space-y-6">
+                                <>
                                     <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
                                         <p className="text-xs text-indigo-700 font-bold uppercase tracking-wider text-center">Select your vehicle to begin</p>
                                     </div>
@@ -236,13 +302,15 @@ const DriverTracking = () => {
                                     </div>
 
                                     <button
-                                        onClick={startTracking}
-                                        disabled={!selectedVehicle}
-                                        className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-2xl font-black text-xl shadow-xl shadow-indigo-500/30 transition-all disabled:opacity-30 disabled:shadow-none uppercase tracking-widest"
+                                        onClick={() => startTracking(true)}
+                                        disabled={!selectedVehicle || initGPS}
+                                        className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-2xl font-black text-xl shadow-xl shadow-indigo-500/30 transition-all disabled:opacity-30 disabled:shadow-none uppercase tracking-widest flex items-center justify-center gap-3"
                                     >
-                                        Start My Trip
+                                        {initGPS ? (
+                                            <RefreshCw className="animate-spin" />
+                                        ) : 'Start My Trip'}
                                     </button>
-                                </div>
+                                </>
                             )}
 
                             {isTracking && (
@@ -252,6 +320,45 @@ const DriverTracking = () => {
                                         <p className="text-xl font-black text-indigo-600">
                                             {lastUpdated ? lastUpdated.toLocaleTimeString() : 'Establishing...'}
                                         </p>
+                                        {!lastUpdated && (
+                                            <button
+                                                onClick={async () => {
+                                                    const updateLoc = async (pos) => {
+                                                        const { latitude, longitude, speed, accuracy } = pos.coords;
+                                                        setLastPosition([latitude, longitude]);
+                                                        const now = new Date();
+                                                        setLastUpdated(now);
+                                                        lastUpdatedRef.current = now;
+                                                        await api.put(`/transport/vehicles/${selectedVehicle}/location`, {
+                                                            lat: latitude, lng: longitude, speed: speed, status: 'Active'
+                                                        });
+                                                        toast.success("Location Signal Acquired! Accuracy: " + Math.round(accuracy) + "m");
+                                                    };
+
+                                                    try {
+                                                        toast.loading("Scanning High Accuracy GPS...");
+                                                        const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+                                                        toast.dismiss();
+                                                        if (pos && pos.coords) await updateLoc(pos);
+                                                    } catch (e) {
+                                                        // Fallback
+                                                        toast.dismiss();
+                                                        toast.loading("GPS Weak. Trying Network Location...");
+                                                        try {
+                                                            const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 5000, maximumAge: 0 });
+                                                            toast.dismiss();
+                                                            if (pos && pos.coords) await updateLoc(pos);
+                                                        } catch (e2) {
+                                                            toast.dismiss();
+                                                            toast.error("Could not determine location. Check Device GPS.");
+                                                        }
+                                                    }
+                                                }}
+                                                className="mt-3 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold animate-pulse"
+                                            >
+                                                Force GPS Signal Update
+                                            </button>
+                                        )}
                                     </div>
 
                                     {lastPosition && (
@@ -260,9 +367,10 @@ const DriverTracking = () => {
                                                 center={lastPosition}
                                                 zoom={15}
                                                 style={{ height: '100%', width: '100%' }}
-                                                scrollWheelZoom={false}
-                                                zoomControl={false}
-                                                dragging={false}
+                                                scrollWheelZoom={true}
+                                                zoomControl={true}
+                                                dragging={true}
+                                                touchZoom={true} // Add pinch-zoom support
                                             >
                                                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                                                 <RecenterMap lat={lastPosition[0]} lng={lastPosition[1]} />
@@ -286,6 +394,15 @@ const DriverTracking = () => {
                                     <p className="text-xs font-bold leading-relaxed">
                                         Please enable Location permissions in your phone settings for the School App.
                                     </p>
+                                </div>
+                            )}
+
+                            {/* DEBUG INFO FOR LOCATION ISSUES */}
+                            {lastPosition && (
+                                <div className="text-[10px] text-slate-400 font-mono text-center p-2 bg-slate-100 rounded-lg">
+                                    DEBUG: {lastPosition[0].toFixed(5)}, {lastPosition[1].toFixed(5)}
+                                    <br />
+                                    Accuracy: {lastUpdatedRef.current ? 'GPS' : 'N/A'}
                                 </div>
                             )}
                         </div>

@@ -208,7 +208,7 @@ const Login = () => {
                                 </div>
                                 <div className="bg-white p-3 rounded-xl shadow-inner border border-slate-100">
                                     <QRCode
-                                        value={`${window.location.protocol}//${window.location.host}?skip_welcome=true&is_mobile_app=true`}
+                                        value={`${window.location.protocol}//${window.location.host}?is_mobile_app=true`}
                                         size={130}
                                         level="H"
                                     />
@@ -227,7 +227,7 @@ const Login = () => {
                                 </a>
 
                                 <a
-                                    href={`${window.location.origin}?skip_welcome=true&is_mobile_app=true`}
+                                    href={`${window.location.origin}?is_mobile_app=true`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="w-full inline-flex justify-center items-center gap-3 bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-colors text-sm shadow-lg shadow-slate-500/20"

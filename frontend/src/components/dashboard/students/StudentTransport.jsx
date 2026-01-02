@@ -9,20 +9,28 @@ import L from 'leaflet';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
-let DefaultIcon = L.icon({
-    iconUrl: icon,
-    shadowUrl: iconShadow,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41]
-});
+const createBusIcon = () => {
+    return L.divIcon({
+        className: 'custom-bus-icon',
+        html: `<div style="background-color: #fbbf24; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid #000; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: relative;">
+                <div style="position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid #000;"></div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 6v6"></path><path d="M15 6v6"></path><path d="M2 12h19.6"></path><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"></path><circle cx="7" cy="18" r="2"></circle><path d="M9 18h5"></path><circle cx="17" cy="18" r="2"></circle>
+                </svg>
+               </div>`,
+        iconSize: [40, 40],
+        iconAnchor: [20, 48], // Tip of the triangle at bottom
+        popupAnchor: [0, -48],
+    });
+};
 
-L.Marker.prototype.options.icon = DefaultIcon;
-
-// Recenter component
 const RecenterMap = ({ lat, lng }) => {
     const map = useMap();
     useEffect(() => {
-        map.setView([lat, lng]);
+        if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+            map.setView([lat, lng], 14);
+            map.invalidateSize();
+        }
     }, [lat, lng, map]);
     return null;
 };
@@ -33,34 +41,47 @@ const StudentTransport = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        let isMounted = true;
+
         const fetchRoute = async () => {
             try {
                 const res = await api.get('/transport/my-route');
                 // Map backend data to UI structure
                 const data = res.data;
-                setTransportInfo({
-                    busNumber: data.vehicle_number || "N/A",
-                    driverName: data.driver_name || "Assigned Driver",
-                    driverContact: data.driver_phone || "N/A",
-                    route: `${data.route_name} (${data.start_point} - ${data.end_point})`,
-                    pickupTime: data.pickup_time || "N/A",
-                    dropTime: data.drop_time || "N/A",
-                    position: [parseFloat(data.current_lat || 12.9716), parseFloat(data.current_lng || 77.5946)],
-                    pickupPoint: data.pickup_point || 'School'
-                });
+                const lat = parseFloat(data.current_lat || 12.9716);
+                const lng = parseFloat(data.current_lng || 77.5946);
+
+                if (isMounted) {
+                    setTransportInfo({
+                        busNumber: data.vehicle_number || "N/A",
+                        driverName: data.driver_name || "Assigned Driver",
+                        driverContact: data.driver_phone || "N/A",
+                        route: `${data.route_name} (${data.start_point} - ${data.end_point})`,
+                        pickupTime: data.pickup_time || "N/A",
+                        dropTime: data.drop_time || "N/A",
+                        position: [lat, lng],
+                        pickupPoint: data.pickup_point || 'School',
+                        isLive: data.vehicle_status === 'Active'
+                    });
+                    setLoading(false);
+                }
             } catch (err) {
                 console.error("Failed to fetch transport route", err);
-                setError(err.response?.data?.message || "Transport details not maintained or not assigned.");
-            } finally {
-                setLoading(false);
+                if (isMounted) {
+                    setError(err.response?.data?.message || "Transport details not maintained or not assigned.");
+                    setLoading(false);
+                }
             }
         };
 
         fetchRoute();
 
-        // Optional: Poll for location updates every 30s
-        const interval = setInterval(fetchRoute, 30000);
-        return () => clearInterval(interval);
+        // Poll for location updates every 3s (Real-time speed)
+        const interval = setInterval(fetchRoute, 3000);
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+        };
     }, []);
 
     if (loading) return <div className="p-8 text-center text-slate-500 animate-pulse">Loading transport details...</div>;
@@ -82,9 +103,9 @@ const StudentTransport = () => {
                     <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
                         <Bus className="text-indigo-600" /> My School Bus
                     </h3>
-                    <div className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold animate-pulse flex items-center gap-1">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                        Live Tracking
+                    <div className={`px-3 py-1 rounded-full text-xs font-bold animate-pulse flex items-center gap-1 ${transportInfo.isLive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                        <div className={`w-2 h-2 rounded-full ${transportInfo.isLive ? 'bg-emerald-500' : 'bg-slate-400'}`}></div>
+                        {transportInfo.isLive ? 'Live Tracking' : 'Not Active'}
                     </div>
                 </div>
 
@@ -97,11 +118,11 @@ const StudentTransport = () => {
                         style={{ height: '100%', width: '100%' }}
                     >
                         <TileLayer
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                            attribution='&copy; OpenStreetMap contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         />
                         <RecenterMap lat={transportInfo.position[0]} lng={transportInfo.position[1]} />
-                        <Marker position={transportInfo.position}>
+                        <Marker position={transportInfo.position} icon={createBusIcon()}>
                             <Popup>
                                 <div className="text-center p-1">
                                     <p className="font-bold text-indigo-700">{transportInfo.busNumber}</p>

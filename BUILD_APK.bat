@@ -1,8 +1,9 @@
 @echo off
 echo 🔨 Setting up Android Environment...
-echo sdk.dir=%LOCALAPPDATA%\Android\Sdk > frontend\android\local.properties
+set "SDK_PATH=%LOCALAPPDATA:\=/%"
+echo sdk.dir=%SDK_PATH%/Android/Sdk > frontend\android\local.properties
 
-echo 🚀 Building APK (This may take 5-10 minutes)...
+echo 🚀 Building APK with Driver Back Button Fix...
 cd frontend\android
 call gradlew assembleRelease
 

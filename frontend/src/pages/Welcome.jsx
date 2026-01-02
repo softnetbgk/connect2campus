@@ -2,11 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { Plane, Cloud, Zap } from 'lucide-react';
 
 const Welcome = ({ onComplete }) => {
+    const [schoolName, setSchoolName] = useState('Connect to Campus');
+
     useEffect(() => {
         // Navigation after 10 seconds
         const timeout = setTimeout(() => {
             if (onComplete) onComplete();
         }, 10000);
+
+        // Fetch School Name (Mock or Storage for now to be fast)
+        const storedConfig = localStorage.getItem('school_config');
+        if (storedConfig) {
+            try {
+                const conf = JSON.parse(storedConfig);
+                if (conf.school_name) setSchoolName(conf.school_name);
+            } catch (e) { }
+        }
 
         return () => {
             clearTimeout(timeout);
@@ -52,7 +63,7 @@ const Welcome = ({ onComplete }) => {
                                 <path d="M340 185 C340 195 350 205 390 205 L420 205 C430 205 440 195 440 185 H340 Z" fill="#cbd5e1" />
                                 <path d="M340 185 C340 205 345 205 350 205 V185 H340 Z" fill="#334155" />
                                 {/* Text */}
-                                <text x="20" y="155" fontFamily="'Pacifico', cursive" fontSize="35" fill="#1e3a8a">Connect to Campus</text>
+                                <text x="20" y="155" fontFamily="'Pacifico', cursive" fontSize="35" fill="#1e3a8a">{schoolName}</text>
                             </svg>
                         </div>
                     </div>
@@ -63,7 +74,7 @@ const Welcome = ({ onComplete }) => {
             <div className="relative z-10 flex-1 flex items-center justify-center pb-32">
                 <div className="text-center animate-fade-in-up">
                     <h1 className="text-4xl md:text-6xl lg:text-8xl font-cursive text-white drop-shadow-[0_5px_5px_rgba(0,0,0,0.3)] tracking-wide px-4">
-                        Connect to Campus
+                        {schoolName}
                     </h1>
                 </div>
             </div>
@@ -111,7 +122,7 @@ const Welcome = ({ onComplete }) => {
                                 {/* Side Panel Text */}
                                 <div className="absolute bottom-16 w-full text-center">
                                     <h2 className="text-3xl font-cursive text-slate-900 drop-shadow-sm tracking-wider">
-                                        Connect to Campus
+                                        {schoolName}
                                     </h2>
                                 </div>
 
