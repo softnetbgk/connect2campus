@@ -25,7 +25,7 @@ app.use(helmet({
 
 // Configure CORS to allow all origins (for development and production)
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://connect2campus.netlify.app', 'https://school-software-frontend.vercel.app'], // Allow local, Netlify, and legacy Vercel
+    origin: ['http://localhost:5173', 'https://connect2campus.netlify.app', 'https://school-software-frontend.vercel.app', 'https://connecttocampus-c98e4.web.app'], // Allow local, Netlify, Vercel, and Firebase
     credentials: true, // Allow credentials
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -88,7 +88,7 @@ app.all('/iclock/options', (req, res) => res.send('OK'));    // Configuration ch
 // The APK points here. We redirect it to wherever the frontend is currently hosted.
 // If we change hosting, we just update this URL. No APK rebuild needed!
 app.get('/app-launch', (req, res) => {
-    res.redirect('https://connect2campus.netlify.app');
+    res.redirect('https://connecttocampus-c98e4.web.app');
 });
 
 // Download App Route
