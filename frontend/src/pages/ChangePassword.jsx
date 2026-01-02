@@ -30,18 +30,41 @@ const ChangePassword = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Email Handling: Capital letters allow -> so we normalize to lowercase for backend (or user asked to ALLOW capitals, but usually emails are case insensitive. I will just trim spaces). 
+        // User said "email with capital lettes allow", so I will NOT lowercase it, just trim.
+        const cleanEmail = email.trim();
+
         if (newPassword !== confirmPassword) {
             return toast.error('New passwords do not match');
         }
 
         if (newPassword === '123456' || newPassword === oldPassword) {
-            return toast.error('For security, please choose a different password than the default.');
+            return toast.error('Please choose a different password than the default.');
+        }
+
+        // Validate Password Strength
+        // 1. No spaces
+        if (/\s/.test(newPassword)) {
+            return toast.error('Password must not contain spaces.');
+        }
+        // 2. At least 3 digits
+        const digitCount = (newPassword.match(/\d/g) || []).length;
+        if (digitCount < 3) {
+            return toast.error('Password must contain at least 3 digits.');
+        }
+        // 3. At least 1 special character
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+            return toast.error('Password must contain at least 1 special character.');
+        }
+        // 4. Minimum length (implied "atleast 3 characters" probably meant min length, but standard is 6+. I'll keep minLength=6 in input but enforce here too)
+        if (newPassword.length < 6) {
+            return toast.error('Password is too short (min 6 chars).');
         }
 
         setLoading(true);
         try {
             await axios.post('/auth/change-password', {
-                email,
+                email: cleanEmail,
                 oldPassword,
                 newPassword
             });
