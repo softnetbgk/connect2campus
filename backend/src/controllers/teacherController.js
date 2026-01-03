@@ -38,11 +38,17 @@ exports.addTeacher = async (req, res) => {
             }
         }
 
-        // 2. Generate 6-Digit Employee ID
+        // 2. Generate Employee ID - NEW FORMAT: [School First Letter]T[4 digits]
+        // Example: ABC School -> AT1234
+        const schoolRes = await client.query('SELECT name FROM schools WHERE id = $1', [school_id]);
+        const schoolName = schoolRes.rows[0]?.name || 'X';
+        const firstLetter = schoolName.replace(/[^a-zA-Z]/g, '').substring(0, 1).toUpperCase() || 'X';
+
         let employee_id;
         let isUnique = false;
         while (!isUnique) {
-            employee_id = Math.floor(100000 + Math.random() * 900000).toString();
+            const rand4 = Math.floor(1000 + Math.random() * 9000); // 1000 to 9999
+            employee_id = `${firstLetter}T${rand4}`;
             const check = await client.query('SELECT 1 FROM teachers WHERE employee_id = $1 AND school_id = $2', [employee_id, school_id]);
             if (check.rows.length === 0) isUnique = true;
         }
@@ -67,7 +73,7 @@ exports.addTeacher = async (req, res) => {
 
         if (userCheck.rows.length === 0) {
             await client.query(
-                `INSERT INTO users (email, password, role, school_id) VALUES ($1, $2, 'TEACHER', $3)`,
+                `INSERT INTO users (email, password, role, school_id, must_change_password) VALUES ($1, $2, 'TEACHER', $3, TRUE)`,
                 [loginEmail, defaultPassword, school_id]
             );
         }

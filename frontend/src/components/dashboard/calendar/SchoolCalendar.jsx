@@ -146,9 +146,20 @@ const SchoolCalendar = () => {
                     <button onClick={prevMonth} className="p-2 hover:bg-white rounded-full transition-colors text-slate-600">
                         <ChevronLeft size={20} />
                     </button>
-                    <h3 className="text-lg font-bold text-slate-800">
-                        {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                    </h3>
+                    <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-bold text-slate-800">
+                            {currentDate.toLocaleString('default', { month: 'long' })}
+                        </h3>
+                        <select
+                            value={currentDate.getFullYear()}
+                            onChange={(e) => setCurrentDate(new Date(parseInt(e.target.value), currentDate.getMonth()))}
+                            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-indigo-500/20 outline-none bg-white"
+                        >
+                            {Array.from({ length: new Date().getFullYear() - 2020 + 1 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                                <option key={year} value={year}>{year}</option>
+                            ))}
+                        </select>
+                    </div>
                     <button onClick={nextMonth} className="p-2 hover:bg-white rounded-full transition-colors text-slate-600">
                         <ChevronRight size={20} />
                     </button>
@@ -241,6 +252,7 @@ const SchoolCalendar = () => {
                                         type="date"
                                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
                                         value={newEvent.start_date}
+                                        min={new Date().toISOString().split('T')[0]}
                                         onChange={e => setNewEvent({ ...newEvent, start_date: e.target.value })}
                                     />
                                 </div>
@@ -250,6 +262,7 @@ const SchoolCalendar = () => {
                                         type="date"
                                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
                                         value={newEvent.end_date}
+                                        min={new Date().toISOString().split('T')[0]}
                                         onChange={e => setNewEvent({ ...newEvent, end_date: e.target.value })}
                                     />
                                 </div>

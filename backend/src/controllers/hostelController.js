@@ -555,7 +555,7 @@ exports.getPendingDues = async (req, res) => {
 
         // 1. Pending Mess Bills
         let messQuery = `
-            SELECT b.id, s.name, s.admission_no, b.amount, b.month, b.year 
+            SELECT b.id, b.student_id, s.name, s.admission_no, b.amount, b.month, b.year 
             FROM hostel_mess_bills b 
             JOIN students s ON b.student_id = s.id 
             WHERE b.status = 'Pending'
@@ -572,16 +572,17 @@ exports.getPendingDues = async (req, res) => {
 
         const messDues = messRes.rows.map(row => ({
             id: `mess_${row.id}`,
-            student_id: row.id,
-            name: row.name,
-            admission_no: row.admission_no,
-            amount: row.amount,
+            student_id: row.student_id, // Fixed: Use actual student ID
+            name: row.name || 'Unknown',
+            admission_no: row.admission_no || '-',
+            amount: parseFloat(row.amount || 0).toFixed(2),
             type: 'Mess Bill',
             period: `${row.month} ${row.year}`
         }));
 
         // 2. Pending Room Rent
         // Logic: Cost Per Term - Total Paid Rent > 0
+        // Added CAST to numeric for safety
         const rentQuery = `
             SELECT s.id, s.name, s.admission_no, r.cost_per_term,
                    COALESCE(SUM(p.amount), 0) as paid_amount
@@ -591,22 +592,22 @@ exports.getPendingDues = async (req, res) => {
             LEFT JOIN hostel_payments p ON s.id = p.student_id AND p.payment_type = 'Room Rent'
             WHERE a.status = 'Active'
             GROUP BY s.id, r.id
-            HAVING COALESCE(SUM(p.amount), 0) < r.cost_per_term
+            HAVING COALESCE(SUM(p.amount), 0) < CAST(r.cost_per_term AS NUMERIC)
         `;
         const rentRes = await pool.query(rentQuery);
 
         const rentDues = rentRes.rows.map(row => ({
             id: `rent_${row.id}`,
             student_id: row.id,
-            name: row.name,
-            admission_no: row.admission_no,
-            amount: (parseFloat(row.cost_per_term) - parseFloat(row.paid_amount)).toFixed(2),
+            name: row.name || 'Unknown',
+            admission_no: row.admission_no || '-',
+            amount: (parseFloat(row.cost_per_term || 0) - parseFloat(row.paid_amount || 0)).toFixed(2),
             type: 'Room Rent',
             period: 'Current Term'
         }));
 
         // Combine and Sort
-        const allDues = [...messDues, ...rentDues].sort((a, b) => a.name.localeCompare(b.name));
+        const allDues = [...messDues, ...rentDues].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
         res.json(allDues);
     } catch (error) {

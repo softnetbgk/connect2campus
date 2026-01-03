@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     Wand2, Image as ImageIcon, FileText, Download, RefreshCw,
-    Plus, Trash2, Save, CheckCircle, BrainCircuit, Type, Layers,
+    Plus, Trash2, CheckCircle, BrainCircuit, Type, Layers,
     Edit2, Eye, EyeOff, X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -16,6 +16,7 @@ const QuestionPaperGenerator = ({ config: academicConfig }) => {
     const [showAnswers, setShowAnswers] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [editForm, setEditForm] = useState(null);
+    const [editingSettings, setEditingSettings] = useState(false); // For editing paper config
 
     // Configuration State
     const [paperConfig, setPaperConfig] = useState({
@@ -25,7 +26,19 @@ const QuestionPaperGenerator = ({ config: academicConfig }) => {
         subject: '',
         difficulty: 'medium', // easy, medium, hard
         questionCount: 5,
-        type: 'mixed' // mcq, descriptive, mixed
+        type: 'mixed', // mcq, descriptive, mixed
+        examName: 'Final Examination', // NEW: Editable exam name
+        examDate: new Date().toISOString().split('T')[0] // NEW: Exam date
+    });
+
+    // NEW: State for adding custom questions
+    const [showAddQuestion, setShowAddQuestion] = useState(false);
+    const [newQuestion, setNewQuestion] = useState({
+        question: '',
+        type: 'Descriptive',
+        marks: '5',
+        answer: '',
+        options: ['', '', '', '']
     });
 
     const [files, setFiles] = useState([]);
@@ -115,6 +128,33 @@ const QuestionPaperGenerator = ({ config: academicConfig }) => {
         setEditForm(null);
     };
 
+    // NEW: Add custom question manually
+    const handleAddQuestion = () => {
+        if (!newQuestion.question.trim()) {
+            return toast.error('Please enter a question');
+        }
+
+        const customQuestion = {
+            id: Date.now(),
+            question: newQuestion.question,
+            type: newQuestion.type,
+            marks: newQuestion.marks,
+            answer: newQuestion.answer,
+            options: newQuestion.type === 'MCQ' ? newQuestion.options : undefined
+        };
+
+        setQuestions([...questions, customQuestion]);
+        setShowAddQuestion(false);
+        setNewQuestion({
+            question: '',
+            type: 'Descriptive',
+            marks: '5',
+            answer: '',
+            options: ['', '', '', '']
+        });
+        toast.success('Question added successfully!');
+    };
+
     const handleFileUpload = (e) => {
         const fileList = Array.from(e.target.files);
         setFiles(fileList);
@@ -122,6 +162,17 @@ const QuestionPaperGenerator = ({ config: academicConfig }) => {
     };
 
     const handlePrint = (type = 'both') => {
+        // Warning: Data not saved
+        toast('⚠️ Note: This paper is not saved. Print/download now!', {
+            duration: 3000,
+            icon: '📄',
+            style: {
+                background: '#FEF3C7',
+                color: '#92400E',
+                fontWeight: 'bold'
+            }
+        });
+
         const printWindow = window.open('', '', 'width=800,height=600');
 
         let content = ``;
@@ -130,7 +181,7 @@ const QuestionPaperGenerator = ({ config: academicConfig }) => {
         content += `
             <html>
             <head>
-                <title>Question Paper - ${paperConfig.subject || 'Subject'}</title>
+                <title></title>
                 <style>
                     body { font-family: 'Arial', sans-serif; padding: 40px; }
                     .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px; }
@@ -152,10 +203,11 @@ const QuestionPaperGenerator = ({ config: academicConfig }) => {
         if (type === 'paper' || type === 'both') {
             content += `
                 <div class="header">
-                    <h1>${academicConfig?.schoolName || 'Final Examination'}</h1>
+                    <h1>${paperConfig.examName || 'Final Examination'}</h1>
                     <div class="meta">
                         <span>Subject: ${paperConfig.subject || 'General'}</span>
                         <span>Class: ${academicConfig?.classes?.find(c => c.class_id.toString() === paperConfig.classId)?.class_name || 'Grade 10'}</span>
+                        <span>Date: ${paperConfig.examDate || new Date().toLocaleDateString()}</span>
                         <span>Time: 2 Hours</span>
                         <span>Marks: ${questions.reduce((a, b) => a + (parseInt(b.marks) || 0), 0)}</span>
                     </div>
@@ -234,9 +286,6 @@ const QuestionPaperGenerator = ({ config: academicConfig }) => {
                     <p className="text-slate-500 text-sm">Generate exam papers instantly from Topics or Images using AI</p>
                 </div>
                 <div className="flex gap-3">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 font-bold hover:bg-slate-50 transition-colors">
-                        <Save size={18} /> Save Draft
-                    </button>
                     <div className="flex bg-indigo-600 rounded-lg shadow-lg shadow-indigo-500/20 overflow-hidden">
                         <button
                             onClick={() => handlePrint('paper')}
@@ -429,6 +478,22 @@ const QuestionPaperGenerator = ({ config: academicConfig }) => {
                             </div>
                         </div>
 
+                        {/* Permanent Warning Note */}
+                        {questions.length > 0 && (
+                            <div className="mx-6 mt-4 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-lg">
+                                <div className="flex items-start gap-3">
+                                    <div className="text-amber-600 mt-0.5">⚠️</div>
+                                    <div>
+                                        <p className="font-bold text-amber-900 text-sm">Important: Paper Not Saved</p>
+                                        <p className="text-amber-800 text-xs mt-1">
+                                            This question paper is NOT saved to the database. Please download or print immediately after finalizing.
+                                            Refreshing the page will lose all changes.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex-1 p-8 space-y-6">
                             {questions.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-slate-300 space-y-4 min-h-[400px]">
@@ -444,33 +509,133 @@ const QuestionPaperGenerator = ({ config: academicConfig }) => {
                                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
                                     {/* Paper Header */}
-                                    <div className="text-center border-b-2 border-slate-800 pb-6 mb-8">
-                                        <h2 className="text-2xl font-bold uppercase tracking-widest text-slate-900">Final Examination</h2>
-                                        <div className="flex justify-between mt-4 text-sm font-bold text-slate-600">
-                                            <span>Subject: {paperConfig.subject || 'General'}</span>
-                                            {/* Find class Name from ID */}
-                                            <span>Class: {academicConfig?.classes?.find(c => c.class_id.toString() === paperConfig.classId)?.class_name || 'Grade 10'}</span>
-                                            <span>Time: 2 Hours</span>
-                                        </div>
+                                    <div className="text-center border-b-2 border-slate-800 pb-6 mb-8 relative">
+                                        {/* Edit Settings Button */}
+                                        {!editingSettings && questions.length > 0 && (
+                                            <button
+                                                onClick={() => setEditingSettings(true)}
+                                                className="absolute right-0 top-0 flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                                title="Edit Paper Settings"
+                                            >
+                                                <Edit2 size={14} /> Edit Settings
+                                            </button>
+                                        )}
+
+                                        <h2 className="text-2xl font-bold uppercase tracking-widest text-slate-900 mb-4">{paperConfig.examName}</h2>
+
+                                        {editingSettings ? (
+                                            /* Edit Mode for Settings */
+                                            <div className="space-y-4 bg-indigo-50/50 p-4 rounded-lg border border-indigo-100">
+                                                <div className="grid grid-cols-3 gap-3">
+                                                    <div className="text-left">
+                                                        <label className="block text-xs font-bold text-slate-600 mb-1">Class</label>
+                                                        <select
+                                                            className="w-full p-2 bg-white border border-slate-200 rounded-lg text-sm font-medium"
+                                                            value={paperConfig.classId}
+                                                            onChange={(e) => setPaperConfig({ ...paperConfig, classId: e.target.value })}
+                                                        >
+                                                            <option value="">Select Class</option>
+                                                            {academicConfig?.classes?.map(c => (
+                                                                <option key={c.class_id} value={c.class_id}>{c.class_name}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <label className="block text-xs font-bold text-slate-600 mb-1">Section</label>
+                                                        <select
+                                                            className="w-full p-2 bg-white border border-slate-200 rounded-lg text-sm font-medium"
+                                                            value={paperConfig.sectionId}
+                                                            onChange={(e) => setPaperConfig({ ...paperConfig, sectionId: e.target.value })}
+                                                            disabled={!paperConfig.classId}
+                                                        >
+                                                            <option value="">All Sections</option>
+                                                            {availableSections.map(sec => (
+                                                                <option key={sec.id} value={sec.id}>{sec.name}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <label className="block text-xs font-bold text-slate-600 mb-1">Subject</label>
+                                                        <select
+                                                            className="w-full p-2 bg-white border border-slate-200 rounded-lg text-sm font-medium"
+                                                            value={paperConfig.subject}
+                                                            onChange={(e) => setPaperConfig({ ...paperConfig, subject: e.target.value })}
+                                                        >
+                                                            <option value="">Select Subject</option>
+                                                            {availableSubjects.map((sub, i) => (
+                                                                <option key={i} value={sub}>{sub}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-3 mt-3">
+                                                    <div className="text-left">
+                                                        <label className="block text-xs font-bold text-slate-600 mb-1">Examination Name</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full p-2 bg-white border border-slate-200 rounded-lg text-sm font-medium"
+                                                            value={paperConfig.examName}
+                                                            onChange={(e) => setPaperConfig({ ...paperConfig, examName: e.target.value })}
+                                                            placeholder="e.g., Final Examination, Mid-Term Test"
+                                                        />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <label className="block text-xs font-bold text-slate-600 mb-1">Exam Date</label>
+                                                        <input
+                                                            type="date"
+                                                            className="w-full p-2 bg-white border border-slate-200 rounded-lg text-sm font-medium"
+                                                            value={paperConfig.examDate}
+                                                            onChange={(e) => setPaperConfig({ ...paperConfig, examDate: e.target.value })}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="flex justify-end gap-2">
+                                                    <button
+                                                        onClick={() => setEditingSettings(false)}
+                                                        className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-white rounded-lg transition-colors"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingSettings(false);
+                                                            toast.success('Settings updated!');
+                                                        }}
+                                                        className="px-4 py-2 text-sm font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                                                    >
+                                                        Save Changes
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            /* View Mode for Settings */
+                                            <div className="flex justify-between mt-4 text-sm font-bold text-slate-600">
+                                                <span>Subject: {paperConfig.subject || 'General'}</span>
+                                                {/* Find class Name from ID */}
+                                                <span>Class: {academicConfig?.classes?.find(c => c.class_id.toString() === paperConfig.classId)?.class_name || 'Grade 10'}</span>
+                                                <span>Date: {new Date(paperConfig.examDate).toLocaleDateString()}</span>
+                                                <span>Time: 2 Hours</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Questions */}
                                     {questions.map((q, idx) => (
-                                        <div key={q.id} className={`group relative pl-4 hover:bg-slate-50 rounded-lg p-4 -mx-4 transition-colors ${editingId === q.id ? 'bg-indigo-50/50 ring-2 ring-indigo-500/20' : ''}`}>
+                                        <div key={q.id} className={`group relative pl-4 pr-20 hover:bg-slate-50 rounded-lg p-4 -mx-4 transition-colors ${editingId === q.id ? 'bg-indigo-50/50 ring-2 ring-indigo-500/20' : ''}`}>
 
                                             {/* Action Buttons */}
                                             {editingId !== q.id && (
-                                                <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                                <div className="absolute right-2 top-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 bg-white/90 backdrop-blur-sm rounded-lg p-1 shadow-sm">
                                                     <button
                                                         onClick={() => handleEditQuestion(q)}
-                                                        className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-indigo-600 shadow-sm border border-transparent hover:border-slate-200"
+                                                        className="p-1.5 hover:bg-indigo-50 rounded-lg text-slate-400 hover:text-indigo-600 border border-transparent hover:border-indigo-200"
                                                         title="Edit Question"
                                                     >
                                                         <Edit2 size={14} />
                                                     </button>
                                                     <button
                                                         onClick={() => handleDeleteQuestion(q.id)}
-                                                        className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-rose-600 shadow-sm border border-transparent hover:border-slate-200"
+                                                        className="p-1.5 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 border border-transparent hover:border-rose-200"
                                                         title="Delete Question"
                                                     >
                                                         <Trash2 size={14} />
@@ -592,27 +757,27 @@ const QuestionPaperGenerator = ({ config: academicConfig }) => {
                                                             )}
 
                                                             {q.type === 'MatchTheFollowing' && (
-                                                                <div className="bg-white border border-slate-200 rounded-lg p-4 mt-2">
-                                                                    <div className="grid grid-cols-2 gap-8 relative">
+                                                                <div className="bg-white border border-slate-200 rounded-lg p-4 mt-2 mr-20">
+                                                                    <div className="grid grid-cols-2 gap-6 relative">
                                                                         {/* Divider Line */}
                                                                         <div className="absolute left-1/2 top-0 bottom-0 w-px bg-slate-200 -translate-x-1/2"></div>
 
-                                                                        <div className="space-y-4">
+                                                                        <div className="space-y-3 pr-4">
                                                                             <h4 className="font-bold text-xs uppercase text-slate-400 mb-2">Column A</h4>
                                                                             {q.pairs?.map((pair, i) => (
-                                                                                <div key={i} className="flex items-center gap-2 h-8">
-                                                                                    <span className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">{i + 1}</span>
-                                                                                    <span className="text-sm text-slate-700">{pair.left}</span>
+                                                                                <div key={i} className="flex items-start gap-2 min-h-[32px]">
+                                                                                    <span className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 flex-shrink-0 mt-0.5">{i + 1}</span>
+                                                                                    <span className="text-sm text-slate-700 break-words flex-1">{pair.left}</span>
                                                                                 </div>
                                                                             ))}
                                                                         </div>
 
-                                                                        <div className="space-y-4">
+                                                                        <div className="space-y-3 pl-4">
                                                                             <h4 className="font-bold text-xs uppercase text-slate-400 mb-2">Column B</h4>
                                                                             {q.pairs?.map((pair, i) => (
-                                                                                <div key={i} className="flex items-center gap-2 h-8">
-                                                                                    <span className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">{String.fromCharCode(65 + i)}</span>
-                                                                                    <span className="text-sm text-slate-700">{pair.right}</span>
+                                                                                <div key={i} className="flex items-start gap-2 min-h-[32px]">
+                                                                                    <span className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 flex-shrink-0 mt-0.5">{String.fromCharCode(65 + i)}</span>
+                                                                                    <span className="text-sm text-slate-700 break-words flex-1">{pair.right}</span>
                                                                                 </div>
                                                                             ))}
                                                                         </div>
@@ -642,12 +807,130 @@ const QuestionPaperGenerator = ({ config: academicConfig }) => {
                                             </div>
                                         </div>
                                     ))}
+
+                                    {/* Add Question Button */}
+                                    {questions.length > 0 && (
+                                        <button
+                                            onClick={() => setShowAddQuestion(true)}
+                                            className="w-full py-4 border-2 border-dashed border-indigo-300 rounded-xl text-indigo-600 font-bold hover:bg-indigo-50 transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <Plus size={20} /> Add Custom Question
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Add Question Modal */}
+            {showAddQuestion && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b border-slate-200 flex justify-between items-center sticky top-0 bg-white">
+                            <h3 className="text-xl font-bold text-slate-800">Add Custom Question</h3>
+                            <button
+                                onClick={() => setShowAddQuestion(false)}
+                                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            {/* Question Type */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-600 mb-2">Question Type</label>
+                                <select
+                                    className="w-full p-3 border border-slate-200 rounded-lg font-medium"
+                                    value={newQuestion.type}
+                                    onChange={(e) => setNewQuestion({ ...newQuestion, type: e.target.value })}
+                                >
+                                    <option value="Descriptive">Descriptive</option>
+                                    <option value="MCQ">Multiple Choice (MCQ)</option>
+                                    <option value="FillInBlanks">Fill in the Blanks</option>
+                                    <option value="TrueFalse">True/False</option>
+                                </select>
+                            </div>
+
+                            {/* Question Text */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-600 mb-2">Question</label>
+                                <textarea
+                                    className="w-full p-3 border border-slate-200 rounded-lg font-medium"
+                                    rows="3"
+                                    value={newQuestion.question}
+                                    onChange={(e) => setNewQuestion({ ...newQuestion, question: e.target.value })}
+                                    placeholder="Enter your question here..."
+                                />
+                            </div>
+
+                            {/* MCQ Options */}
+                            {newQuestion.type === 'MCQ' && (
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-600 mb-2">Options</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {newQuestion.options.map((opt, i) => (
+                                            <input
+                                                key={i}
+                                                type="text"
+                                                className="p-2 border border-slate-200 rounded-lg text-sm"
+                                                value={opt}
+                                                onChange={(e) => {
+                                                    const newOpts = [...newQuestion.options];
+                                                    newOpts[i] = e.target.value;
+                                                    setNewQuestion({ ...newQuestion, options: newOpts });
+                                                }}
+                                                placeholder={`Option ${String.fromCharCode(65 + i)}`}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Marks and Answer */}
+                            <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-600 mb-2">Marks</label>
+                                    <input
+                                        type="number"
+                                        className="w-full p-3 border border-slate-200 rounded-lg font-medium"
+                                        value={newQuestion.marks}
+                                        onChange={(e) => setNewQuestion({ ...newQuestion, marks: e.target.value })}
+                                        min="1"
+                                    />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-bold text-slate-600 mb-2">Answer Key</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-3 border border-slate-200 rounded-lg font-medium"
+                                        value={newQuestion.answer}
+                                        onChange={(e) => setNewQuestion({ ...newQuestion, answer: e.target.value })}
+                                        placeholder={newQuestion.type === 'MCQ' ? 'e.g., A or Option A' : 'Correct answer'}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-slate-200 flex justify-end gap-3 sticky bottom-0 bg-white">
+                            <button
+                                onClick={() => setShowAddQuestion(false)}
+                                className="px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleAddQuestion}
+                                className="px-6 py-2.5 text-sm font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                            >
+                                Add Question
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

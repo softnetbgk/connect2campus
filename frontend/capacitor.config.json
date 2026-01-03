@@ -2,12 +2,20 @@
   "appId": "com.school.app",
   "appName": "SchoolApp",
   "webDir": "dist",
-  "server": {
-    "url": "https://connect2campus.netlify.app",
-    "cleartext": true,
-    "allowNavigation": [
-      "school-backend-kepp.onrender.com",
-      "connect2campus.netlify.app"
-    ]
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    },
+    "SplashScreen": {
+      "launchShowDuration": 1000,
+      "launchAutoHide": true,
+      "backgroundColor": "#ffffff",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    }
   }
 }

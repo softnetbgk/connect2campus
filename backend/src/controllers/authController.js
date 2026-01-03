@@ -11,6 +11,8 @@ const login = async (req, res) => {
 
     // Resolve Emails to checks (support ID login)
     let checkEmails = [email];
+    if (email) checkEmails.push(email.toLowerCase()); // Case insensitivity support
+
     const isEmail = email && email.includes('@');
 
     try {
@@ -23,13 +25,25 @@ const login = async (req, res) => {
             }
             else if (role === 'TEACHER') {
                 checkEmails.push(`${email}@teacher.school.com`);
+                checkEmails.push(`${email.toLowerCase()}@teacher.school.com`);
                 const tRes = await pool.query('SELECT email FROM teachers WHERE employee_id = $1', [email]);
                 if (tRes.rows.length > 0) checkEmails.push(tRes.rows[0].email);
             }
             else if (['STAFF', 'DRIVER', 'ACCOUNTANT'].includes(role)) { // Staff roles
                 checkEmails.push(`${email}@staff.school.com`);
+                checkEmails.push(`${email.toLowerCase()}@staff.school.com`);
                 const stRes = await pool.query('SELECT email FROM staff WHERE employee_id = $1', [email]);
                 if (stRes.rows.length > 0) checkEmails.push(stRes.rows[0].email);
+            }
+            else if (role === 'SCHOOL_ADMIN') {
+                // Support school_code login for school admins
+                const schoolRes = await pool.query('SELECT id, contact_email FROM schools WHERE school_code = $1', [email]);
+                if (schoolRes.rows.length > 0) {
+                    const schoolId = schoolRes.rows[0].id;
+                    // Find school admin user for this school
+                    const adminRes = await pool.query('SELECT email FROM users WHERE school_id = $1 AND role = $2', [schoolId, 'SCHOOL_ADMIN']);
+                    if (adminRes.rows.length > 0) checkEmails.push(adminRes.rows[0].email);
+                }
             }
         }
 
@@ -62,7 +76,7 @@ const login = async (req, res) => {
         // Role verification (Redundant due to SQL filter but good for safety/custom logic)
         if (role) {
             if (role === 'STAFF') {
-                if (!['STAFF', 'DRIVER'].includes(user.role)) return res.status(403).json({ message: 'Access denied' });
+                // strict check if needed
             } else if (user.role !== role) {
                 return res.status(403).json({ message: `Access denied. You are not a ${role}` });
             }
@@ -121,7 +135,8 @@ const login = async (req, res) => {
                 id: user.id,
                 email: user.email,
                 role: user.role,
-                schoolId: user.school_id
+                schoolId: user.school_id,
+                mustChangePassword: user.must_change_password || false
             }
         });
 
@@ -138,6 +153,78 @@ const logout = async (req, res) => {
     } catch (error) {
         console.error('Logout error:', error);
         res.status(500).json({ message: 'Server error during logout' });
+    }
+};
+
+const changePassword = async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    let { email } = req.body;
+
+    // Use authenticated user ID if available, otherwise rely on email/ID lookup
+    const userId = req.user ? req.user.id : null;
+
+    try {
+        let user;
+        if (userId) {
+            const uRes = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+            user = uRes.rows[0];
+        } else if (email) {
+            email = email.trim();
+
+            // Resolve ID to Email if necessary (Same logic as Login)
+            let checkEmails = [email, email.toLowerCase()];
+            const isEmail = email.includes('@');
+
+            if (!isEmail) {
+                // Try to resolve ID to email from all possible tables
+                // We don't know the role, so we check all.
+
+                // 1. Student
+                const sRes = await pool.query('SELECT email FROM students WHERE admission_no ILIKE $1', [email]);
+                if (sRes.rows.length > 0) checkEmails.push(sRes.rows[0].email);
+
+                // 2. Teacher
+                const tRes = await pool.query('SELECT email FROM teachers WHERE employee_id = $1', [email]);
+                if (tRes.rows.length > 0) checkEmails.push(tRes.rows[0].email);
+
+                // 3. Staff
+                const stRes = await pool.query('SELECT email FROM staff WHERE employee_id = $1', [email]);
+                if (stRes.rows.length > 0) checkEmails.push(stRes.rows[0].email);
+
+                // 4. Fallback synthetic emails
+                checkEmails.push(`${email.toLowerCase()}@student.school.com`);
+
+                checkEmails.push(`${email}@teacher.school.com`);
+                checkEmails.push(`${email.toLowerCase()}@teacher.school.com`);
+
+                checkEmails.push(`${email}@staff.school.com`);
+                checkEmails.push(`${email.toLowerCase()}@staff.school.com`);
+            }
+
+            // Find user matching ANY of these emails
+            const eRes = await pool.query('SELECT * FROM users WHERE email = ANY($1::text[])', [checkEmails]);
+            user = eRes.rows[0];
+        }
+
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Verify Old Password
+        const match = await bcrypt.compare(oldPassword, user.password);
+        if (!match) {
+            return res.status(401).json({ message: 'Incorrect current password' });
+        }
+
+        // Hash New Password
+        const hashedPrice = await bcrypt.hash(newPassword, 10);
+
+        // Update password and clear must_change_password flag
+        await pool.query('UPDATE users SET password = $1, must_change_password = FALSE WHERE id = $2', [hashedPrice, user.id]);
+
+        res.json({ message: 'Password updated successfully' });
+
+    } catch (error) {
+        console.error('Change Password Error:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
@@ -180,6 +267,8 @@ const forgotPassword = async (req, res) => {
     try {
         // Resolve logic to find the specific user similar to login (Unified ID/Email resolution)
         let checkEmails = [email];
+        checkEmails.push(email.toLowerCase());
+
         const isEmail = email.includes('@');
 
         if (!isEmail && role) {
@@ -190,11 +279,13 @@ const forgotPassword = async (req, res) => {
             }
             else if (role === 'TEACHER') {
                 checkEmails.push(`${email}@teacher.school.com`);
+                checkEmails.push(`${email.toLowerCase()}@teacher.school.com`);
                 const tRes = await pool.query('SELECT email FROM teachers WHERE employee_id = $1', [email]);
                 if (tRes.rows.length > 0) checkEmails.push(tRes.rows[0].email);
             }
             else if (['STAFF', 'DRIVER', 'ACCOUNTANT'].includes(role)) {
                 checkEmails.push(`${email}@staff.school.com`);
+                checkEmails.push(`${email.toLowerCase()}@staff.school.com`);
                 const stRes = await pool.query('SELECT email FROM staff WHERE employee_id = $1', [email]);
                 if (stRes.rows.length > 0) checkEmails.push(stRes.rows[0].email);
             }
@@ -319,4 +410,4 @@ const registerFcmToken = async (req, res) => {
     }
 };
 
-module.exports = { login, setupSuperAdmin, logout, forgotPassword, resetPassword, registerFcmToken };
+module.exports = { login, setupSuperAdmin, logout, forgotPassword, resetPassword, registerFcmToken, changePassword };

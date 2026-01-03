@@ -26,12 +26,21 @@ exports.addStudent = async (req, res) => {
         // Generate Admission No if not provided
         let admission_no = req.body.admission_no;
         if (!admission_no) {
-            // Generate Student ID: First 2 letters of School Name + 4 Digits
+            // NEW FORMAT: [School First Letter]S[4 digits]
+            // Example: ABC School -> AS1234
             const schoolRes = await client.query('SELECT name FROM schools WHERE id = $1', [school_id]);
-            const schoolName = schoolRes.rows[0]?.name || 'XX';
-            const prefix = schoolName.replace(/[^a-zA-Z]/g, '').substring(0, 2).toUpperCase();
-            const rand4 = Math.floor(1000 + Math.random() * 9000); // 1000 to 9999
-            admission_no = `${prefix}${rand4}`;
+            const schoolName = schoolRes.rows[0]?.name || 'X';
+            const firstLetter = schoolName.replace(/[^a-zA-Z]/g, '').substring(0, 1).toUpperCase() || 'X';
+
+            // Generate unique 4-digit number
+            let isUnique = false;
+            let rand4;
+            while (!isUnique) {
+                rand4 = Math.floor(1000 + Math.random() * 9000); // 1000 to 9999
+                admission_no = `${firstLetter}S${rand4}`;
+                const check = await client.query('SELECT id FROM students WHERE admission_no = $1 AND school_id = $2', [admission_no, school_id]);
+                if (check.rows.length === 0) isUnique = true;
+            }
         }
 
         // Logic to get roll number (handle null section)
@@ -65,22 +74,19 @@ exports.addStudent = async (req, res) => {
         // If email exists, fallback to Admission No based login
         if (userCheck.rows.length > 0) {
             loginEmail = `${admission_no.toLowerCase()}@student.school.com`;
-            // Double check if this fallback also exists (unlikely unless duplicate admission no, which is handled earlier)
+            // Double check if this fallback also exists
             const fallbackCheck = await client.query('SELECT id FROM users WHERE email = $1', [loginEmail]);
             if (fallbackCheck.rows.length > 0) {
-                // If even fallback exists, we can't create a user. 
-                // This effectively handles the "User already exists" case without crashing, 
-                // but ideally we should update the existing user? No, better to safe fail or just log.
                 console.warn(`User for student ${admission_no} already exists.`);
             } else {
                 await client.query(
-                    `INSERT INTO users (email, password, role, school_id) VALUES ($1, $2, 'STUDENT', $3)`,
+                    `INSERT INTO users (email, password, role, school_id, must_change_password) VALUES ($1, $2, 'STUDENT', $3, TRUE)`,
                     [loginEmail, defaultPassword, school_id]
                 );
             }
         } else {
             await client.query(
-                `INSERT INTO users (email, password, role, school_id) VALUES ($1, $2, 'STUDENT', $3)`,
+                `INSERT INTO users (email, password, role, school_id, must_change_password) VALUES ($1, $2, 'STUDENT', $3, TRUE)`,
                 [loginEmail, defaultPassword, school_id]
             );
         }

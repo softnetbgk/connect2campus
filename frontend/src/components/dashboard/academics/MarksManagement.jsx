@@ -36,7 +36,11 @@ const MarksManagement = ({ config }) => {
         'July', 'August', 'September', 'October', 'November', 'December'
     ];
 
-    const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+    // Year dropdown: Show current year and past years only (back to 2020 or when school was added)
+    const currentYear = new Date().getFullYear();
+    const startYear = 2020; // Or fetch from school.created_at in future
+    const years = Array.from({ length: currentYear - startYear + 1 }, (_, i) => currentYear - i);
+
 
     useEffect(() => {
         fetchExamTypes();
@@ -58,7 +62,7 @@ const MarksManagement = ({ config }) => {
         if (selectedClass && selectedSection && selectedExam) {
             fetchMarks();
         }
-    }, [selectedClass, selectedSection, selectedExam]);
+    }, [selectedClass, selectedSection, selectedExam, selectedYear]);
 
     const fetchExamTypes = async () => {
         try {
@@ -79,9 +83,10 @@ const MarksManagement = ({ config }) => {
     const fetchStudents = async () => {
         try {
             const res = await api.get(`/students?class_id=${selectedClass}&section_id=${selectedSection}`);
-            setStudents(res.data);
+            const studentsList = res.data.data || res.data || [];
+            setStudents(studentsList);
         } catch (error) {
-            console.error(error);
+            console.error('Error fetching students:', error);
         }
     };
 
@@ -90,8 +95,7 @@ const MarksManagement = ({ config }) => {
 
         setMarks({}); // Clear marks before fetching to avoid stale keys
         try {
-            const res = await api.get(`/marks?class_id=${selectedClass}&section_id=${selectedSection}&exam_type_id=${selectedExam}`);
-            console.log('Fetched marks data:', res.data);
+            const res = await api.get(`/marks?class_id=${selectedClass}&section_id=${selectedSection}&exam_type_id=${selectedExam}&year=${selectedYear}`);
             const existingMarks = {};
 
             // Populate marks object from fetched data
@@ -112,7 +116,6 @@ const MarksManagement = ({ config }) => {
                 });
             }
 
-            console.log('Final existingMarks object:', existingMarks);
             setMarks(existingMarks);
         } catch (error) {
             console.error('Error fetching marks:', error);
@@ -232,7 +235,7 @@ const MarksManagement = ({ config }) => {
 
         setLoading(true);
         try {
-            await api.post('/marks/save', { marks: marksArray });
+            await api.post('/marks/save', { marks: marksArray, year: selectedYear });
             toast.success('Marks saved successfully!');
             fetchMarks(); // Reload marks to show saved data
         } catch (error) {

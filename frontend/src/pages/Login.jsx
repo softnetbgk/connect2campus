@@ -38,10 +38,10 @@ const Login = () => {
         setErrorMessage('');
         const result = await login(email, password, role);
         if (result.success) {
-            // Check for Default Password / First Login flag
-            if (result.user?.mustChangePassword || password === '123456') {
+            // Check for must_change_password flag from backend
+            if (result.user?.mustChangePassword) {
                 toast('Please set a new password for security.', { icon: '🔒' });
-                navigate('/change-password', { state: { email, role, oldPassword: password } }); // Pass data to pre-fill
+                navigate('/change-password', { state: { email, role, oldPassword: password } });
                 return;
             }
 
@@ -117,14 +117,18 @@ const Login = () => {
                         <div className="space-y-3">
                             <div className="space-y-1">
                                 <label className="text-[10px] font-semibold text-gray-400 ml-1 uppercase tracking-wider">
-                                    {['STUDENT', 'TEACHER', 'STAFF'].includes(role) ? 'Email / Attendance ID' : 'Email Address'}
+                                    {role === 'SCHOOL_ADMIN' ? 'Email or School ID' :
+                                        ['STUDENT', 'TEACHER', 'STAFF'].includes(role) ? 'Your ID (Admission/Employee ID)' :
+                                            'Email Address'}
                                 </label>
                                 <input
                                     type="text"
                                     required
                                     autoComplete="off"
                                     className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 focus:border-yellow-400 transition-all font-sans text-sm"
-                                    placeholder={['STUDENT', 'TEACHER', 'STAFF'].includes(role) ? 'e.g. STU1234' : 'admin@school.com'}
+                                    placeholder={role === 'SCHOOL_ADMIN' ? 'admin@school.com or 123456' :
+                                        ['STUDENT', 'TEACHER', 'STAFF'].includes(role) ? 'e.g. STU1234 or 654321' :
+                                            'admin@school.com'}
                                     value={email}
                                     onChange={(e) => { setEmail(e.target.value); setErrorMessage(''); }}
                                 />

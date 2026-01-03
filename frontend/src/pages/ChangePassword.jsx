@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from '../api/axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Lock, ShieldAlert } from 'lucide-react';
+import { Eye, EyeOff, Lock, CheckCircle, XCircle, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const ChangePassword = () => {
@@ -10,55 +10,66 @@ const ChangePassword = () => {
     const location = useLocation();
     const { logout } = useAuth();
 
-    // Pre-fill from navigation state if available, otherwise blank
+    // Pre-fill from navigation state
     const [email, setEmail] = useState(location.state?.email || '');
     const [oldPassword, setOldPassword] = useState(location.state?.oldPassword || '');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
-    // Visibility Toggles
+    // Visibility
     const [showOld, setShowOld] = useState(false);
     const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
     const [loading, setLoading] = useState(false);
+    const [isOldVerified, setIsOldVerified] = useState(false);
 
-    // If they got here without logging in (direct link), ensure they are at least authenticated or have context
-    // Actually, since we redirect AFTER login, they have a token.
-    // But for security, we will ask for Old Password again as per user request ("enter id or email and old pssword")
+    // Validation State
+    const [validations, setValidations] = useState({
+        length: false,
+        digits: false,
+        special: false,
+        noSpaces: true
+    });
+
+    // Check Old Password Validity (Simulation or Check against state if consistent)
+    useEffect(() => {
+        // If we have the old password from state, we can verify against it strictly
+        const originOld = location.state?.oldPassword;
+        if (originOld) {
+            setIsOldVerified(oldPassword === originOld);
+        } else {
+            // If no origin state (direct access), just check if it has content length > 0
+            // Real verification happens on backend submit
+            setIsOldVerified(oldPassword.length > 0);
+        }
+    }, [oldPassword, location.state]);
+
+    // Check New Password Requirements
+    useEffect(() => {
+        const v = {
+            length: newPassword.length >= 4,
+            digits: (newPassword.match(/\d/g) || []).length >= 3,
+            special: /[!@#$%^&*(),.?":{}|<>]/.test(newPassword),
+            noSpaces: !/\s/.test(newPassword) && newPassword.length > 0
+        };
+        setValidations(v);
+    }, [newPassword]);
+
+    const isFormValid = isOldVerified &&
+        Object.values(validations).every(Boolean) &&
+        newPassword === confirmPassword &&
+        confirmPassword.length > 0;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Email Handling: Capital letters allow -> so we normalize to lowercase for backend (or user asked to ALLOW capitals, but usually emails are case insensitive. I will just trim spaces). 
-        // User said "email with capital lettes allow", so I will NOT lowercase it, just trim.
+        if (!isFormValid) return;
+
         const cleanEmail = email.trim();
 
-        if (newPassword !== confirmPassword) {
-            return toast.error('New passwords do not match');
-        }
-
         if (newPassword === '123456' || newPassword === oldPassword) {
-            return toast.error('Please choose a different password than the default.');
-        }
-
-        // Validate Password Strength
-        // 1. No spaces
-        if (/\s/.test(newPassword)) {
-            return toast.error('Password must not contain spaces.');
-        }
-        // 2. At least 3 digits
-        const digitCount = (newPassword.match(/\d/g) || []).length;
-        if (digitCount < 3) {
-            return toast.error('Password must contain at least 3 digits.');
-        }
-        // 3. At least 1 special character
-        if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
-            return toast.error('Password must contain at least 1 special character.');
-        }
-        // 4. Minimum length (implied "atleast 3 characters" probably meant min length, but standard is 6+. I'll keep minLength=6 in input but enforce here too)
-        if (newPassword.length < 6) {
-            return toast.error('Password is too short (min 6 chars).');
+            return toast.error('Please choose a different password than your current one.');
         }
 
         setLoading(true);
@@ -69,10 +80,9 @@ const ChangePassword = () => {
                 newPassword
             });
 
-            toast.success('Password set successfully!');
+            toast.success('Password set successfully! Please login again.');
 
-            // Logout to force fresh login with new credentials (as per standard security practice)
-            // Or "they have to login fetch dashboard" as per user request.
+            // Force logout
             await logout();
             navigate('/login');
 
@@ -83,6 +93,13 @@ const ChangePassword = () => {
             setLoading(false);
         }
     };
+
+    const ValidationItem = ({ label, passed }) => (
+        <div className={`flex items-center gap-2 text-xs font-semibold transition-colors ${passed ? 'text-green-400' : 'text-gray-500'}`}>
+            {passed ? <Check size={14} strokeWidth={3} /> : <div className="w-3.5 h-3.5 rounded-full border border-gray-600" />}
+            {label}
+        </div>
+    );
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4 relative overflow-hidden">
@@ -97,14 +114,14 @@ const ChangePassword = () => {
                     </div>
                     <h2 className="text-2xl font-bold text-white">Security Update Required</h2>
                     <p className="text-gray-400 text-sm mt-2">
-                        Since this is your first login, please update your temporary password to secure your account.
+                        To secure your account, please verify your current credentials and set a strong new password.
                     </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* ID / Email (Read Only or Editable) */}
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">User ID / Email</label>
+                    {/* ID / Email */}
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase">User ID / Email</label>
                         <input
                             type="text"
                             value={email}
@@ -116,15 +133,20 @@ const ChangePassword = () => {
                     </div>
 
                     {/* Old Password */}
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Current Password (123456)</label>
-                        <div className="relative">
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase flex justify-between">
+                            Current Password
+                            {isOldVerified && <span className="text-green-400 flex items-center gap-1"><CheckCircle size={12} /> Verified</span>}
+                        </label>
+                        <div className="relative group">
                             <input
                                 type={showOld ? "text" : "password"}
                                 value={oldPassword}
                                 onChange={(e) => setOldPassword(e.target.value)}
-                                className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:border-yellow-400 transition-colors pr-10"
-                                placeholder="Enter current password"
+                                className={`w-full px-4 py-3 bg-black/20 border rounded-xl text-white focus:outline-none transition-colors pr-10
+                                    ${isOldVerified ? 'border-green-500/50 focus:border-green-500' : 'border-white/10 focus:border-yellow-400'}
+                                `}
+                                placeholder="Enter default/current password"
                                 required
                             />
                             <button type="button" onClick={() => setShowOld(!showOld)} className="absolute right-3 top-3 text-gray-400 hover:text-white">
@@ -133,52 +155,70 @@ const ChangePassword = () => {
                         </div>
                     </div>
 
-                    <div className="border-t border-white/10 my-4"></div>
+                    {/* Step 2: New Password Fields (Only visible if old is somewhat verified) */}
+                    {isOldVerified && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-2">
+                            <div className="border-t border-white/10"></div>
 
-                    {/* New Password */}
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">New Password</label>
-                        <div className="relative">
-                            <input
-                                type={showNew ? "text" : "password"}
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:border-yellow-400 transition-colors pr-10"
-                                placeholder="Create new password"
-                                required
-                                minLength={6}
-                            />
-                            <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-3 text-gray-400 hover:text-white">
-                                {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase">New Password</label>
+                                <div className="relative">
+                                    <input
+                                        type={showNew ? "text" : "password"}
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value.replace(/\s/g, ''))}
+                                        className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:border-yellow-400 transition-colors pr-10"
+                                        placeholder="Create new password"
+                                        required
+                                    />
+                                    <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-3 text-gray-400 hover:text-white">
+                                        {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+
+                                {/* Real-time Validation Rules */}
+                                <div className="grid grid-cols-2 gap-2 pt-2 pl-1">
+                                    <ValidationItem label="Min 4 Characters" passed={validations.length} />
+                                    <ValidationItem label="At least 3 Digits" passed={validations.digits} />
+                                    <ValidationItem label="1 Special Char" passed={validations.special} />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase">Confirm Password</label>
+                                <div className="relative">
+                                    <input
+                                        type={showConfirm ? "text" : "password"}
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value.replace(/\s/g, ''))}
+                                        className={`w-full px-4 py-3 bg-black/20 border rounded-xl text-white focus:outline-none transition-colors pr-10
+                                            ${confirmPassword && confirmPassword !== newPassword ? 'border-red-500 border-2' : 'border-white/10 focus:border-yellow-400'}
+                                        `}
+                                        placeholder="Retype password"
+                                        required
+                                    />
+                                    <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-3 text-gray-400 hover:text-white">
+                                        {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+                                {confirmPassword && confirmPassword !== newPassword && (
+                                    <p className="text-red-400 text-[10px] font-bold mt-1 pl-1">Passwords do not match</p>
+                                )}
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={!isFormValid || loading}
+                                className={`w-full py-3 font-bold rounded-xl shadow-lg transform transition-all flex items-center justify-center gap-2 mt-4
+                                    ${isFormValid && !loading
+                                        ? 'bg-yellow-400 hover:bg-yellow-300 text-black hover:scale-[1.02] shadow-yellow-400/20'
+                                        : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'}
+                                `}
+                            >
+                                {loading ? 'Updating...' : 'Set New Password'}
                             </button>
                         </div>
-                    </div>
-
-                    {/* Confirm Password */}
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Confirm New Password</label>
-                        <div className="relative">
-                            <input
-                                type={showConfirm ? "text" : "password"}
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:border-yellow-400 transition-colors pr-10"
-                                placeholder="Retype new password"
-                                required
-                            />
-                            <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-3 text-gray-400 hover:text-white">
-                                {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
-                            </button>
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full py-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl shadow-lg shadow-yellow-400/20 transform transition-all hover:scale-[1.02] flex items-center justify-center gap-2 mt-4"
-                    >
-                        {loading ? 'Updating...' : 'Set New Password'}
-                    </button>
+                    )}
                 </form>
             </div>
         </div>

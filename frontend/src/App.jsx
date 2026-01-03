@@ -1,33 +1,39 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
+
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import ErrorBoundary from './components/ErrorBoundary';
+
+// Pages
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import ChangePassword from './pages/ChangePassword';
-
-// ... (in Routes)
-                <Route path="/reset-password/:token" element={<ResetPassword />} />
-                <Route path="/change-password" element={<ChangePassword />} />
-                <Route path="/setup-admin" element={<SetupAdmin />} />
+import SetupAdmin from './pages/SetupAdmin';
 import SuperAdminLogin from './pages/SuperAdminLogin';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
-
 import SchoolAdminDashboard from './pages/SchoolAdminDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import StaffDashboard from './pages/StaffDashboard';
+import Welcome from './pages/Welcome';
+
+// Components
 import DriverTracking from './components/dashboard/transport/DriverTracking';
 import NotificationRegistration from './components/NotificationRegistration';
-import { StatusBar, Style } from '@capacitor/status-bar';
-import { Capacitor } from '@capacitor/core';
+
+import { PushNotifications } from '@capacitor/push-notifications';
+import SplashScreen from './components/SplashScreen';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, role }) => {
   const { user, loading } = useAuth();
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <SplashScreen />;
 
   if (!user) return <Navigate to="/login" />;
 
@@ -43,27 +49,49 @@ const ProtectedRoute = ({ children, role }) => {
   return children;
 };
 
-
-import ErrorBoundary from './components/ErrorBoundary';
-import Welcome from './pages/Welcome';
-
 function App() {
   React.useEffect(() => {
-    // Handle StatusBar for Capacitor Native App
+    // 1. Handle StatusBar
     const setupStatusBar = async () => {
       if (Capacitor.isNativePlatform()) {
         try {
-          // Explicitly don't overlay to prevent content from going behind timing/battery bar
           await StatusBar.setOverlaysWebView({ overlay: false });
-          // Use a neutral background or match theme
           await StatusBar.setBackgroundColor({ color: '#ffffff' });
           await StatusBar.setStyle({ style: Style.Light });
         } catch (err) {
-          console.log('StatusBar plugin not available or failed', err);
+          console.log('StatusBar plugin issue:', err);
         }
       }
     };
+
+    // 2. Setup Push Notifications
+    const setupNotifications = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          // Request permission
+          const result = await PushNotifications.requestPermissions();
+          if (result.receive === 'granted') {
+            await PushNotifications.register();
+          }
+
+          // Listeners
+          PushNotifications.addListener('pushNotificationReceived', (notification) => {
+            toast.success(notification.title || 'New Notification');
+          });
+
+          PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+            // Navigate to specific page logic here
+            console.log('Push action:', notification);
+          });
+
+        } catch (err) {
+          console.log('Push Notification setup failed', err);
+        }
+      }
+    };
+
     setupStatusBar();
+    setupNotifications();
   }, []);
 
 
@@ -76,10 +104,12 @@ function App() {
             <div className="min-h-screen bg-gray-50">
               <Toaster position="top-center" />
               <Routes>
-                <Route path="/" element={<Navigate to="/login" />} />
+                <Route path="/" element={<Navigate to="/welcome" />} />
+                <Route path="/welcome" element={<Welcome />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route path="/change-password" element={<ChangePassword />} />
                 <Route path="/setup-admin" element={<SetupAdmin />} />
                 <Route path="/super-admin-login" element={<SuperAdminLogin />} />
                 <Route

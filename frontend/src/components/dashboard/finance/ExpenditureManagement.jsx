@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Plus, Trash2, Calendar, PieChart, TrendingUp, TrendingDown, ArrowUp, Printer } from 'lucide-react';
+import { DollarSign, Plus, Trash2, Edit, Calendar, PieChart, TrendingUp, TrendingDown, ArrowUp, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../../api/axios';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -10,6 +10,9 @@ const ExpenditureManagement = () => {
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [filter, setFilter] = useState('all'); // all, today, month, year
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()); // 0-11
+    const [editingId, setEditingId] = useState(null);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -62,9 +65,19 @@ const ExpenditureManagement = () => {
             if (payload.category === 'Custom') {
                 payload.category = payload.custom_category;
             }
-            await api.post('/finance/expenditures', payload);
-            toast.success('Expenditure added successfully');
+
+            if (editingId) {
+                // Update existing expense
+                await api.put(`/finance/expenditures/${editingId}`, payload);
+                toast.success('Expenditure updated successfully');
+            } else {
+                // Add new expense
+                await api.post('/finance/expenditures', payload);
+                toast.success('Expenditure added successfully');
+            }
+
             setShowModal(false);
+            setEditingId(null);
             setFormData({
                 title: '',
                 amount: '',
@@ -80,8 +93,24 @@ const ExpenditureManagement = () => {
             fetchStats();
         } catch (error) {
             console.error(error);
-            toast.error('Failed to add expenditure');
+            toast.error(editingId ? 'Failed to update expenditure' : 'Failed to add expenditure');
         }
+    };
+
+    const handleEdit = (expense) => {
+        setEditingId(expense.id);
+        setFormData({
+            title: expense.title,
+            amount: expense.amount,
+            category: expense.category,
+            description: expense.description || '',
+            expense_date: expense.expense_date.split('T')[0],
+            payment_method: expense.payment_method,
+            transaction_id: expense.transaction_id || '',
+            upi_id: expense.upi_id || '',
+            custom_category: ''
+        });
+        setShowModal(true);
     };
 
     const handleDelete = async (id) => {
@@ -96,20 +125,10 @@ const ExpenditureManagement = () => {
         }
     };
 
+    // Filter by selected year and month
     const filteredExpenditures = expenditures.filter(item => {
         const itemDate = new Date(item.expense_date);
-        const now = new Date();
-
-        if (filter === 'today') {
-            return itemDate.toISOString().split('T')[0] === now.toISOString().split('T')[0];
-        }
-        if (filter === 'month') {
-            return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
-        }
-        if (filter === 'year') {
-            return itemDate.getFullYear() === now.getFullYear();
-        }
-        return true;
+        return itemDate.getFullYear() === selectedYear && itemDate.getMonth() === selectedMonth;
     });
 
     const categoryColors = {
@@ -218,18 +237,7 @@ const ExpenditureManagement = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-red-50 text-red-600 rounded-lg">
-                            <TrendingDown size={24} />
-                        </div>
-                        <div>
-                            <p className="text-slate-500 text-sm font-medium">Today's Expense</p>
-                            <h3 className="text-2xl font-bold text-slate-800">₹{stats.today.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h3>
-                        </div>
-                    </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-orange-50 text-orange-600 rounded-lg">
@@ -259,31 +267,32 @@ const ExpenditureManagement = () => {
             {/* Main Content */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="p-5 border-b border-slate-100 flex justify-between items-center">
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setFilter('all')}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === 'all' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}
-                        >
-                            All Expenses
-                        </button>
-                        <button
-                            onClick={() => setFilter('year')}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === 'year' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}
-                        >
-                            This Year
-                        </button>
-                        <button
-                            onClick={() => setFilter('month')}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === 'month' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}
-                        >
-                            This Month
-                        </button>
-                        <button
-                            onClick={() => setFilter('today')}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === 'today' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50'}`}
-                        >
-                            Today
-                        </button>
+                    <h3 className="text-lg font-bold text-slate-800">All Expenses</h3>
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-semibold text-slate-600">Year:</label>
+                            <select
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                                className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 outline-none bg-white"
+                            >
+                                {Array.from({ length: new Date().getFullYear() - 2020 + 1 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm font-semibold text-slate-600">Month:</label>
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                                className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 outline-none bg-white"
+                            >
+                                {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((month, index) => (
+                                    <option key={index} value={index}>{month}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -328,12 +337,22 @@ const ExpenditureManagement = () => {
                                             -₹{parseFloat(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                         </td>
                                         <td className="px-6 py-3 text-right">
-                                            <button
-                                                onClick={() => handleDelete(item.id)}
-                                                className="text-slate-400 hover:text-red-600 transition-colors"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleEdit(item)}
+                                                    className="text-slate-400 hover:text-indigo-600 transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <Edit size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(item.id)}
+                                                    className="text-slate-400 hover:text-red-600 transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -355,7 +374,7 @@ const ExpenditureManagement = () => {
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-2xl shadow-xl w-full max-w-md animate-in zoom-in-95 duration-200">
                             <div className="p-6 border-b border-slate-100">
-                                <h3 className="text-lg font-bold text-slate-800">Add New Expenditure</h3>
+                                <h3 className="text-lg font-bold text-slate-800">{editingId ? 'Edit Expenditure' : 'Add New Expenditure'}</h3>
                             </div>
                             <form onSubmit={handleSubmit} className="p-6 space-y-4">
                                 <div>

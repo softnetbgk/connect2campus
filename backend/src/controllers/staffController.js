@@ -38,11 +38,21 @@ exports.addStaff = async (req, res) => {
             }
         }
 
-        // 2. Generate 6-Digit Staff ID
+        // 2. Generate Employee ID - NEW FORMAT: [School First Letter][Role First Letter][4 digits]
+        // Examples: 
+        // - Driver at ABC School -> AD1234
+        // - Librarian at ABC School -> AL5678
+        // - Accountant at ABC School -> AA9012
+        const schoolRes = await client.query('SELECT name FROM schools WHERE id = $1', [school_id]);
+        const schoolName = schoolRes.rows[0]?.name || 'X';
+        const schoolLetter = schoolName.replace(/[^a-zA-Z]/g, '').substring(0, 1).toUpperCase() || 'X';
+        const roleLetter = (role || 'S').substring(0, 1).toUpperCase();
+
         let employee_id;
         let isUnique = false;
         while (!isUnique) {
-            employee_id = Math.floor(100000 + Math.random() * 900000).toString();
+            const rand4 = Math.floor(1000 + Math.random() * 9000); // 1000 to 9999
+            employee_id = `${schoolLetter}${roleLetter}${rand4}`;
             // Check uniqueness in staff
             const check = await client.query('SELECT 1 FROM staff WHERE employee_id = $1 AND school_id = $2', [employee_id, school_id]);
             if (check.rows.length === 0) isUnique = true;
@@ -74,7 +84,7 @@ exports.addStaff = async (req, res) => {
 
         if (userCheck.rows.length === 0) {
             await client.query(
-                `INSERT INTO users (email, password, role, school_id) VALUES ($1, $2, $3, $4)`,
+                `INSERT INTO users (email, password, role, school_id, must_change_password) VALUES ($1, $2, $3, $4, TRUE)`,
                 [loginEmail, defaultPassword, userRole, school_id]
             );
         }

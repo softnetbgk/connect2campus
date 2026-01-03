@@ -109,7 +109,6 @@ const SchoolAdminDashboard = () => {
         hostel: false,
         calendar: false,
         admissions: false,
-        admissions: false,
         transport: false,
         biometric: false
     });
