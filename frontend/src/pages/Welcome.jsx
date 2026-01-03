@@ -1,16 +1,24 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plane, Cloud, Zap } from 'lucide-react';
 
 const Welcome = ({ onComplete }) => {
     const [schoolName, setSchoolName] = useState('Connect to Campus');
+    const navigate = useNavigate();
+
+    const handleComplete = () => {
+        if (onComplete) {
+            onComplete();
+        } else {
+            navigate('/login');
+        }
+    };
 
     useEffect(() => {
-        // Navigation after 10 seconds
-        const timeout = setTimeout(() => {
-            if (onComplete) onComplete();
-        }, 10000);
+        // Navigation after 10.5 seconds (Matches Bus Animation of 10s)
+        const timeout = setTimeout(handleComplete, 10500);
 
-        // Fetch School Name (Mock or Storage for now to be fast)
+        // Fetch School Name
         const storedConfig = localStorage.getItem('school_config');
         if (storedConfig) {
             try {
@@ -19,10 +27,8 @@ const Welcome = ({ onComplete }) => {
             } catch (e) { }
         }
 
-        return () => {
-            clearTimeout(timeout);
-        };
-    }, [onComplete]);
+        return () => clearTimeout(timeout);
+    }, [onComplete, navigate]);
 
     return (
         <div className="relative w-full h-[100dvh] bg-sky-300 overflow-hidden flex flex-col justify-between">
