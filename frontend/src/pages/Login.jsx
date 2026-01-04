@@ -204,7 +204,7 @@ const Login = () => {
                             <div className="flex flex-col md:flex-row gap-4 justify-center mb-6">
                                 <div className="bg-white p-3 rounded-xl shadow-inner border border-slate-100">
                                     <QRCode
-                                        value="https://github.com/Rudrappa838/school-software/releases/latest/download/SchoolApp.apk"
+                                        value="https://github.com/Rudrappa838/school-software/releases/latest"
                                         size={130}
                                         level="H"
                                     />
