@@ -1,0 +1,10 @@
+{
+    "apps": [
+        {
+            "appId": "ff68a5b0",
+            "root": "frontend",
+            "webDir": "dist",
+            "buildCommand": "npm run build"
+        }
+    ]
+}
