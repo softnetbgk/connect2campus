@@ -60,12 +60,39 @@ export const AuthProvider = ({ children }) => {
             channel.postMessage({ type: 'LOGIN_SUCCESS', userId: user.id });
             channel.close();
 
-            return { success: true };
+            return { success: true, user };
         } catch (error) {
             console.error("Login failed", error);
+
+            // Detailed error handling
+            let errorMessage = 'Login failed';
+
+            if (!error.response) {
+                // Network error - no response from server
+                if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+                    errorMessage = '⏱️ Connection timeout. Please check your internet connection and try again.';
+                } else if (error.message.includes('Network Error')) {
+                    errorMessage = '🌐 Cannot connect to server. Please check your internet connection.';
+                } else {
+                    errorMessage = '❌ Network error. Please check your connection and try again.';
+                }
+            } else if (error.response.status === 401) {
+                // Authentication error
+                errorMessage = '🔒 Invalid credentials. Please check your ID/Email and password.';
+            } else if (error.response.status === 403) {
+                // Authorization error
+                errorMessage = '⛔ Access denied. Role mismatch or insufficient permissions.';
+            } else if (error.response.status === 500) {
+                // Server error
+                errorMessage = '🔧 Server error. Please try again later or contact support.';
+            } else if (error.response?.data?.message) {
+                // Use server's error message if available
+                errorMessage = error.response.data.message;
+            }
+
             return {
                 success: false,
-                message: error.response?.data?.message || error.message || 'Login failed (Check Network)'
+                message: errorMessage
             };
         }
     };

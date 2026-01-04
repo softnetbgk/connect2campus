@@ -2,10 +2,6 @@
   "appId": "com.school.app",
   "appName": "SchoolApp",
   "webDir": "dist",
-  "server": {
-    "url": "https://connecttocampus-c98e4.web.app",
-    "cleartext": true
-  },
   "plugins": {
     "PushNotifications": {
       "presentationOptions": [
@@ -15,11 +11,21 @@
       ]
     },
     "SplashScreen": {
-      "launchShowDuration": 1000,
+      "launchShowDuration": 500,
       "launchAutoHide": true,
-      "backgroundColor": "#ffffff",
+      "backgroundColor": "#0ea5e9",
       "androidSplashResourceName": "splash",
       "showSpinner": false
+    },
+    "Geolocation": {
+      "permissions": [
+        "location"
+      ]
     }
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
   }
 }

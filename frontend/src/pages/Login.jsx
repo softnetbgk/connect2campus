@@ -5,7 +5,6 @@ import toast from 'react-hot-toast';
 import { School, ShieldCheck, User, Users, GraduationCap, Briefcase, Bus, Eye, EyeOff, X, Smartphone } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { Capacitor } from '@capacitor/core';
-import Welcome from './Welcome';
 
 import loginBg from '../assets/login-bg.jpg';
 
@@ -22,9 +21,6 @@ const Login = () => {
 
     // Detect if running in mobile app (Capacitor or WebView with param)
     const isMobileApp = Capacitor.isNativePlatform() || new URLSearchParams(window.location.search).get('is_mobile_app') === 'true';
-
-    // Skip welcome if navigated with state flag
-    const [showWelcome, setShowWelcome] = useState(!location.state?.skipWelcome && new URLSearchParams(window.location.search).get('skip_welcome') !== 'true');
 
     const roles = [
         { id: 'SCHOOL_ADMIN', label: 'School Admin', icon: School },
@@ -60,9 +56,6 @@ const Login = () => {
         }
     };
 
-    if (showWelcome) {
-        return <Welcome onComplete={() => setShowWelcome(false)} />;
-    }
 
     return (
         <div className="relative min-h-screen w-full overflow-hidden flex items-center justify-center">

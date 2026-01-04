@@ -12,6 +12,9 @@ const Welcome = ({ onComplete }) => {
         if (hasNavigated.current) return;
         hasNavigated.current = true;
 
+        // Mark welcome as shown in session
+        sessionStorage.setItem('welcome_shown', 'true');
+
         if (onComplete) {
             onComplete();
         } else {
@@ -20,6 +23,14 @@ const Welcome = ({ onComplete }) => {
     };
 
     useEffect(() => {
+        // Check if welcome was already shown in this session
+        const welcomeShown = sessionStorage.getItem('welcome_shown');
+        if (welcomeShown === 'true') {
+            // Skip welcome and go directly to login
+            navigate('/login', { replace: true });
+            return;
+        }
+
         // Navigation after 5.5 seconds (Matches 5s Animation)
         const timeout = setTimeout(handleComplete, 5500);
 
