@@ -319,18 +319,7 @@ const StudentDashboard = () => {
                         </div>
                         <div className="flex items-center gap-4 py-2">
                             <NotificationBell />
-                            <button
-                                onClick={() => setActiveTab('leaves')}
-                                className="p-2 bg-white border border-slate-200 rounded-full text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all relative"
-                                title={leaveNotifications.length > 0 ? `${leaveNotifications.length} leave update(s)` : 'No new notifications'}
-                            >
-                                <Bell size={20} />
-                                {leaveNotifications.length > 0 && (
-                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-xs font-bold rounded-full border-2 border-white flex items-center justify-center animate-pulse">
-                                        {leaveNotifications.length}
-                                    </span>
-                                )}
-                            </button>
+
                             <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200">
                                 {user?.name?.[0]}
                             </div>
