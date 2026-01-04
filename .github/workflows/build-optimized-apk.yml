@@ -62,6 +62,8 @@ jobs:
           # Remove unnecessary files
           find dist -name "*.txt" -type f -delete
           find dist -name "README*" -type f -delete
+          # Remove any .gz files to prevent duplicates
+          find dist -name "*.gz" -type f -delete
           echo "Build size after optimization:"
           du -sh dist/
 
