@@ -5,6 +5,9 @@ buildscript {
     repositories {
         google()
         mavenCentral()
+        // Add alternative repositories for reliability
+        maven { url 'https://jitpack.io' }
+        maven { url 'https://maven.google.com' }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.2.2'
@@ -21,6 +24,19 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // Add alternative repositories
+        maven { url 'https://jitpack.io' }
+        maven { url 'https://maven.google.com' }
+        // Add JCenter as fallback (still works for existing packages)
+        maven { url 'https://jcenter.bintray.com' }
+    }
+    
+    // Configure repository retry and timeout
+    configurations.all {
+        resolutionStrategy {
+            cacheDynamicVersionsFor 0, 'seconds'
+            cacheChangingModulesFor 0, 'seconds'
+        }
     }
     
     // Force Java 17 via toolchain for ALL projects (including plugins)
