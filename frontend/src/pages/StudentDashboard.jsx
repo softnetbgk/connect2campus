@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
 import toast from 'react-hot-toast';
+import { Capacitor } from '@capacitor/core';
 
 import api from '../api/axios';
 import StudentDoubts from '../components/dashboard/students/StudentDoubts';
@@ -32,17 +33,19 @@ const StudentDashboard = () => {
     // Detect Mobile App context
     useEffect(() => {
         const checkMobile = () => {
+            const isNative = Capacitor.isNativePlatform();
             const params = new URLSearchParams(window.location.search);
-            const isApp = params.get('is_mobile_app') === 'true';
-            if (isApp) {
+            const isAppParam = params.get('is_mobile_app') === 'true';
+            const isStored = localStorage.getItem('is_mobile_app') === 'true';
+
+            if (isNative || isAppParam || isStored) {
                 setIsMobileApp(true);
-                localStorage.setItem('is_mobile_app', 'true');
-            } else if (localStorage.getItem('is_mobile_app') === 'true') {
-                setIsMobileApp(true);
+                if (isAppParam) localStorage.setItem('is_mobile_app', 'true');
             }
         };
         checkMobile();
     }, []);
+
     const [studentData, setStudentData] = useState(null);
     const [schoolName, setSchoolName] = useState('');
     const [leaveNotifications, setLeaveNotifications] = useState([]);
@@ -280,7 +283,7 @@ const StudentDashboard = () => {
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-white truncate">{user?.name}</p>
                             <p className="text-[10px] text-blue-100 uppercase font-medium tracking-tight">
-                                {studentData?.class_name ? `Class ${studentData.class_name}-${studentData.section_name}` : 'Student'} • {studentData?.admission_no || '--'}
+                                {studentData?.class_name ? `Class ${studentData.class_name.toString().replace(/class/i, '').trim()}${studentData.section_name ? `-${studentData.section_name}` : ''}` : 'Student'} • {studentData?.admission_no || '--'}
                             </p>
                             <p className="text-[10px] text-blue-200 truncate">{schoolName}</p>
                         </div>
