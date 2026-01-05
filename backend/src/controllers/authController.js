@@ -309,6 +309,9 @@ const forgotPassword = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        // Use the FOUND user's email for sending, not the input (which might be an ID)
+        const recipientEmail = user.email;
+
         // Generate Token
         // Using crypto (built-in node)
         const crypto = require('crypto');
@@ -318,11 +321,11 @@ const forgotPassword = async (req, res) => {
         await pool.query('UPDATE users SET reset_password_token = $1, reset_password_expires = $2 WHERE id = $3', [resetToken, resetExpires, user.id]);
 
         // Send Email
-        const resetLink = `https://connect2campus.netlify.app/reset-password/${resetToken}`;
+        const resetLink = `https://connecttocampus-c98e4.web.app/reset-password/${resetToken}`;
 
         // Log for development (always visible)
         console.log('----- PASSWORD RESET LINK (Dev Mode) -----');
-        console.log(`Role: ${role}, Email: ${email}`);
+        console.log(`Role: ${role}, Email (Input): ${email}, Sent To: ${recipientEmail}`);
         console.log(`Link: ${resetLink}`);
         console.log('----------------------------------------');
 
@@ -344,7 +347,7 @@ const forgotPassword = async (req, res) => {
 
                 const mailOptions = {
                     from: process.env.EMAIL_USER,
-                    to: email, // This must be a REAL email address to work
+                    to: recipientEmail, // Corrected recipient
                     subject: 'Password Reset Request - School Portal',
                     html: `
                         <h3>Password Reset Request</h3>
