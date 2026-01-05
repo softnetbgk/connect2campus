@@ -40,6 +40,7 @@ app.use((req, res, next) => {
 
 app.use(morgan('dev')); // Logger
 app.use(express.json()); // Parse JSON bodies
+app.use(express.static(path.join(__dirname, '../public'))); // Serve static files (APKs, etc.)
 
 // Rate Limiter (Prevent Crashing from DoS/Spam)
 const limiter = rateLimit({
