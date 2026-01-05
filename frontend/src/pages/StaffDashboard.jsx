@@ -241,7 +241,7 @@ const StaffDashboard = () => {
 
                     <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">Transport</p>
                     <NavButton active={activeTab === 'fleet-map'} onClick={() => handleTabChange('fleet-map')} icon={Navigation} label="Live Fleet Map" />
-// ... (Sidebar GPS Button)
+
                     {isDriver && (
                         <div className="px-4 py-2">
                             <button
