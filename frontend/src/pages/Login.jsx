@@ -216,7 +216,7 @@ const Login = () => {
                             <div className="flex flex-col md:flex-row gap-4 justify-center mb-6">
                                 <div className="bg-white p-3 rounded-xl shadow-inner border border-slate-100">
                                     <QRCode
-                                        value="https://github.com/Rudrappa838/school-software/raw/main/release/schoolapp_v3.apk"
+                                        value="https://github.com/Rudrappa838/school-software/raw/main/release/schoolapp_v4.apk"
                                         size={130}
                                         level="H"
                                     />
@@ -234,8 +234,8 @@ const Login = () => {
 
                             <div className="space-y-3">
                                 <a
-                                    href="https://github.com/Rudrappa838/school-software/raw/main/release/schoolapp_v3.apk"
-                                    download="SchoolApp_v3.apk"
+                                    href="https://github.com/Rudrappa838/school-software/raw/main/release/schoolapp_v4.apk"
+                                    download="SchoolApp_v4.apk"
                                     className="w-full inline-flex justify-center items-center gap-3 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors text-sm shadow-lg shadow-green-500/20"
                                 >
                                     <Smartphone size={20} />

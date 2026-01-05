@@ -378,7 +378,7 @@ const StudentOverview = ({ schoolName, stats, student, user }) => (
                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500 font-medium">
                                 <span className="flex items-center gap-1">
                                     <GraduationCap size={14} className="text-indigo-500" />
-                                    {student?.class_name ? `Class ${student.class_name}-${student.section_name}` : 'Student'}
+                                    {student?.class_name ? `Class ${student.class_name.toString().replace(/class/i, '').trim()}${student.section_name ? `-${student.section_name}` : ''}` : 'Student'}
                                 </span>
                                 {student?.admission_no && (
                                     <span className="flex items-center gap-1">
