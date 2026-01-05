@@ -56,9 +56,14 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('user', JSON.stringify(user));
             setUser(user);
 
-            const channel = new BroadcastChannel('school_auth_channel');
-            channel.postMessage({ type: 'LOGIN_SUCCESS', userId: user.id });
-            channel.close();
+            try {
+                const channel = new BroadcastChannel('school_auth_channel');
+                channel.postMessage({ type: 'LOGIN_SUCCESS', userId: user.id });
+                channel.close();
+            } catch (bcError) {
+                // Ignore BroadcastChannel errors in mobile/background tabs
+                console.warn('BroadcastChannel suppressed:', bcError);
+            }
 
             return { success: true, user };
         } catch (error) {
