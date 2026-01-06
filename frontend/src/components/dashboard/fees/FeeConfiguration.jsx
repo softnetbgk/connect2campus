@@ -10,6 +10,10 @@ const FeeConfiguration = ({ config }) => {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
 
+    // Submission Lock
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = React.useRef(false);
+
     // Student Detail / Edit Mode
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [studentFees, setStudentFees] = useState([]);
@@ -46,6 +50,11 @@ const FeeConfiguration = ({ config }) => {
 
     const handleAddFee = async (e) => {
         e.preventDefault();
+
+        if (isSubmitting || isSubmittingRef.current) return;
+        setIsSubmitting(true);
+        isSubmittingRef.current = true;
+
         try {
             await api.post('/fees/student-structure', {
                 ...formData,
@@ -56,16 +65,29 @@ const FeeConfiguration = ({ config }) => {
             fetchStudentFees();
             fetchStudents(); // Refresh main list stats
         } catch (e) { toast.error('Failed to add fee'); }
+        finally {
+            setIsSubmitting(false);
+            isSubmittingRef.current = false;
+        }
     };
 
     const handleDeleteFee = async (id) => {
         if (!confirm('Delete this fee?')) return;
+
+        if (isSubmitting || isSubmittingRef.current) return;
+        setIsSubmitting(true);
+        isSubmittingRef.current = true;
+
         try {
             await api.delete(`/fees/structures/${id}`);
             toast.success('Fee Removed');
             fetchStudentFees();
             fetchStudents();
         } catch (e) { toast.error('Delete failed'); }
+        finally {
+            setIsSubmitting(false);
+            isSubmittingRef.current = false;
+        }
     };
 
     const formatCurrency = (amount) => {
@@ -160,7 +182,7 @@ const FeeConfiguration = ({ config }) => {
                                         </div>
                                         <div className="text-right flex items-center gap-4">
                                             <span className="font-mono font-bold text-gray-700">₹{formatCurrency(f.total_amount)}</span>
-                                            <button onClick={() => handleDeleteFee(f.fee_structure_id)} className="text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
+                                            <button onClick={() => handleDeleteFee(f.fee_structure_id)} className="text-red-400 hover:text-red-600 disabled:text-gray-300 disabled:cursor-not-allowed" disabled={isSubmitting}><Trash2 size={16} /></button>
                                         </div>
                                     </div>
                                 ))}
@@ -186,7 +208,7 @@ const FeeConfiguration = ({ config }) => {
                                         <label className="label text-indigo-900">Due Date</label>
                                         <input type="date" className="input bg-white" required value={formData.due_date} onChange={e => setFormData({ ...formData, due_date: e.target.value })} />
                                     </div>
-                                    <button type="submit" className="btn-primary w-full bg-indigo-600 hover:bg-indigo-700">Add Fee to Student</button>
+                                    <button type="submit" className="btn-primary w-full bg-indigo-600 hover:bg-indigo-700" disabled={isSubmitting}>{isSubmitting ? 'Adding...' : 'Add Fee to Student'}</button>
                                 </form>
                             </div>
                         </div>

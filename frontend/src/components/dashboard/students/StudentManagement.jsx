@@ -301,8 +301,13 @@ const StudentManagement = ({ config, prefillData }) => {
         printWindow.document.close();
     };
 
+    const isSubmittingRef = React.useRef(false);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Prevent double submit immediate check
+        if (isSubmitting || isSubmittingRef.current) return;
 
         if (formData.contact_number && !/^\d{10}$/.test(formData.contact_number)) {
             return toast.error('Mobile number must be 10 digits');
@@ -325,6 +330,7 @@ const StudentManagement = ({ config, prefillData }) => {
         }
 
         setIsSubmitting(true);
+        isSubmittingRef.current = true;
         const payload = { ...formData, name: finalName };
 
         try {
@@ -341,6 +347,7 @@ const StudentManagement = ({ config, prefillData }) => {
             toast.error(error.response?.data?.message || 'Failed to save student');
         } finally {
             setIsSubmitting(false);
+            isSubmittingRef.current = false;
         }
     };
 

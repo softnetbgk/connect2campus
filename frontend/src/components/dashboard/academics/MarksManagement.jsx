@@ -9,6 +9,8 @@ const MarksManagement = ({ config }) => {
     const [selectedExam, setSelectedExam] = useState('');
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+    const [examSchedule, setExamSchedule] = useState([]);
+    const [grades, setGrades] = useState([]); // Grade configuration
     const [examTypes, setExamTypes] = useState([]);
     const [students, setStudents] = useState([]);
     const [subjects, setSubjects] = useState([]);
@@ -18,6 +20,84 @@ const MarksManagement = ({ config }) => {
     const [showMarksheetModal, setShowMarksheetModal] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [marksheetData, setMarksheetData] = useState(null);
+    const [scheduledExams, setScheduledExams] = useState([]);
+    const [scheduledPeriod, setScheduledPeriod] = useState(''); // Text to display e.g., "Jan 2026 - Feb 2026"
+
+    // Fetch Schedule Period when Exam Type changes
+    useEffect(() => {
+        if (selectedExam) {
+            fetchExamPeriod(selectedExam);
+        } else {
+            setScheduledPeriod('');
+        }
+    }, [selectedExam]);
+
+    const fetchExamPeriod = async (examId) => {
+        try {
+            // We need an endpoint or just fetch schedule list logic
+            // Reusing existing: /exam-schedule?exam_type_id=...
+            // Note: This fetches ALL schedules for this exam type across all classes.
+            setScheduledPeriod('Fetching...');
+            const res = await api.get('/exam-schedule', { params: { exam_type_id: examId } });
+
+            if (res.data && res.data.length > 0) {
+                const dates = res.data.map(s => new Date(s.exam_date));
+                const min = new Date(Math.min(...dates));
+                const max = new Date(Math.max(...dates));
+
+                const minStr = min.toLocaleDateString('default', { month: 'short', year: 'numeric' });
+                const maxStr = max.toLocaleDateString('default', { month: 'short', year: 'numeric' });
+
+                if (minStr === maxStr) {
+                    setScheduledPeriod(minStr);
+                } else {
+                    setScheduledPeriod(`${minStr} - ${maxStr}`);
+                }
+            } else {
+                setScheduledPeriod('No schedule found');
+            }
+        } catch (error) {
+            console.error(error);
+            setScheduledPeriod('Error fetching period');
+        }
+    };
+
+    useEffect(() => {
+        if (selectedClass) {
+            fetchScheduledExams();
+        }
+    }, [selectedClass, selectedSection]);
+
+    const fetchScheduledExams = async () => {
+        try {
+            let url = `/exam-schedule?class_id=${selectedClass}`;
+            if (selectedSection) url += `&section_id=${selectedSection}`;
+
+            const res = await api.get(url);
+            const uniqueExams = [];
+            const seen = new Set();
+
+            if (Array.isArray(res.data)) {
+                res.data.forEach(sch => {
+                    if (!seen.has(sch.exam_type_id)) {
+                        seen.add(sch.exam_type_id);
+                        uniqueExams.push({
+                            id: sch.exam_type_id,
+                            name: sch.exam_type_name
+                        });
+                    }
+                });
+            }
+            setScheduledExams(uniqueExams);
+        } catch (error) {
+            console.error('Error fetching schedules:', error);
+        }
+    };
+
+    const handleSelectScheduledExam = (examId) => {
+        setSelectedExam(examId);
+        setShowExamModal(false);
+    };
 
     // New Exam with Components
     const [newExam, setNewExam] = useState({
@@ -53,36 +133,76 @@ const MarksManagement = ({ config }) => {
     }, [selectedClass]);
 
     useEffect(() => {
-        if (selectedClass && selectedSection) {
+        if (selectedClass) {
+            const hasSections = sections.length > 0;
+            // logic: If sections exist, wait for section selection. If no sections, fetch immediately.
+            if (hasSections && !selectedSection) return;
             fetchStudents();
         }
     }, [selectedClass, selectedSection]);
 
     useEffect(() => {
-        if (selectedClass && selectedSection && selectedExam) {
+        if (selectedClass && selectedExam) {
+            const hasSections = sections.length > 0;
+            if (hasSections && !selectedSection) return;
             fetchMarks();
         }
     }, [selectedClass, selectedSection, selectedExam, selectedYear]);
 
+    // ...
+
     const fetchExamTypes = async () => {
         try {
-            const res = await api.get('/marks/exam-types');
-            setExamTypes(res.data);
+            const examsRes = await api.get('/marks/exam-types');
+            const gradesRes = await api.get('/grades');
+            setExamTypes(examsRes.data);
+            setGrades(gradesRes.data);
         } catch (error) {
             console.error(error);
         }
     };
 
     const fetchSubjects = async () => {
-        const classData = config?.classes?.find(c => c.class_id === parseInt(selectedClass));
-        if (classData) {
-            setSubjects(classData.subjects || []);
+        if (!selectedClass) return;
+        try {
+            const res = await api.get(`/classes/${selectedClass}/subjects`);
+            setSubjects(res.data);
+        } catch (error) {
+            console.error(error);
         }
     };
 
+    const fetchSchedule = async () => {
+        if (selectedExam && selectedClass) {
+            try {
+                const sectionIdVal = selectedSection ? parseInt(selectedSection) : null;
+                const scheduleRes = await api.get('/exam-schedule', {
+                    params: {
+                        class_id: selectedClass,
+                        section_id: sectionIdVal || undefined,
+                        exam_type_id: selectedExam
+                    }
+                });
+                setExamSchedule(scheduleRes.data);
+            } catch (err) {
+                console.error("Failed to fetch schedule components", err);
+                setExamSchedule([]);
+            }
+        }
+    };
+
+    useEffect(() => {
+        fetchSchedule();
+    }, [selectedExam, selectedClass, selectedSection]);
+
+
+
     const fetchStudents = async () => {
         try {
-            const res = await api.get(`/students?class_id=${selectedClass}&section_id=${selectedSection}`);
+            let url = `/students?class_id=${selectedClass}`;
+            if (selectedSection) url += `&section_id=${selectedSection}`;
+
+            const res = await api.get(url);
             const studentsList = res.data.data || res.data || [];
             setStudents(studentsList);
         } catch (error) {
@@ -91,26 +211,26 @@ const MarksManagement = ({ config }) => {
     };
 
     const fetchMarks = async () => {
-        if (!selectedClass || !selectedSection || !selectedExam) return;
+        if (!selectedClass || !selectedExam) return;
 
         setMarks({}); // Clear marks before fetching to avoid stale keys
         try {
-            const res = await api.get(`/marks?class_id=${selectedClass}&section_id=${selectedSection}&exam_type_id=${selectedExam}&year=${selectedYear}`);
+            let url = `/marks?class_id=${selectedClass}&exam_type_id=${selectedExam}&year=${selectedYear}`;
+            if (selectedSection) url += `&section_id=${selectedSection}`;
+
+            const res = await api.get(url);
             const existingMarks = {};
 
             // Populate marks object from fetched data
             if (res.data && Array.isArray(res.data)) {
                 res.data.forEach(mark => {
-                    // Check if this mark has components
-                    if (mark.components && mark.components.length > 0) {
-                        // Component-based marks
-                        mark.components.forEach(comp => {
-                            const key = `${mark.student_id}-${mark.subject_id}-${comp.component_id}`;
-                            existingMarks[key] = comp.marks_obtained;
-                        });
+                    const key = `${mark.student_id}-${mark.subject_id}`;
+                    if (mark.component_scores && Object.keys(mark.component_scores).length > 0) {
+                        existingMarks[key] = {
+                            total: mark.marks_obtained,
+                            components: mark.component_scores
+                        };
                     } else {
-                        // Simple marks
-                        const key = `${mark.student_id}-${mark.subject_id}`;
                         existingMarks[key] = mark.marks_obtained;
                     }
                 });
@@ -123,9 +243,9 @@ const MarksManagement = ({ config }) => {
         }
     };
 
-    const selectedExamType = examTypes.find(e => e.id === parseInt(selectedExam));
-    const hasComponents = selectedExamType?.components?.length > 0;
+    // ...
 
+    // Helper functions for Exam Components
     const addComponent = () => {
         setNewExam({
             ...newExam,
@@ -143,6 +263,8 @@ const MarksManagement = ({ config }) => {
         updated[index][field] = value;
         setNewExam({ ...newExam, components: updated });
     };
+
+
 
     const handleCreateExamType = async () => {
         if (!newExam.name) {
@@ -171,16 +293,117 @@ const MarksManagement = ({ config }) => {
         }
     };
 
-    const handleMarkChange = (studentId, subjectId, componentId, value, maxMarks) => {
-        if (parseFloat(value) > parseFloat(maxMarks)) {
-            toast.error(`Marks cannot exceed ${maxMarks}`);
-            return;
+    const handleMarkChange = (studentId, subjectId, value, componentName = null) => {
+        const key = `${studentId}-${subjectId}`;
+        const newMarks = { ...marks };
+
+        // Find the schedule item for this subject to get max marks for validation
+        const scheduleItem = examSchedule.find(s => s.subject_id === subjectId);
+        const componentsConfig = scheduleItem?.components || [];
+
+        if (componentName) {
+            // Updating a component score
+            const existing = newMarks[key] || { total: '', components: {} };
+            const currentComponents = existing.components || {};
+
+            // Validate component mark against its max_marks
+            const componentMaxMarks = componentsConfig.find(c => c.name === componentName)?.max_marks || Infinity;
+            if (parseFloat(value) > componentMaxMarks) {
+                toast.error(`Marks for ${componentName} cannot exceed ${componentMaxMarks}`);
+                return;
+            }
+
+            currentComponents[componentName] = value;
+
+            // Calculate new total
+            let total = 0;
+            Object.values(currentComponents).forEach(v => total += (parseFloat(v) || 0));
+
+            newMarks[key] = {
+                total: total,
+                components: currentComponents
+            };
+        } else {
+            // Simple total mark update (no components for this subject)
+            const subjectMaxMarks = scheduleItem?.max_marks || selectedExamType?.max_marks || 100;
+            if (parseFloat(value) > subjectMaxMarks) {
+                toast.error(`Marks cannot exceed ${subjectMaxMarks}`);
+                return;
+            }
+            newMarks[key] = value;
         }
-        const key = componentId
-            ? `${studentId}-${subjectId}-${componentId}`
-            : `${studentId}-${subjectId}`;
-        setMarks(prev => ({ ...prev, [key]: value }));
+        setMarks(newMarks);
     };
+
+    const handleViewMarksheet = async (student) => {
+        if (!selectedExam) return;
+
+        try {
+            const studentMarks = [];
+            let totalObtained = 0;
+            let totalMax = 0;
+
+            subjects.forEach(sub => {
+                let subObtained = 0;
+                let subMax = 0;
+
+                const key = `${student.id}-${sub.id}`;
+                const markEntry = marks[key];
+                const scheduleItem = examSchedule.find(s => s.subject_id === sub.id);
+                const componentsConfig = scheduleItem?.components || [];
+                const hasComponentsForSubject = componentsConfig.length > 0;
+
+                if (hasComponentsForSubject) {
+                    if (markEntry && typeof markEntry === 'object' && markEntry.components) {
+                        subObtained = parseFloat(markEntry.total) || 0;
+                        subMax = componentsConfig.reduce((sum, comp) => sum + comp.max_marks, 0);
+                    }
+                } else {
+                    subObtained = parseFloat(markEntry) || 0;
+                    subMax = scheduleItem?.max_marks || selectedExamType?.max_marks || 100;
+                }
+
+                totalObtained += subObtained;
+                totalMax += subMax;
+
+                studentMarks.push({
+                    id: sub.id,
+                    subject_name: sub.name,
+                    max_marks: subMax,
+                    marks_obtained: subObtained,
+                    exam_name: selectedExamType.name
+                });
+            });
+
+            const percentage = totalMax > 0 ? ((totalObtained / totalMax) * 100).toFixed(2) : 0;
+
+            // Calculate Grade
+            const grade = grades.find(g => parseFloat(percentage) >= parseFloat(g.min_percentage) && parseFloat(percentage) <= parseFloat(g.max_percentage));
+
+            setMarksheetData({
+                student: {
+                    name: student.name,
+                    roll_number: student.roll_number,
+                    class_name: config.classes.find(c => c.class_id === parseInt(selectedClass))?.class_name,
+                    section_name: sections.find(s => s.id === parseInt(selectedSection))?.name || 'N/A'
+                },
+                marks: studentMarks,
+                summary: {
+                    total_marks: totalObtained,
+                    max_marks: totalMax,
+                    percentage: percentage,
+                    grade: grade ? grade.name : '-'
+                }
+            });
+
+            setShowMarksheetModal(true);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const selectedExamType = examTypes.find(e => e.id === parseInt(selectedExam));
+    // const hasComponents = selectedExamType?.components?.length > 0; // This is now dynamic per subject
 
     const handleSave = async () => {
         if (!selectedExam) {
@@ -189,41 +412,37 @@ const MarksManagement = ({ config }) => {
         }
 
         const marksArray = [];
+        const sectionIdVal = selectedSection ? parseInt(selectedSection) : null;
 
-        // Handle marks with or without components
         Object.keys(marks).forEach(key => {
-            if (marks[key] === '' || marks[key] === undefined) return;
+            const [studentId, subjectId] = key.split('-');
+            const markData = marks[key];
 
-            const parts = key.split('-');
+            // Skip if no mark entered
+            if (markData === '' || markData === undefined || (typeof markData === 'object' && markData.total === '')) return;
 
-            if (hasComponents) {
-                // Must have 3 parts: studentId-subjectId-componentId
-                if (parts.length !== 3) return;
+            let finalMark = 0;
+            let componentScores = {};
 
-                const [studentId, subjectId, componentId] = parts;
-                marksArray.push({
-                    student_id: parseInt(studentId),
-                    class_id: parseInt(selectedClass),
-                    section_id: parseInt(selectedSection),
-                    subject_id: parseInt(subjectId),
-                    exam_type_id: parseInt(selectedExam),
-                    component_id: parseInt(componentId),
-                    marks_obtained: parseFloat(marks[key])
-                });
+            if (typeof markData === 'object' && markData !== null && markData.total !== undefined) {
+                finalMark = parseFloat(markData.total) || 0;
+                componentScores = markData.components || {};
             } else {
-                // Must have 2 parts: studentId-subjectId
-                if (parts.length !== 2) return;
-
-                const [studentId, subjectId] = parts;
-                marksArray.push({
-                    student_id: parseInt(studentId),
-                    class_id: parseInt(selectedClass),
-                    section_id: parseInt(selectedSection),
-                    subject_id: parseInt(subjectId),
-                    exam_type_id: parseInt(selectedExam),
-                    marks_obtained: parseFloat(marks[key])
-                });
+                finalMark = parseFloat(markData) || 0;
             }
+
+            // Only push if valid mark or at least one component set
+            // Allowing 0 marks? Yes.
+
+            marksArray.push({
+                student_id: parseInt(studentId),
+                class_id: parseInt(selectedClass),
+                section_id: sectionIdVal,
+                subject_id: parseInt(subjectId),
+                exam_type_id: parseInt(selectedExam),
+                marks_obtained: finalMark,
+                component_scores: componentScores
+            });
         });
 
         if (marksArray.length === 0) {
@@ -246,34 +465,25 @@ const MarksManagement = ({ config }) => {
         }
     };
 
-    const handleViewMarksheet = async (student) => {
-        if (!selectedExam) {
-            toast.error('Please select an exam type');
-            return;
-        }
-
-        setLoading(true);
-        try {
-            const res = await api.get(`/marks/marksheet/student?student_id=${student.id}&exam_type_id=${selectedExam}`);
-            setMarksheetData(res.data);
-            setSelectedStudent(student);
-            setShowMarksheetModal(true);
-        } catch (error) {
-            toast.error('Failed to load marksheet');
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // ...
 
     const handlePrintAll = async () => {
-        if (!selectedClass || !selectedSection || !selectedExam) {
-            toast.error('Please select class, section, and exam type');
+        if (!selectedClass || !selectedExam) {
+            toast.error('Please select class and exam type');
+            return;
+        }
+
+        const hasSections = sections.length > 0;
+        if (hasSections && !selectedSection) {
+            toast.error('Please select a section');
             return;
         }
 
         try {
-            const res = await api.get(`/marks/marksheet/all?class_id=${selectedClass}&section_id=${selectedSection}&exam_type_id=${selectedExam}`);
+            let url = `/marks/marksheet/all?class_id=${selectedClass}&exam_type_id=${selectedExam}`;
+            if (selectedSection) url += `&section_id=${selectedSection}`;
+
+            const res = await api.get(url);
             console.log('All marksheets:', res.data);
             toast.success('Opening print preview...');
             setTimeout(() => window.print(), 500);
@@ -302,17 +512,41 @@ const MarksManagement = ({ config }) => {
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 print:hidden">
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     {/* Year, Month, Class, Section, Exam selectors - keeping existing code */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Year</label>
-                        <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm">
-                            {years.map(y => <option key={y} value={y}>{y}</option>)}
+                    {/* REORDERED: Exam Type first */}
+                    <div className="md:col-span-2 lg:col-span-1">
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                            <span>Exam Type</span>
+                        </label>
+                        <select
+                            value={selectedExam}
+                            onChange={(e) => {
+                                setSelectedExam(e.target.value);
+                                // On Exam Select, we should arguably clear class/section if we want STRICT flow,
+                                // but keeping them might be convenient.
+                                // However, fetchScheduledMonths(e.target.value) will run.
+                            }}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm"
+                        >
+                            <option value="">Select Exam</option>
+                            {examTypes.map(e => (
+                                <option key={e.id} value={e.id}>
+                                    {e.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Month</label>
-                        <select value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value))} className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm">
-                            {months.map((m, idx) => <option key={idx} value={idx + 1}>{m}</option>)}
-                        </select>
+
+                    {/* Dynamic Scheduled Period (Month/Year) */}
+                    <div className="md:col-span-3 lg:col-span-1 bg-indigo-50 border border-indigo-100 rounded-lg p-2 flex flex-col justify-center">
+                        <label className="block text-[10px] font-bold text-indigo-500 uppercase">Scheduled Period</label>
+                        <div className="text-sm font-bold text-indigo-700">
+                            {selectedExam ? (
+                                // Logic to display fetched period or loading
+                                scheduledPeriod || 'Loading...'
+                            ) : (
+                                <span className="text-slate-400 font-normal">Select Exam Type...</span>
+                            )}
+                        </div>
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Class</label>
@@ -328,22 +562,7 @@ const MarksManagement = ({ config }) => {
                             {sections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                     </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2 flex justify-between">
-                            <span>Exam Type</span>
-                            <button onClick={() => setShowExamModal(true)} className="text-amber-600 hover:text-amber-700">
-                                <Plus size={14} />
-                            </button>
-                        </label>
-                        <select value={selectedExam} onChange={(e) => setSelectedExam(e.target.value)} className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm">
-                            <option value="">Select Exam</option>
-                            {examTypes.map(e => (
-                                <option key={e.id} value={e.id}>
-                                    {e.name} ({e.components?.length > 0 ? `${e.components.length} components` : `Max: ${e.max_marks}`})
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+
                 </div>
                 <div className="flex gap-2 mt-4">
                     <button onClick={handleSave} disabled={loading || !selectedExam} className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
@@ -367,72 +586,90 @@ const MarksManagement = ({ config }) => {
                                 <tr>
                                     <th className="border border-amber-200 p-3 font-bold text-amber-900 sticky left-0 bg-amber-50">Roll</th>
                                     <th className="border border-amber-200 p-3 font-bold text-amber-900">Student</th>
-                                    {subjects.map(sub => (
-                                        <th key={sub.id} className="border border-amber-200 p-3 font-bold text-amber-900" colSpan={hasComponents ? selectedExamType.components.length : 1}>
-                                            {sub.name}
-                                            {hasComponents && (
-                                                <div className="text-[10px] font-normal text-amber-600 mt-1">
-                                                    {selectedExamType.components.map(c => c.component_name).join(' / ')}
+                                    {subjects.map(subject => {
+                                        // Check for Schedule Components
+                                        const scheduleItem = examSchedule.find(s => s.subject_id === subject.id);
+                                        const components = scheduleItem?.components || [];
+                                        const hasComponents = components.length > 0;
+
+                                        // If components exist, render a column for each component? No, render sub-columns or inputs in same cell.
+                                        // Table Header is dynamic? No, we are mapping rows.
+                                        // If we have varied components per subject, the table structure becomes complex if subjects are columns.
+                                        // Here subjects are COLUMNS.
+                                        // If Subject A has Theory/Practical, and Subject B has only Theory, alignment is tricky.
+
+                                        // Solution: Render a mini-table or stacked inputs within the cell.
+
+                                        return (
+                                            <th key={subject.id} className="p-3 border-b border-l min-w-[120px]">
+                                                <div className="flex flex-col">
+                                                    <span>{subject.name}</span>
+                                                    {hasComponents && (
+                                                        <span className="text-[10px] text-slate-500 font-normal">
+                                                            ({components.map(c => c.name).join(' + ')})
+                                                        </span>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </th>
-                                    ))}
+                                            </th>
+                                        );
+                                    })}
                                     <th className="border border-amber-200 p-3 font-bold text-amber-900">Actions</th>
                                 </tr>
-                                {hasComponents && (
-                                    <tr>
-                                        <th colSpan="2"></th>
-                                        {subjects.map(sub => (
-                                            <React.Fragment key={sub.id}>
-                                                {selectedExamType.components.map(comp => (
-                                                    <th key={comp.id} className="border border-amber-200 p-2 text-[11px] text-amber-700">
-                                                        {comp.component_name} ({comp.max_marks})
-                                                    </th>
-                                                ))}
-                                            </React.Fragment>
-                                        ))}
-                                        <th></th>
-                                    </tr>
-                                )}
                             </thead>
                             <tbody>
                                 {students.map(student => (
                                     <tr key={student.id} className="hover:bg-slate-50">
                                         <td className="border border-slate-200 p-3 text-center font-mono sticky left-0 bg-white">{student.roll_number}</td>
                                         <td className="border border-slate-200 p-3 font-medium">{student.name}</td>
-                                        {subjects.map(subject => (
-                                            <React.Fragment key={subject.id}>
-                                                {hasComponents ? (
-                                                    selectedExamType.components.map(component => (
-                                                        <td key={component.id} className="border border-slate-200 p-2">
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                max={component.max_marks}
-                                                                step="0.5"
-                                                                value={marks[`${student.id}-${subject.id}-${component.id}`] !== undefined ? marks[`${student.id}-${subject.id}-${component.id}`] : ''}
-                                                                onChange={(e) => handleMarkChange(student.id, subject.id, component.id, e.target.value, component.max_marks)}
-                                                                className="w-full px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-amber-500 outline-none text-center"
-                                                                placeholder="-"
-                                                            />
-                                                        </td>
-                                                    ))
-                                                ) : (
-                                                    <td className="border border-slate-200 p-2">
+                                        {subjects.map(subject => {
+                                            const key = `${student.id}-${subject.id}`;
+                                            const scheduleItem = examSchedule.find(s => s.subject_id === subject.id);
+                                            const components = scheduleItem?.components || [];
+                                            const hasComponents = components.length > 0;
+
+                                            const markValue = marks[key];
+                                            // Handle display value
+                                            // If complex object: markValue.components[name]
+
+                                            return (
+                                                <td key={subject.id} className="p-2 border-l text-center">
+                                                    {hasComponents ? (
+                                                        <div className="flex flex-col gap-1">
+                                                            {components.map((comp, idx) => {
+                                                                const val = markValue?.components?.[comp.name] ?? '';
+                                                                return (
+                                                                    <div key={idx} className="flex items-center gap-1">
+                                                                        <span className="text-[10px] w-12 text-right truncate text-slate-500" title={comp.name}>{comp.name}</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            min="0"
+                                                                            max={comp.max_marks}
+                                                                            value={val}
+                                                                            onChange={(e) => handleMarkChange(student.id, subject.id, e.target.value, comp.name)}
+                                                                            className="w-16 border rounded px-1 text-center text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+                                                                            placeholder={`/${comp.max_marks}`}
+                                                                        />
+                                                                    </div>
+                                                                )
+                                                            })}
+                                                            <div className="border-t mt-1 pt-1 text-xs font-bold text-slate-700 text-right pr-2">
+                                                                Total: {markValue?.total || 0}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
                                                         <input
                                                             type="number"
                                                             min="0"
-                                                            max={selectedExamType?.max_marks || 100}
-                                                            step="0.5"
-                                                            value={marks[`${student.id}-${subject.id}`] !== undefined ? marks[`${student.id}-${subject.id}`] : ''}
-                                                            onChange={(e) => handleMarkChange(student.id, subject.id, null, e.target.value, selectedExamType?.max_marks || 100)}
-                                                            className="w-full px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-amber-500 outline-none text-center"
-                                                            placeholder="-"
+                                                            max={scheduleItem?.max_marks || selectedExamType?.max_marks || 100}
+                                                            value={typeof markValue === 'object' ? markValue?.total : (markValue || '')}
+                                                            onChange={(e) => handleMarkChange(student.id, subject.id, e.target.value)}
+                                                            className="w-20 border rounded px-2 py-1 text-center focus:ring-2 focus:ring-amber-500 outline-none"
+                                                            placeholder={`/${scheduleItem?.max_marks || selectedExamType?.max_marks || 100}`}
                                                         />
-                                                    </td>
-                                                )}
-                                            </React.Fragment>
-                                        ))}
+                                                    )}
+                                                </td>
+                                            );
+                                        })}
                                         <td className="border border-slate-200 p-2 text-center">
                                             <button onClick={() => handleViewMarksheet(student)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 mx-auto">
                                                 <Eye size={12} /> View
@@ -461,6 +698,26 @@ const MarksManagement = ({ config }) => {
                         </div>
                         <div className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2 bg-blue-50 p-4 rounded-xl border border-blue-100 mb-2">
+                                    <label className="block text-xs font-bold text-blue-800 uppercase mb-2">Select from Scheduled Exams</label>
+                                    <select
+                                        onChange={(e) => handleSelectScheduledExam(e.target.value)}
+                                        className="w-full px-4 py-2 border border-blue-200 rounded-lg text-sm bg-white text-blue-900 font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                                    >
+                                        <option value="">-- Choose from Schedule --</option>
+                                        {scheduledExams.map(ex => (
+                                            <option key={ex.id} value={ex.id}>{ex.name}</option>
+                                        ))}
+                                    </select>
+                                    <p className="text-[10px] text-blue-600 mt-2 italic">Selecting an exam here will switch to marks entry for that exam instantly.</p>
+                                </div>
+
+                                <div className="col-span-2 flex items-center gap-3 my-2">
+                                    <div className="h-px bg-slate-200 flex-1"></div>
+                                    <span className="text-xs text-slate-400 font-bold uppercase">OR Create New</span>
+                                    <div className="h-px bg-slate-200 flex-1"></div>
+                                </div>
+
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-2">Exam Name</label>
                                     <input type="text" value={newExam.name} onChange={(e) => setNewExam({ ...newExam, name: e.target.value })} placeholder="e.g., Midterm, Final" className="w-full px-4 py-2 border border-slate-300 rounded-lg" />
@@ -601,10 +858,14 @@ const MarksManagement = ({ config }) => {
                             </table>
 
                             {/* Percentage */}
-                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg mb-8">
+                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg mb-8 flex justify-between px-12">
                                 <div className="text-center">
                                     <div className="text-sm text-slate-600 font-bold uppercase mb-1">Percentage</div>
                                     <div className="text-3xl font-bold text-emerald-600">{marksheetData.summary.percentage}%</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="text-sm text-slate-600 font-bold uppercase mb-1">Grade</div>
+                                    <div className="text-3xl font-bold text-indigo-600">{marksheetData.summary.grade}</div>
                                 </div>
                             </div>
 

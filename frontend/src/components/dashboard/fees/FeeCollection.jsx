@@ -33,6 +33,10 @@ const FeeCollection = ({ config: initialConfig }) => {
     const [history, setHistory] = useState([]);
     const [activeTab, setActiveTab] = useState('dues');
 
+    // Submission Lock
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = React.useRef(false);
+
     // Payment Modal
     const [payModal, setPayModal] = useState(null);
     const [editModal, setEditModal] = useState(null);
@@ -85,6 +89,10 @@ const FeeCollection = ({ config: initialConfig }) => {
     };
 
     const handleDeletePayment = async () => {
+        if (isSubmitting || isSubmittingRef.current) return;
+        setIsSubmitting(true);
+        isSubmittingRef.current = true;
+
         try {
             await api.delete(`/fees/payment/${deleteConfirm.id}`);
             toast.success('Payment Deleted');
@@ -95,11 +103,19 @@ const FeeCollection = ({ config: initialConfig }) => {
         } catch (e) {
             console.error(e);
             toast.error('Deletion failed');
+        } finally {
+            setIsSubmitting(false);
+            isSubmittingRef.current = false;
         }
     };
 
     const handleUpdate = async (e) => {
         e.preventDefault();
+
+        if (isSubmitting || isSubmittingRef.current) return;
+        setIsSubmitting(true);
+        isSubmittingRef.current = true;
+
         try {
             if (editModal.type === 'structure') {
                 await api.put(`/fees/structures/${editModal.data.fee_structure_id}`, {
@@ -124,14 +140,23 @@ const FeeCollection = ({ config: initialConfig }) => {
         } catch (e) {
             console.error(e);
             toast.error('Update failed');
+        } finally {
+            setIsSubmitting(false);
+            isSubmittingRef.current = false;
         }
     };
 
     const handlePayment = async (e) => {
         e.preventDefault();
+
+        if (isSubmitting || isSubmittingRef.current) return;
+
         if (['Bank Transfer', 'UPI', 'Cheque'].includes(method) && !transactionId) {
             return toast.error(`${method === 'Cheque' ? 'Cheque Number' : 'Transaction ID / UTR'} is required`);
         }
+
+        setIsSubmitting(true);
+        isSubmittingRef.current = true;
 
         try {
             await api.post('/fees/pay', {
@@ -150,6 +175,10 @@ const FeeCollection = ({ config: initialConfig }) => {
             fetchHistory(selectedStudent.id);
             fetchOverview();
         } catch (e) { toast.error('Payment failed'); }
+        finally {
+            setIsSubmitting(false);
+            isSubmittingRef.current = false;
+        }
     };
 
     const generateReceiptHTML = (payment, student) => {
@@ -245,7 +274,6 @@ const FeeCollection = ({ config: initialConfig }) => {
                         <div class="row"><span class="label">Receipt No</span> <span class="value">#${payment.receipt_no}</span></div>
                         <div class="row"><span class="label">Date</span> <span class="value">${new Date(payment.payment_date).toLocaleDateString('en-GB')}</span></div>
                         <div class="row"><span class="label">Student</span> <span class="value">${student.name}</span></div>
-                        <div class="row"><span class="label">Admission No</span> <span class="value">${student.admission_no}</span></div>
                         <div class="divider"></div>
                         <div class="row"><span class="label">Fee Title</span> <span class="value">${payment.fee_title}</span></div>
                         <div class="row"><span class="label">Payment Mode</span> <span class="value">${payment.payment_method}</span></div>
@@ -487,8 +515,8 @@ const FeeCollection = ({ config: initialConfig }) => {
                                     <textarea className="input" rows="2" value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Any additional notes..." />
                                 </div>
                                 <div className="flex gap-2">
-                                    <button type="button" onClick={() => setPayModal(null)} className="btn-secondary w-1/2">Cancel</button>
-                                    <button type="submit" className="btn-primary w-1/2">Confirm Payment</button>
+                                    <button type="button" onClick={() => setPayModal(null)} className="btn-secondary w-1/2" disabled={isSubmitting}>Cancel</button>
+                                    <button type="submit" className="btn-primary w-1/2" disabled={isSubmitting}>{isSubmitting ? 'Processing...' : 'Confirm Payment'}</button>
                                 </div>
                             </form>
                         </div>
@@ -503,8 +531,8 @@ const FeeCollection = ({ config: initialConfig }) => {
                             <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Payment?</h3>
                             <p className="text-gray-500 text-sm mb-6">This action cannot be undone. The payment record will be permanently removed.</p>
                             <div className="flex gap-3">
-                                <button onClick={() => setDeleteConfirm(null)} className="btn-secondary flex-1">Cancel</button>
-                                <button onClick={handleDeletePayment} className="btn-primary bg-red-600 hover:bg-red-700 flex-1">Delete</button>
+                                <button onClick={() => setDeleteConfirm(null)} className="btn-secondary flex-1" disabled={isSubmitting}>Cancel</button>
+                                <button onClick={handleDeletePayment} className="btn-primary bg-red-600 hover:bg-red-700 flex-1" disabled={isSubmitting}>{isSubmitting ? 'Deleting...' : 'Delete'}</button>
                             </div>
                         </div>
                     </div>
@@ -514,7 +542,7 @@ const FeeCollection = ({ config: initialConfig }) => {
                         <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-lg font-bold">Edit {editModal.type === 'structure' ? 'Fee Structure' : 'Payment'}</h3>
-                                <button onClick={() => setEditModal(null)} className="text-gray-400 hover:text-gray-600">×</button>
+                                <button onClick={() => setEditModal(null)} className="text-gray-400 hover:text-gray-600" disabled={isSubmitting}>×</button>
                             </div>
                             <form onSubmit={handleUpdate} className="space-y-4">
                                 {editModal.type === 'structure' ? (
@@ -554,7 +582,7 @@ const FeeCollection = ({ config: initialConfig }) => {
                                         </div>
                                     </>
                                 )}
-                                <button type="submit" className="btn-primary w-full py-3 bg-gray-800 hover:bg-gray-900">Update Changes</button>
+                                <button type="submit" className="btn-primary w-full py-3 bg-gray-800 hover:bg-gray-900" disabled={isSubmitting}>{isSubmitting ? 'Updating...' : 'Update Changes'}</button>
                             </form>
                         </div>
                     </div>

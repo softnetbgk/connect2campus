@@ -6,6 +6,7 @@ import {
     LogOut, User, Bell, GraduationCap, Clock, Award, MessageSquare, Menu, X, Navigation, CheckSquare
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
+import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 import toast from 'react-hot-toast';
 import { Capacitor } from '@capacitor/core';
 
@@ -204,7 +205,16 @@ const StudentDashboard = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const handleLogout = () => { logout(); navigate('/'); };
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+    const handleLogoutClick = () => {
+        setShowLogoutModal(true);
+    };
+
+    const handleConfirmLogout = () => {
+        logout();
+        navigate('/');
+    };
 
     return (
         <div className="relative min-h-screen w-full flex font-sans text-slate-900 overflow-hidden">
@@ -287,7 +297,7 @@ const StudentDashboard = () => {
                             </p>
                             <p className="text-[10px] text-blue-200 truncate">{schoolName}</p>
                         </div>
-                        <button onClick={handleLogout} className="text-blue-200 hover:text-white transition-colors">
+                        <button onClick={handleLogoutClick} className="text-blue-200 hover:text-white transition-colors">
                             <LogOut size={18} />
                         </button>
                     </div>
@@ -366,6 +376,11 @@ const StudentDashboard = () => {
                     />
                 )}
             </main>
+            <LogoutConfirmationModal
+                isOpen={showLogoutModal}
+                onClose={() => setShowLogoutModal(false)}
+                onConfirm={handleConfirmLogout}
+            />
         </div>
     );
 };

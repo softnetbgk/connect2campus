@@ -30,14 +30,30 @@ const Login = () => {
         { id: 'STAFF', label: 'Staff Member', icon: Briefcase },
     ].filter(r => !isMobileApp || r.id !== 'SCHOOL_ADMIN');
 
+    const isLoggingInRef = React.useRef(false);
+
+    // Check for error message in URL (from axios interceptor)
+    React.useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const errorMsg = params.get('error');
+        if (errorMsg) {
+            setErrorMessage(errorMsg);
+            toast.error(errorMsg);
+            // Optional: Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, [location]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (isLoggingIn) return; // Prevent double click
+        if (isLoggingIn || isLoggingInRef.current) return; // Prevent double click
+
         setErrorMessage('');
         setIsLoggingIn(true);
+        isLoggingInRef.current = true;
 
         try {
-            const result = await login(email, password, role);
+            const result = await login(email.trim(), password.trim(), role);
             if (result.success) {
                 // Check for must_change_password flag from backend
                 if (result.user?.mustChangePassword) {
@@ -59,10 +75,12 @@ const Login = () => {
                 setErrorMessage(result.message);
                 toast.error(result.message);
                 setIsLoggingIn(false);
+                isLoggingInRef.current = false;
             }
         } catch (error) {
             console.error(error);
             setIsLoggingIn(false);
+            isLoggingInRef.current = false;
             setErrorMessage('An unexpected error occurred');
         }
     };
@@ -136,7 +154,7 @@ const Login = () => {
                                             ['TEACHER', 'STAFF'].includes(role) ? 'Enter Employee ID' :
                                                 'admin@school.com'}
                                     value={email}
-                                    onChange={(e) => { setEmail(e.target.value); setErrorMessage(''); }}
+                                    onChange={(e) => { setEmail(e.target.value.replace(/\s/g, '')); setErrorMessage(''); }}
                                 />
                             </div>
 

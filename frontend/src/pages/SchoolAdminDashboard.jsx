@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
 import toast from 'react-hot-toast';
+import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 import { MobileHeader, MobileFooter } from '../components/layout/MobileAppFiles';
 
 // Student Components
@@ -54,6 +55,7 @@ import TimetableManagement from '../components/dashboard/academics/TimetableMana
 import MarksManagement from '../components/dashboard/academics/MarksManagement';
 import ExamSchedule from '../components/dashboard/academics/ExamSchedule';
 import QuestionPaperGenerator from '../components/dashboard/academics/question-paper/QuestionPaperGenerator';
+import GradeManagement from '../components/dashboard/academics/GradeManagement';
 
 // Hostel Components
 import HostelOverview from '../components/dashboard/hostel/HostelOverview';
@@ -164,7 +166,16 @@ const SchoolAdminDashboard = () => {
         }
     };
 
-    const handleLogout = () => { logout(); navigate('/'); };
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+    const handleLogoutClick = () => {
+        setShowLogoutModal(true);
+    };
+
+    const handleConfirmLogout = () => {
+        logout();
+        navigate('/');
+    };
 
     return (
         <div className="relative min-h-screen w-full flex font-sans text-slate-900 overflow-hidden">
@@ -314,6 +325,7 @@ const SchoolAdminDashboard = () => {
                         <NavSubButton active={activeTab === 'timetable'} onClick={() => handleTabChange('timetable')} label="Timetable" />
                         <NavSubButton active={activeTab === 'marks'} onClick={() => handleTabChange('marks')} label="Marks" />
                         <NavSubButton active={activeTab === 'exam-schedule'} onClick={() => handleTabChange('exam-schedule')} label="Exam Schedule" />
+                        <NavSubButton active={activeTab === 'grading'} onClick={() => handleTabChange('grading')} label="Grade Configuration" />
                         <NavSubButton active={activeTab === 'question-generator'} onClick={() => handleTabChange('question-generator')} label="AI Question Paper" />
                     </NavGroup>
 
@@ -407,7 +419,7 @@ const SchoolAdminDashboard = () => {
                             <p className="text-sm font-bold text-white truncate">{user?.email}</p>
                             <p className="text-xs text-gray-400">School Administrator</p>
                         </div>
-                        <button onClick={handleLogout} className="text-gray-400 hover:text-red-400 transition-colors">
+                        <button onClick={handleLogoutClick} className="text-gray-400 hover:text-red-400 transition-colors">
                             <LogOut size={18} />
                         </button>
                     </div>
@@ -480,6 +492,7 @@ const SchoolAdminDashboard = () => {
                         {activeTab === 'timetable' && <TimetableManagement config={academicConfig} />}
                         {activeTab === 'marks' && <MarksManagement config={academicConfig} />}
                         {activeTab === 'exam-schedule' && <ExamSchedule />}
+                        {activeTab === 'grading' && <GradeManagement />}
                         {activeTab === 'question-generator' && <QuestionPaperGenerator config={academicConfig} />}
 
                         {activeTab === 'hostel-overview' && <HostelOverview />}
@@ -507,7 +520,11 @@ const SchoolAdminDashboard = () => {
                     />
                 )}
             </div>
-
+            <LogoutConfirmationModal
+                isOpen={showLogoutModal}
+                onClose={() => setShowLogoutModal(false)}
+                onConfirm={handleConfirmLogout}
+            />
         </div>
     );
 };
@@ -599,6 +616,7 @@ const getTabTitle = (tab) => {
         'timetable': 'Timetable Management',
         'marks': 'Marks Management',
         'exam-schedule': 'Exam Schedule',
+        'grading': 'Grade Configuration',
         'question-generator': 'AI Question Paper Generator',
         'hostel-overview': 'Hostel Management',
         'hostel-rooms': 'Room Configuration',

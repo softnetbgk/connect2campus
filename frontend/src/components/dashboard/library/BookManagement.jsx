@@ -151,8 +151,13 @@ const BookManagement = () => {
         });
     };
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = React.useRef(false);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (isSubmitting || isSubmittingRef.current) return;
 
         console.log('Submitting Form Data:', formData);
 
@@ -162,120 +167,132 @@ const BookManagement = () => {
             return;
         }
 
-        if (isEditing) {
-            try {
-                await api.put(`/library/books/${editId}`, formData);
-                toast.success('Book updated successfully');
-                setShowModal(false);
-                setIsEditing(false);
-                setEditId(null);
-                setFormData({ book_number: '', to_book_number: '', quantity: 1, title: '', author: '', category: '' });
-                fetchBooks();
-            } catch (error) {
-                console.error('Update Error:', error);
-                toast.error(error.response?.data?.error || 'Failed to update book');
-            }
-            return;
-        }
-
-        let bookNumbers = [];
-        let quantity = parseInt(formData.quantity) || 1;
-        const enteredBookNumber = formData.book_number ? formData.book_number.trim() : '';
-        const enteredToBookNumber = formData.to_book_number ? formData.to_book_number.trim() : '';
-
-        // STRICT Validation for Range
-        if (enteredToBookNumber) {
-            if (!enteredBookNumber) {
-                toast.error('Please enter a Start Book Number to use a range.');
-                return;
-            }
-            const start = getPrefixAndNumber(enteredBookNumber);
-            const end = getPrefixAndNumber(enteredToBookNumber);
-
-            if (start.prefix !== end.prefix) {
-                toast.error(`Prefix mismatch! Start: "${start.prefix}", End: "${end.prefix}". They must be same.`);
-                return;
-            }
-            if (start.num === null || end.num === null) {
-                toast.error('Could not detect numbers in the book codes.');
-                return;
-            }
-            if (end.num < start.num) {
-                toast.error('End number cannot be smaller than Start number.');
-                return;
-            }
-            // Recalculate quantity to be super safe
-            quantity = end.num - start.num + 1;
-        }
-
-        console.log('Form Submit:', { quantity, enteredBookNumber, enteredToBookNumber, formData });
-
-        // Generation Logic
-        if (!enteredBookNumber) {
-            // Auto-generate ID if empty
-            // Use a timestamp + random component for basic uniqueness
-            const timestamp = Date.now().toString().slice(-6);
-            // random 2 chars
-            const random = Math.floor(Math.random() * 90 + 10);
-            const baseId = `BK-${timestamp}${random}`;
-
-            if (quantity > 1) {
-                bookNumbers = Array.from({ length: quantity }, (_, i) => `${baseId}-${i + 1}`);
-            } else {
-                bookNumbers = [baseId];
-            }
-        } else if (quantity > 1) {
-            // Auto-generate sequence starting from entered book_number
-            bookNumbers = generateBookNumbers(enteredBookNumber, quantity);
-        } else {
-            // Single or Comma Separated
-            bookNumbers = enteredBookNumber.split(',').map(n => n.trim()).filter(n => n);
-        }
-
-        console.log('Generated Book Numbers:', bookNumbers);
-
-        if (bookNumbers.length === 0) return;
-
-        // Show loading toast for large batches
-        const toastId = toast.loading(`Adding ${bookNumbers.length} books...`);
+        setIsSubmitting(true);
+        isSubmittingRef.current = true;
 
         try {
-            let successCount = 0;
-            let errors = [];
-
-            await Promise.all(bookNumbers.map(async (num) => {
+            if (isEditing) {
                 try {
-                    await api.post('/library/books', {
-                        ...formData,
-                        book_number: num,
-                        // exclude quantity from payload
-                    });
-                    successCount++;
-                } catch (err) {
-                    console.error(`Error adding ${num}:`, err);
-                    errors.push(`${num}: ${err.response?.data?.error || err.message}`);
+                    await api.put(`/library/books/${editId}`, formData);
+                    toast.success('Book updated successfully');
+                    setShowModal(false);
+                    setIsEditing(false);
+                    setEditId(null);
+                    setFormData({ book_number: '', to_book_number: '', quantity: 1, title: '', author: '', category: '' });
+                    fetchBooks();
+                } catch (error) {
+                    console.error('Update Error:', error);
+                    toast.error(error.response?.data?.error || 'Failed to update book');
                 }
-            }));
-
-            toast.dismiss(toastId);
-
-            if (successCount > 0) {
-                toast.success(`${successCount} book(s) added successfully`);
-                setShowModal(false);
-                setFormData({ book_number: '', to_book_number: '', quantity: 1, title: '', author: '', category: '' });
-                fetchBooks();
+                return;
             }
 
-            if (errors.length > 0) {
-                console.error('Bulk add errors:', errors);
-                // Show first error reason to user
-                toast.error(`Failed to add ${errors.length} books. Reason: ${errors[0].split(': ')[1]}`);
+            let bookNumbers = [];
+            let quantity = parseInt(formData.quantity) || 1;
+            const enteredBookNumber = formData.book_number ? formData.book_number.trim() : '';
+            const enteredToBookNumber = formData.to_book_number ? formData.to_book_number.trim() : '';
+
+            // STRICT Validation for Range
+            if (enteredToBookNumber) {
+                if (!enteredBookNumber) {
+                    toast.error('Please enter a Start Book Number to use a range.');
+                    // Don't just return, we need to unlock. But since the catch will catch errors, or wait, throwing error or handling unlock is better.
+                    // Given the structure, let's just throw or return after unlocking.
+                    // Instead of complex flow, let's just throw an error-like object or return normally but reset lock in finally.
+                    throw new Error('Please enter a Start Book Number to use a range.');
+                }
+                const start = getPrefixAndNumber(enteredBookNumber);
+                const end = getPrefixAndNumber(enteredToBookNumber);
+
+                if (start.prefix !== end.prefix) {
+                    throw new Error(`Prefix mismatch! Start: "${start.prefix}", End: "${end.prefix}". They must be same.`);
+                }
+                if (start.num === null || end.num === null) {
+                    throw new Error('Could not detect numbers in the book codes.');
+                }
+                if (end.num < start.num) {
+                    throw new Error('End number cannot be smaller than Start number.');
+                }
+                // Recalculate quantity to be super safe
+                quantity = end.num - start.num + 1;
             }
 
+            console.log('Form Submit:', { quantity, enteredBookNumber, enteredToBookNumber, formData });
+
+            // Generation Logic
+            if (!enteredBookNumber) {
+                // Auto-generate ID if empty
+                // Use a timestamp + random component for basic uniqueness
+                const timestamp = Date.now().toString().slice(-6);
+                // random 2 chars
+                const random = Math.floor(Math.random() * 90 + 10);
+                const baseId = `BK-${timestamp}${random}`;
+
+                if (quantity > 1) {
+                    bookNumbers = Array.from({ length: quantity }, (_, i) => `${baseId}-${i + 1}`);
+                } else {
+                    bookNumbers = [baseId];
+                }
+            } else if (quantity > 1) {
+                // Auto-generate sequence starting from entered book_number
+                bookNumbers = generateBookNumbers(enteredBookNumber, quantity);
+            } else {
+                // Single or Comma Separated
+                bookNumbers = enteredBookNumber.split(',').map(n => n.trim()).filter(n => n);
+            }
+
+            console.log('Generated Book Numbers:', bookNumbers);
+
+            if (bookNumbers.length === 0) return;
+
+            // Show loading toast for large batches
+            const toastId = toast.loading(`Adding ${bookNumbers.length} books...`);
+
+            try {
+                let successCount = 0;
+                let errors = [];
+
+                await Promise.all(bookNumbers.map(async (num) => {
+                    try {
+                        await api.post('/library/books', {
+                            ...formData,
+                            book_number: num,
+                            // exclude quantity from payload
+                        });
+                        successCount++;
+                    } catch (err) {
+                        console.error(`Error adding ${num}:`, err);
+                        errors.push(`${num}: ${err.response?.data?.error || err.message}`);
+                    }
+                }));
+
+                toast.dismiss(toastId);
+
+                if (successCount > 0) {
+                    toast.success(`${successCount} book(s) added successfully`);
+                    setShowModal(false);
+                    setFormData({ book_number: '', to_book_number: '', quantity: 1, title: '', author: '', category: '' });
+                    fetchBooks();
+                }
+
+                if (errors.length > 0) {
+                    console.error('Bulk add errors:', errors);
+                    // Show first error reason to user
+                    toast.error(`Failed to add ${errors.length} books. Reason: ${errors[0].split(': ')[1]}`);
+                }
+
+            } catch (error) {
+                toast.dismiss(toastId);
+                console.error('Global Add Error:', error);
+                toast.error(`Critical error: ${error.message}`);
+            }
         } catch (error) {
-            toast.dismiss(toastId);
-            console.error('Global Add Error:', error);
-            toast.error(`Critical error: ${error.message}`);
+            // Handle validaton errors thrown above
+            if (error.message) toast.error(error.message);
+            else console.error(error);
+        } finally {
+            setIsSubmitting(false);
+            isSubmittingRef.current = false;
         }
     };
 
@@ -553,10 +570,10 @@ const BookManagement = () => {
                                             <div className="flex justify-between items-center">
                                                 <span className="text-slate-600 font-medium">Quantity to Add:</span>
                                                 <span className={`text-2xl font-bold ${(() => {
-                                                        const s = getPrefixAndNumber(formData.book_number);
-                                                        const e = getPrefixAndNumber(formData.to_book_number);
-                                                        return s.prefix !== e.prefix || e.num < s.num;
-                                                    })() ? 'text-red-500' : 'text-indigo-600'
+                                                    const s = getPrefixAndNumber(formData.book_number);
+                                                    const e = getPrefixAndNumber(formData.to_book_number);
+                                                    return s.prefix !== e.prefix || e.num < s.num;
+                                                })() ? 'text-red-500' : 'text-indigo-600'
                                                     }`}>
                                                     {(() => {
                                                         const s = getPrefixAndNumber(formData.book_number);
@@ -636,14 +653,16 @@ const BookManagement = () => {
                                     type="button"
                                     onClick={() => { setShowModal(false); setIsEditing(false); setEditId(null); }}
                                     className="flex-1 py-2.5 border border-slate-300 rounded-xl text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                                    disabled={isSubmitting}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+                                    className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 disabled:opacity-70 disabled:cursor-not-allowed"
+                                    disabled={isSubmitting}
                                 >
-                                    {isEditing ? 'Update Book' : (formData.quantity > 1 ? `Generates ${formData.quantity} Books` : 'Add Book')}
+                                    {isSubmitting ? 'Processing...' : (isEditing ? 'Update Book' : (formData.quantity > 1 ? `Generates ${formData.quantity} Books` : 'Add Book'))}
                                 </button>
                             </div>
                         </form>

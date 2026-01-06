@@ -29,8 +29,13 @@ const StaffManagement = () => {
         setShowModal(true);
     };
 
+    const isSubmittingRef = React.useRef(false);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (isSubmitting || isSubmittingRef.current) return;
+
         setFieldErrors({});
 
         // Validation
@@ -40,6 +45,7 @@ const StaffManagement = () => {
         if (formData.email && !emailRegex.test(formData.email)) return toast.error('Invalid email format');
 
         setIsSubmitting(true);
+        isSubmittingRef.current = true;
         try {
             if (isEditing) { await api.put(`/staff/${selectedId}`, formData); toast.success('Staff updated'); }
             else { await api.post('/staff', formData); toast.success('Staff added'); }
@@ -55,6 +61,7 @@ const StaffManagement = () => {
             }
         } finally {
             setIsSubmitting(false);
+            isSubmittingRef.current = false;
         }
     };
 

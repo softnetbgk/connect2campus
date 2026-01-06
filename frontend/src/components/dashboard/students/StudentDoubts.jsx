@@ -47,11 +47,20 @@ const StudentDoubts = () => {
         }
     };
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = React.useRef(false);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (isSubmitting || isSubmittingRef.current) return;
+
         if (!formData.question || !formData.teacher_id) {
             return toast.error("Please fill required fields");
         }
+
+        setIsSubmitting(true);
+        isSubmittingRef.current = true;
 
         try {
             const payload = {
@@ -74,6 +83,9 @@ const StudentDoubts = () => {
             console.error(error);
             const msg = error.response?.data?.message || "Failed to send doubt";
             toast.error(msg);
+        } finally {
+            setIsSubmitting(false);
+            isSubmittingRef.current = false;
         }
     };
 
@@ -134,9 +146,9 @@ const StudentDoubts = () => {
                         </div>
 
                         <div className="flex justify-end gap-3">
-                            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-50 rounded-lg">Cancel</button>
-                            <button type="submit" className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 flex items-center gap-2">
-                                <Send size={18} /> Submit Question
+                            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-50 rounded-lg" disabled={isSubmitting}>Cancel</button>
+                            <button type="submit" className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed" disabled={isSubmitting}>
+                                <Send size={18} /> {isSubmitting ? 'Sending...' : 'Submit Question'}
                             </button>
                         </div>
                     </form>

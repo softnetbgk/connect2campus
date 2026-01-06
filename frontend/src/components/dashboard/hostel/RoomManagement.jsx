@@ -50,8 +50,17 @@ const RoomManagement = () => {
         }
     };
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = React.useRef(false);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (isSubmitting || isSubmittingRef.current) return;
+
+        setIsSubmitting(true);
+        isSubmittingRef.current = true;
+
         try {
             await api.post(`/hostel/${selectedHostel.id}/rooms`, formData);
             toast.success('Room added successfully');
@@ -60,6 +69,9 @@ const RoomManagement = () => {
             setFormData({ room_number: '', capacity: 2, cost_per_term: '' });
         } catch (error) {
             toast.error(error.response?.data?.error || 'Failed to add room');
+        } finally {
+            setIsSubmitting(false);
+            isSubmittingRef.current = false;
         }
     };
 
@@ -201,9 +213,10 @@ const RoomManagement = () => {
                             <div className="pt-4">
                                 <button
                                     type="submit"
-                                    className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
+                                    className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+                                    disabled={isSubmitting}
                                 >
-                                    Add Room
+                                    {isSubmitting ? 'Adding...' : 'Add Room'}
                                 </button>
                             </div>
                         </form>

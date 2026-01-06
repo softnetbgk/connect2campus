@@ -357,4 +357,28 @@ const updateSchool = async (req, res) => {
     }
 };
 
-module.exports = { createSchool, getSchools, getSchoolDetails, updateSchool, getMySchool };
+// Toggle School Service Status (Active/Inactive)
+const toggleSchoolStatus = async (req, res) => {
+    const { id } = req.params;
+    const { is_active } = req.body; // Boolean
+
+    try {
+        const result = await pool.query(
+            'UPDATE schools SET is_active = $1 WHERE id = $2 RETURNING id, name, is_active',
+            [is_active, id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'School not found' });
+        }
+
+        const status = result.rows[0].is_active ? 'Active' : 'Inactive';
+        res.json({ message: `School service is now ${status}`, school: result.rows[0] });
+
+    } catch (error) {
+        console.error('Toggle Status Error:', error);
+        res.status(500).json({ message: 'Failed to update status' });
+    }
+};
+
+module.exports = { createSchool, getSchools, getSchoolDetails, updateSchool, getMySchool, toggleSchoolStatus };

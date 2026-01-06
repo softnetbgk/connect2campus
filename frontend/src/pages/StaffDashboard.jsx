@@ -8,6 +8,7 @@ import {
     FileText, LogOut, Bell, Briefcase, Navigation, Radio, MapPin, Menu, X
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
+import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 import SchoolCalendar from '../components/dashboard/calendar/SchoolCalendar';
 import ViewAnnouncements from '../components/dashboard/calendar/ViewAnnouncements';
 import StaffMyAttendance from '../components/dashboard/staff/StaffMyAttendance';
@@ -188,7 +189,13 @@ const StaffDashboard = () => {
 
     const addLog = (msg) => setLogs(prev => [msg, ...prev].slice(0, 50));
 
-    const handleLogout = () => {
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+    const handleLogoutClick = () => {
+        setShowLogoutModal(true);
+    };
+
+    const handleConfirmLogout = () => {
         if (isDriver) stopTracking();
         logout();
         navigate('/');
@@ -275,7 +282,7 @@ const StaffDashboard = () => {
                             </p>
                             <p className="text-[10px] text-blue-200 truncate">{schoolName}</p>
                         </div>
-                        <button onClick={handleLogout} className="text-blue-200 hover:text-white transition-colors">
+                        <button onClick={handleLogoutClick} className="text-blue-200 hover:text-white transition-colors">
                             <LogOut size={18} />
                         </button>
                     </div>
@@ -364,6 +371,11 @@ const StaffDashboard = () => {
                     ]}
                 />
             )}
+            <LogoutConfirmationModal
+                isOpen={showLogoutModal}
+                onClose={() => setShowLogoutModal(false)}
+                onConfirm={handleConfirmLogout}
+            />
         </div>
     );
 };

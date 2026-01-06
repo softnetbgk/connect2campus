@@ -34,8 +34,13 @@ const TeacherLeaveApplication = () => {
         }
     };
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = React.useRef(false);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (isSubmitting || isSubmittingRef.current) return;
 
         // Basic Validation
         if (!formData.start_date || !formData.end_date || !formData.reason) {
@@ -45,6 +50,9 @@ const TeacherLeaveApplication = () => {
         if (new Date(formData.end_date) < new Date(formData.start_date)) {
             return toast.error("End date cannot be before start date");
         }
+
+        setIsSubmitting(true);
+        isSubmittingRef.current = true;
 
         try {
             await api.post('/leaves/my-leaves', formData);
@@ -60,6 +68,9 @@ const TeacherLeaveApplication = () => {
         } catch (error) {
             console.error(error);
             toast.error(error.response?.data?.message || "Failed to submit application");
+        } finally {
+            setIsSubmitting(false);
+            isSubmittingRef.current = false;
         }
     };
 
@@ -152,9 +163,9 @@ const TeacherLeaveApplication = () => {
                         </div>
 
                         <div className="flex justify-end gap-3 pt-2">
-                            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-50 rounded-lg">Cancel</button>
-                            <button type="submit" className="px-8 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition-all">
-                                Submit Application
+                            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-50 rounded-lg" disabled={isSubmitting}>Cancel</button>
+                            <button type="submit" className="px-8 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed" disabled={isSubmitting}>
+                                {isSubmitting ? 'Sending...' : 'Submit Application'}
                             </button>
                         </div>
                     </form>

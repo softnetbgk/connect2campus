@@ -43,8 +43,14 @@ const TeacherManagement = ({ config }) => {
         finally { setLoading(false); }
     };
 
+    const isSubmittingRef = React.useRef(false);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Prevent double submit with immediate ref check
+        if (isSubmitting || isSubmittingRef.current) return;
+
         setFieldErrors({}); // Clear previous errors
 
         // Validation
@@ -54,6 +60,7 @@ const TeacherManagement = ({ config }) => {
         if (formData.email && !emailRegex.test(formData.email)) return toast.error('Invalid email format');
 
         setIsSubmitting(true);
+        isSubmittingRef.current = true;
         try {
             const payload = { ...formData };
             if (!isClassTeacher) {
@@ -83,6 +90,7 @@ const TeacherManagement = ({ config }) => {
             }
         } finally {
             setIsSubmitting(false);
+            isSubmittingRef.current = false;
         }
     };
 
@@ -170,7 +178,7 @@ const TeacherManagement = ({ config }) => {
                                             <td className="p-4">
                                                 {t.class_name ? (
                                                     <span className="px-3 py-1 bg-violet-50 text-violet-700 rounded-lg text-xs font-bold border border-violet-100 inline-flex items-center gap-1 shadow-sm">
-                                                        {t.class_name} - {t.section_name}
+                                                        {t.class_name} {t.section_name && t.section_name !== 'Class Teacher' ? `- ${t.section_name}` : ''}
                                                     </span>
                                                 ) : <span className="text-slate-300 text-xs italic">Not Assigned</span>}
                                             </td>
@@ -358,7 +366,7 @@ const TeacherManagement = ({ config }) => {
                                                 </select>
                                             ) : (
                                                 <div className="py-2 text-sm text-gray-400 font-medium italic">
-                                                    {formData.assign_class_id ? 'No sections found' : 'Select a class first'}
+                                                    {formData.assign_class_id ? 'No sections found. Default section will be auto-assigned.' : 'Select a class first'}
                                                 </div>
                                             )}
                                         </div>

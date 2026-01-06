@@ -85,12 +85,63 @@ exports.addTeacher = async (req, res) => {
             );
         }
 
-        // 4. Assign as Class Teacher (if selected)
-        if (assign_class_id && assign_section_id) {
-            await client.query(
-                `UPDATE sections SET class_teacher_id = $1 WHERE id = $2 AND class_id = $3`,
-                [newTeacher.id, assign_section_id, assign_class_id]
-            );
+        // 4. Assign as Class Teacher
+        console.log(`[ADD TEACHER] Class Assignment - ClassID: ${assign_class_id}, SectionID: ${assign_section_id}`);
+
+        if (assign_class_id) {
+            let targetSectionId = assign_section_id;
+            const classIdInt = parseInt(assign_class_id);
+
+            // A. Check if Section is Provided
+            if (targetSectionId) {
+                // Check if this SECTION is already assigned
+                const checkSec = await client.query('SELECT class_teacher_id, name FROM sections WHERE id = $1', [targetSectionId]);
+                if (checkSec.rows.length > 0 && checkSec.rows[0].class_teacher_id) {
+                    await client.query('ROLLBACK');
+                    return res.status(400).json({
+                        message: `Section '${checkSec.rows[0].name}' already has a Class Teacher assigned.`
+                    });
+                }
+
+                // VALID: Assign to Section
+                await client.query(
+                    `UPDATE sections SET class_teacher_id = $1 WHERE id = $2`,
+                    [newTeacher.id, targetSectionId]
+                );
+                console.log(`[ADD TEACHER] Assigned to Section ID: ${targetSectionId}`);
+
+            } else {
+                // B. No Section Provided
+                console.log(`[ADD TEACHER] No section provided. Checking if sections exist for Class ID: ${classIdInt}`);
+
+                // Check if ANY sections exist for this class
+                const sectionsCount = await client.query('SELECT COUNT(*) FROM sections WHERE class_id = $1', [classIdInt]);
+
+                if (parseInt(sectionsCount.rows[0].count) > 0) {
+                    // Start of Change: If sections exist, User MUST select one.
+                    await client.query('ROLLBACK');
+                    return res.status(400).json({
+                        message: `This class has sections. Please select a specific section to assign.`
+                    });
+                } else {
+                    // C. No Sections Exist -> Assign to Class Directly
+                    // Check if Class already has a teacher
+                    const checkClass = await client.query('SELECT class_teacher_id, name FROM classes WHERE id = $1', [classIdInt]);
+                    if (checkClass.rows.length > 0 && checkClass.rows[0].class_teacher_id) {
+                        await client.query('ROLLBACK');
+                        return res.status(400).json({
+                            message: `Class '${checkClass.rows[0].name}' already has a Class Teacher assigned.`
+                        });
+                    }
+
+                    // VALID: Assign to Class Direct
+                    await client.query(
+                        `UPDATE classes SET class_teacher_id = $1 WHERE id = $2`,
+                        [newTeacher.id, classIdInt]
+                    );
+                    console.log(`[ADD TEACHER] Assigned directly into Class ID: ${classIdInt}`);
+                }
+            }
         }
 
         await client.query('COMMIT');
@@ -108,16 +159,17 @@ exports.addTeacher = async (req, res) => {
 exports.getTeachers = async (req, res) => {
     try {
         const school_id = req.user.schoolId;
-        // Fetch teachers AND their assigned class if any
+        // Fetch teachers AND their assigned class (either via section OR class directly)
         const query = `
             SELECT t.*, 
-                   c.name as class_name, 
+                   COALESCE(c_sec.name, c_main.name) as class_name, 
                    s.name as section_name,
                    s.id as assigned_section_id,
-                   c.id as assigned_class_id
+                   COALESCE(c_sec.id, c_main.id) as assigned_class_id
             FROM teachers t
             LEFT JOIN sections s ON s.class_teacher_id = t.id
-            LEFT JOIN classes c ON s.class_id = c.id
+            LEFT JOIN classes c_sec ON s.class_id = c_sec.id
+            LEFT JOIN classes c_main ON c_main.class_teacher_id = t.id
             WHERE t.school_id = $1 
             ORDER BY t.name ASC
         `;
@@ -179,15 +231,68 @@ exports.updateTeacher = async (req, res) => {
         }
 
         // Handle Class Teacher Assignment Update
-        // 1. Remove this teacher from any previous sections
+        // 1. Remove this teacher from any previous assignments (Section OR Class)
         await client.query('UPDATE sections SET class_teacher_id = NULL WHERE class_teacher_id = $1', [id]);
+        await client.query('UPDATE classes SET class_teacher_id = NULL WHERE class_teacher_id = $1', [id]);
 
         // 2. Assign to new section if provided
-        if (assign_class_id && assign_section_id) {
-            await client.query(
-                `UPDATE sections SET class_teacher_id = $1 WHERE id = $2 AND class_id = $3`,
-                [id, assign_section_id, assign_class_id]
-            );
+        console.log(`[UPDATE TEACHER] Class Assignment - ClassID: ${assign_class_id}, SectionID: ${assign_section_id}`);
+
+        if (assign_class_id) {
+            let targetSectionId = assign_section_id;
+            const classIdInt = parseInt(assign_class_id);
+
+            // A. Check if Section is Provided
+            if (targetSectionId) {
+                // Check if this SECTION is already assigned
+                const checkSec = await client.query('SELECT class_teacher_id, name FROM sections WHERE id = $1', [targetSectionId]);
+                // Ensure we don't count self (though we just cleared it above)
+                if (checkSec.rows.length > 0 && checkSec.rows[0].class_teacher_id && checkSec.rows[0].class_teacher_id != id) {
+                    await client.query('ROLLBACK');
+                    return res.status(400).json({
+                        message: `Section '${checkSec.rows[0].name}' already has a Class Teacher assigned.`
+                    });
+                }
+
+                // VALID: Assign to Section
+                await client.query(
+                    `UPDATE sections SET class_teacher_id = $1 WHERE id = $2`,
+                    [id, targetSectionId]
+                );
+                console.log(`[UPDATE TEACHER] Assigned to Section ID: ${targetSectionId}`);
+
+            } else {
+                // B. No Section Provided
+                console.log(`[UPDATE TEACHER] No section provided. Checking if sections exist for Class ID: ${classIdInt}`);
+
+                // Check if ANY sections exist for this class
+                const sectionsCount = await client.query('SELECT COUNT(*) FROM sections WHERE class_id = $1', [classIdInt]);
+
+                if (parseInt(sectionsCount.rows[0].count) > 0) {
+                    // If sections exist, User MUST select one.
+                    await client.query('ROLLBACK');
+                    return res.status(400).json({
+                        message: `This class has sections. Please select a specific section to assign.`
+                    });
+                } else {
+                    // C. No Sections Exist -> Assign to Class Directly
+                    // Check if Class already has a teacher
+                    const checkClass = await client.query('SELECT class_teacher_id, name FROM classes WHERE id = $1', [classIdInt]);
+                    if (checkClass.rows.length > 0 && checkClass.rows[0].class_teacher_id && checkClass.rows[0].class_teacher_id != id) {
+                        await client.query('ROLLBACK');
+                        return res.status(400).json({
+                            message: `Class '${checkClass.rows[0].name}' already has a Class Teacher assigned.`
+                        });
+                    }
+
+                    // VALID: Assign to Class Direct
+                    await client.query(
+                        `UPDATE classes SET class_teacher_id = $1 WHERE id = $2`,
+                        [id, classIdInt]
+                    );
+                    console.log(`[UPDATE TEACHER] Assigned directly into Class ID: ${classIdInt}`);
+                }
+            }
         }
 
         await client.query('COMMIT');
@@ -317,13 +422,13 @@ exports.getTeacherProfile = async (req, res) => {
         const school_id = req.user.schoolId;
         const email = req.user.email;
 
-        // Find teacher by email and link to assigned class via sections table
+        // Find teacher by email and link to assigned class via sections table Or Classes Table
         const query = `
             SELECT t.*, 
-                   c.name as class_name, 
-                   s.name as section_name,
+                   COALESCE(c_sec.name, c_main.name) as class_name, 
+                   COALESCE(s.name, 'Class Teacher') as section_name,
                    s.id as assigned_section_id,
-                   c.id as assigned_class_id,
+                   COALESCE(c_sec.id, c_main.id) as assigned_class_id,
                    tr.route_name as transport_route,
                    tv.vehicle_number,
                    tv.driver_name,
@@ -332,7 +437,8 @@ exports.getTeacherProfile = async (req, res) => {
                    tv.current_lng
             FROM teachers t
             LEFT JOIN sections s ON s.class_teacher_id = t.id
-            LEFT JOIN classes c ON s.class_id = c.id
+            LEFT JOIN classes c_sec ON s.class_id = c_sec.id
+            LEFT JOIN classes c_main ON c_main.class_teacher_id = t.id
             LEFT JOIN transport_routes tr ON t.transport_route_id = tr.id
             LEFT JOIN transport_vehicles tv ON tr.vehicle_id = tv.id
             WHERE t.school_id = $1 AND t.email = $2
@@ -364,12 +470,6 @@ exports.getMyAttendanceHistory = async (req, res) => {
         const teacher_id = tRes.rows[0].id;
 
         const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-        // month is 1-based index (1=Jan, 12=Dec). 
-        // new Date(year, month, 0) gives the last day of that month.
-        // e.g. new Date(2024, 1, 0) -> Jan 31 2024. Wait.
-        // Date constructor uses 0-based month index (0=Jan, 11=Dec).
-        // If 'month' param is "1" (Jan), we want startDate "2024-01-01" to "2024-01-31".
-        // new Date(2024, 1, 0) -> 2024, Month Index 1 (Feb), Day 0 -> Last day of Jan. Correct.
         const endDate = new Date(year, month, 0).toISOString().split('T')[0];
 
         const query = `

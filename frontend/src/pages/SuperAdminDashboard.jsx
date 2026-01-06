@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
-import { Plus, School, LogOut, ChevronDown, Check, Trash2, X, Eye, Edit2, Search, Filter, Shield, Info, MapPin, Phone, Mail, Users } from 'lucide-react';
+import { Plus, School, LogOut, ChevronDown, Check, Trash2, X, Eye, Edit2, Search, Filter, Shield, Info, MapPin, Phone, Mail, Users, Power } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 
 // Predefined Options
 const PREDEFINED_CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`);
 const PREDEFINED_SECTIONS = ['A', 'B', 'C', 'D', 'E'];
-const PREDEFINED_SUBJECTS = ['Mathematics', 'Science', 'English', 'Social Science', 'Hindi', 'Physics', 'Chemistry', 'Biology', 'History', 'Geography', 'Computer Science', 'Physical Education'];
+const PREDEFINED_SUBJECTS = ['Kannada', 'Mathematics', 'Science', 'English', 'Social Science', 'Hindi', 'Physics', 'Chemistry', 'Biology', 'History', 'Geography', 'Computer Science', 'Physical Education'];
 
 const SuperAdminDashboard = () => {
     const { logout, user } = useAuth();
@@ -55,7 +56,25 @@ const SuperAdminDashboard = () => {
         subjects: []
     });
 
+    const handleToggleService = async (school) => {
+        const newStatus = !school.is_active;
+        const action = newStatus ? 'Enable' : 'Disable';
+
+        if (!window.confirm(`Are you sure you want to ${action} service for ${school.name}?`)) return;
+
+        try {
+            await api.put(`/schools/${school.id}/status`, { is_active: newStatus });
+            toast.success(`Service ${newStatus ? 'Enabled' : 'Disabled'}`);
+            fetchSchools(); // Refresh list
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to update status');
+        }
+    };
+
     const classConfigRef = useRef(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = useRef(false);
 
     useEffect(() => {
         fetchSchools();
@@ -100,6 +119,26 @@ const SuperAdminDashboard = () => {
                 subjects: (cls.subjects || []).map(s => s.name)
             }));
 
+            // Collect all unique sections and subjects from the school data
+            const allSections = new Set([...PREDEFINED_SECTIONS]);
+            const allSubjects = new Set([...PREDEFINED_SUBJECTS]);
+
+            (fullSchool.classes || []).forEach(cls => {
+                (cls.sections || []).forEach(s => allSections.add(s.name));
+                (cls.subjects || []).forEach(s => allSubjects.add(s.name));
+            });
+
+            // If there are separate lists of all available subjects/sections in the school object, use them too
+            if (fullSchool.subjects && Array.isArray(fullSchool.subjects)) {
+                fullSchool.subjects.forEach(s => allSubjects.add(s));
+            }
+
+            // Update custom options state so they appear in the buttons list
+            setCustomOptions({
+                sections: [...allSections].filter(x => !PREDEFINED_SECTIONS.includes(x)),
+                subjects: [...allSubjects].filter(x => !PREDEFINED_SUBJECTS.includes(x))
+            });
+
             // Force state update with new array reference
             setFormData(prev => ({
                 ...prev,
@@ -129,56 +168,52 @@ const SuperAdminDashboard = () => {
         setShowModal(true);
     };
 
+    // Helper to persist the current class configuration to formData
+    const updateClassConfig = (configToSave, showToast = true) => {
+        if (!configToSave.name) return;
+
+        const existingClassIndex = formData.classes.findIndex(c => c.name === configToSave.name);
+
+        setFormData(prev => {
+            const updatedClasses = [...prev.classes];
+
+            if (existingClassIndex !== -1) {
+                // Merge
+                const existingClass = updatedClasses[existingClassIndex];
+                // Use Set to strictly ensure uniqueness
+                const mergedSections = [...new Set([...existingClass.sections, ...configToSave.sections])];
+                const mergedSubjects = [...new Set([...existingClass.subjects, ...configToSave.subjects])];
+
+                updatedClasses[existingClassIndex] = {
+                    ...existingClass,
+                    sections: mergedSections,
+                    subjects: mergedSubjects
+                };
+                if (showToast) toast.success(`Updated configuration for ${configToSave.name}`);
+            } else {
+                // New
+                updatedClasses.push({
+                    name: configToSave.name,
+                    sections: configToSave.sections,
+                    subjects: configToSave.subjects
+                });
+                if (showToast) toast.success(`Added ${configToSave.name}`);
+            }
+            return { ...prev, classes: updatedClasses };
+        });
+    };
+
     const handleAddClass = () => {
         if (!classInput.name) return toast.error('Class Name is required');
-
-        const existingClassIndex = formData.classes.findIndex(c => c.name === classInput.name);
-
-        if (existingClassIndex !== -1) {
-            // Class exists - Merge new sections and subjects
-            const updatedClasses = [...formData.classes];
-            const existingClass = updatedClasses[existingClassIndex];
-
-            // Merge unique sections
-            const newSections = classInput.sections.filter(s => !existingClass.sections.includes(s));
-            const newSubjects = classInput.subjects.filter(s => !existingClass.subjects.includes(s));
-
-            if (newSections.length === 0 && newSubjects.length === 0) {
-                return toast.error(`No new sections or subjects to add for "${classInput.name}"`);
-            }
-
-            updatedClasses[existingClassIndex] = {
-                ...existingClass,
-                sections: [...existingClass.sections, ...newSections],
-                subjects: [...existingClass.subjects, ...newSubjects]
-            };
-
-            setFormData(prev => ({
-                ...prev,
-                classes: updatedClasses
-            }));
-
-            toast.success(`Updated configuration for ${classInput.name}`);
-        } else {
-            // New Class
-            const newClass = {
-                name: classInput.name,
-                sections: classInput.sections,
-                subjects: classInput.subjects
-            };
-
-            setFormData(prev => ({
-                ...prev,
-                classes: [...prev.classes, newClass]
-            }));
-
-            toast.success(`Added ${classInput.name}`);
-        }
+        updateClassConfig(classInput);
 
         // Reset inputs
         setClassInput({ name: '', sections: [], subjects: [] });
         setCustomInputs({ class: false, section: false, subject: false });
-        setCustomOptions({ sections: [], subjects: [] }); // Clear custom options after adding
+        // We do NOT clear customOptions here anymore because the user might want to reuse them
+        // But for UI cleanliness, maybe we should? The original code did. 
+        // Let's keep it consistent:
+        setCustomOptions({ sections: [], subjects: [] });
     };
 
     const removeClass = (index) => {
@@ -194,11 +229,19 @@ const SuperAdminDashboard = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (isSubmittingRef.current) return;
+        isSubmittingRef.current = true;
+        setIsSubmitting(true);
+
         if (!isEditing && formData.adminPassword !== formData.confirmAdminPassword) {
+            isSubmittingRef.current = false;
+            setIsSubmitting(false);
             return toast.error("Passwords do not match!");
         }
 
         if (formData.contactNumber && formData.contactNumber.length !== 10) {
+            isSubmittingRef.current = false;
+            setIsSubmitting(false);
             return toast.error("Contact Number must be exactly 10 digits!");
         }
 
@@ -225,10 +268,19 @@ const SuperAdminDashboard = () => {
             setEditSchoolId(null);
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to save school');
+        } finally {
+            isSubmittingRef.current = false;
+            setIsSubmitting(false);
         }
     };
 
-    const handleLogout = () => {
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+    const handleLogoutClick = () => {
+        setShowLogoutModal(true);
+    };
+
+    const handleConfirmLogout = () => {
         logout();
         navigate('/');
     };
@@ -282,7 +334,7 @@ const SuperAdminDashboard = () => {
                                 <p className="text-xs text-slate-400">Administrator</p>
                             </div>
                             <button
-                                onClick={handleLogout}
+                                onClick={handleLogoutClick}
                                 className="p-2.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-200"
                                 title="Logout"
                             >
@@ -339,13 +391,22 @@ const SuperAdminDashboard = () => {
                                         </div>
                                         <div>
                                             <h3 className="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">{school.name}</h3>
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border ${school.subscription_status === 'ACTIVE'
-                                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                : 'bg-red-500/10 text-red-400 border-red-500/20'
-                                                }`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${school.subscription_status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
-                                                {school.subscription_status}
-                                            </span>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation(); // Prevent card hover effect interference if any
+                                                        handleToggleService(school);
+                                                    }}
+                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border transition-all ${school.is_active
+                                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                                                        : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
+                                                        }`}
+                                                    title={school.is_active ? "Click to Disable Service" : "Click to Enable Service"}
+                                                >
+                                                    <Power size={10} className={school.is_active ? "text-emerald-500" : "text-red-500"} />
+                                                    {school.is_active ? 'Service Online' : 'Service Offline'}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -619,15 +680,34 @@ const SuperAdminDashboard = () => {
                                                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={16} />
                                                     </div>
                                                 ) : (
-                                                    <div className="flex gap-2">
+                                                    <div className="flex gap-2 animate-in slide-in-from-top-2 duration-200">
                                                         <input
                                                             autoFocus
                                                             placeholder="Enter Class Name"
                                                             autoComplete="off"
-                                                            className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:border-emerald-500 outline-none"
+                                                            className="flex-1 px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:border-emerald-500 outline-none"
                                                             value={classInput.name}
                                                             onChange={e => setClassInput({ ...classInput, name: e.target.value })}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    e.preventDefault();
+                                                                    if (classInput.name.trim()) {
+                                                                        updateClassConfig(classInput);
+                                                                    }
+                                                                }
+                                                            }}
                                                         />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (classInput.name.trim()) {
+                                                                    updateClassConfig(classInput);
+                                                                }
+                                                            }}
+                                                            className="px-3 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-colors"
+                                                        >
+                                                            Add
+                                                        </button>
                                                         <button type="button" onClick={() => setCustomInputs({ ...customInputs, class: false })} className="px-3 bg-slate-800 text-slate-400 hover:text-white rounded-xl">
                                                             <X size={18} />
                                                         </button>
@@ -674,12 +754,42 @@ const SuperAdminDashboard = () => {
                                                                     if (customSectionStr.trim()) {
                                                                         const val = customSectionStr.trim();
                                                                         setCustomOptions(prev => ({ ...prev, sections: [...new Set([...prev.sections, val])] }));
-                                                                        setClassInput(prev => ({ ...prev, sections: [...new Set([...prev.sections, val])] }));
+
+                                                                        const newSections = [...new Set([...classInput.sections, val])];
+                                                                        setClassInput(prev => ({ ...prev, sections: newSections }));
+
+                                                                        // Auto-save if class name is present
+                                                                        if (classInput.name) {
+                                                                            updateClassConfig({ ...classInput, sections: newSections }, false);
+                                                                        }
+
                                                                         setCustomSectionStr('');
                                                                     }
                                                                 }
                                                             }}
                                                         />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (customSectionStr.trim()) {
+                                                                    const val = customSectionStr.trim();
+                                                                    setCustomOptions(prev => ({ ...prev, sections: [...new Set([...prev.sections, val])] }));
+
+                                                                    const newSections = [...new Set([...classInput.sections, val])];
+                                                                    setClassInput(prev => ({ ...prev, sections: newSections }));
+
+                                                                    // Auto-save if class name is present
+                                                                    if (classInput.name) {
+                                                                        updateClassConfig({ ...classInput, sections: newSections }, false);
+                                                                    }
+
+                                                                    setCustomSectionStr('');
+                                                                }
+                                                            }}
+                                                            className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-colors"
+                                                        >
+                                                            Add
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>
@@ -723,12 +833,42 @@ const SuperAdminDashboard = () => {
                                                                     if (customSubjectStr.trim()) {
                                                                         const val = customSubjectStr.trim();
                                                                         setCustomOptions(prev => ({ ...prev, subjects: [...new Set([...prev.subjects, val])] }));
-                                                                        setClassInput(prev => ({ ...prev, subjects: [...new Set([...prev.subjects, val])] }));
+
+                                                                        const newSubjects = [...new Set([...classInput.subjects, val])];
+                                                                        setClassInput(prev => ({ ...prev, subjects: newSubjects }));
+
+                                                                        // Auto-save if class name is present
+                                                                        if (classInput.name) {
+                                                                            updateClassConfig({ ...classInput, subjects: newSubjects }, false);
+                                                                        }
+
                                                                         setCustomSubjectStr('');
                                                                     }
                                                                 }
                                                             }}
                                                         />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (customSubjectStr.trim()) {
+                                                                    const val = customSubjectStr.trim();
+                                                                    setCustomOptions(prev => ({ ...prev, subjects: [...new Set([...prev.subjects, val])] }));
+
+                                                                    const newSubjects = [...new Set([...classInput.subjects, val])];
+                                                                    setClassInput(prev => ({ ...prev, subjects: newSubjects }));
+
+                                                                    // Auto-save if class name is present
+                                                                    if (classInput.name) {
+                                                                        updateClassConfig({ ...classInput, subjects: newSubjects }, false);
+                                                                    }
+
+                                                                    setCustomSubjectStr('');
+                                                                }
+                                                            }}
+                                                            className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors"
+                                                        >
+                                                            Add
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>
@@ -771,14 +911,21 @@ const SuperAdminDashboard = () => {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => {
+                                                                    // Load for editing
                                                                     setClassInput({
                                                                         name: cls.name,
                                                                         sections: cls.sections || [],
                                                                         subjects: cls.subjects || []
                                                                     });
+                                                                    // If it's a custom class name, ensure dropdown is set to custom or handled
+                                                                    if (!PREDEFINED_CLASSES.includes(cls.name)) {
+                                                                        setCustomInputs(prev => ({ ...prev, class: true }));
+                                                                    } else {
+                                                                        setCustomInputs(prev => ({ ...prev, class: false }));
+                                                                    }
+
                                                                     // Add custom items to selection if needed
                                                                     const missingSections = (cls.sections || []).filter(s => !PREDEFINED_SECTIONS.includes(s) && !customOptions.sections.includes(s));
-
                                                                     if (missingSections.length > 0) {
                                                                         setCustomOptions(prev => ({ ...prev, sections: [...prev.sections, ...missingSections] }));
                                                                     }
@@ -831,9 +978,10 @@ const SuperAdminDashboard = () => {
                             <button
                                 form="schoolForm"
                                 type="submit"
-                                className="px-8 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                disabled={isSubmitting}
+                                className={`px-8 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/25 transition-all ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98]'}`}
                             >
-                                {isEditing ? 'Save Changes' : 'Create School'}
+                                {isSubmitting ? 'Processing...' : (isEditing ? 'Save Changes' : 'Create School')}
                             </button>
                         </div>
                     </div>
@@ -964,6 +1112,12 @@ const SuperAdminDashboard = () => {
                     background: #475569; 
                 }
             `}</style>
+            {/* Logout Confirmation Modal */}
+            <LogoutConfirmationModal
+                isOpen={showLogoutModal}
+                onClose={() => setShowLogoutModal(false)}
+                onConfirm={handleConfirmLogout}
+            />
         </div>
     );
 };

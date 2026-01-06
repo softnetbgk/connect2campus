@@ -8,6 +8,8 @@ router.use(authenticateToken);
 // Exam Types
 router.get('/exam-types', marksController.getExamTypes);
 router.post('/exam-types', marksController.createExamType);
+router.put('/exam-types/:id', marksController.updateExamType);
+router.delete('/exam-types/:id', marksController.deleteExamType);
 
 // Marks Management
 router.get('/my-marks', marksController.getMyMarks);

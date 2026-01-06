@@ -23,9 +23,17 @@ const StudentAttendanceMarking = ({ config }) => {
         }
     }, [filterClass]);
 
+    // Auto-select Class if only one is available (e.g. Class Teacher)
     useEffect(() => {
-        const hasSections = availableSections.length > 0;
-        if (filterClass && (filterSection || !hasSections) && date) {
+        if (config.classes && config.classes.length === 1) {
+            setFilterClass(config.classes[0].class_id);
+        }
+    }, [config.classes]);
+
+    useEffect(() => {
+        // If class is selected, we fetch data. 
+        // We do NOT require section if the class has no sections (direct class assignment).
+        if (filterClass && date) {
             fetchAttendanceData();
         }
     }, [filterClass, filterSection, date]);

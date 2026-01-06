@@ -1,28 +1,33 @@
 const { pool } = require('../config/db');
 
 // Get Exam Schedule
-// Get Exam Schedule
 exports.getExamSchedule = async (req, res) => {
     try {
         const school_id = req.user.schoolId;
         const { class_id, section_id, exam_type_id } = req.query;
 
-        if (!exam_type_id) {
-            return res.status(400).json({ message: 'Exam Type is required' });
+        if (!exam_type_id && !class_id) {
+            return res.status(400).json({ message: 'Exam Type or Class ID is required' });
         }
 
         let query = `
-            SELECT es.*, sub.name as subject_name, c.name as class_name, s.name as section_name
+            SELECT es.*, sub.name as subject_name, c.name as class_name, s.name as section_name, et.name as exam_type_name
             FROM exam_schedules es
             JOIN subjects sub ON es.subject_id = sub.id
             JOIN classes c ON es.class_id = c.id
-            JOIN sections s ON es.section_id = s.id
+            LEFT JOIN sections s ON es.section_id = s.id
+            JOIN exam_types et ON es.exam_type_id = et.id
             WHERE es.school_id = $1 
-            AND es.exam_type_id = $2
         `;
 
-        const params = [school_id, exam_type_id];
-        let paramIndex = 3;
+        const params = [school_id];
+        let paramIndex = 2;
+
+        if (exam_type_id) {
+            query += ` AND es.exam_type_id = $${paramIndex}`;
+            params.push(exam_type_id);
+            paramIndex++;
+        }
 
         if (class_id) {
             query += ` AND es.class_id = $${paramIndex}`;
@@ -36,7 +41,7 @@ exports.getExamSchedule = async (req, res) => {
             paramIndex++;
         }
 
-        query += ` ORDER BY Es.exam_date, es.start_time`;
+        query += ` ORDER BY es.exam_date, es.start_time`;
 
         const result = await pool.query(query, params);
 
@@ -77,9 +82,10 @@ exports.saveExamSchedule = async (req, res) => {
         for (const schedule of schedules) {
             await client.query(
                 `INSERT INTO exam_schedules 
-                 (school_id, exam_type_id, class_id, section_id, subject_id, exam_date, start_time, end_time)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-                [school_id, schedule.exam_type_id, schedule.class_id, schedule.section_id, schedule.subject_id, schedule.exam_date, schedule.start_time, schedule.end_time]
+                 (school_id, exam_type_id, class_id, section_id, subject_id, exam_date, start_time, end_time, components)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                [school_id, schedule.exam_type_id, schedule.class_id, schedule.section_id, schedule.subject_id,
+                    schedule.exam_date, schedule.start_time, schedule.end_time, JSON.stringify(schedule.components || [])]
             );
         }
 
@@ -114,5 +120,31 @@ exports.saveExamSchedule = async (req, res) => {
         res.status(500).json({ message: 'Server error saving schedule' });
     } finally {
         client.release();
+    }
+};
+
+// Update Single Exam Schedule Item
+exports.updateExamScheduleItem = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const school_id = req.user.schoolId;
+        const { exam_date, start_time, end_time, components } = req.body;
+
+        const result = await pool.query(
+            `UPDATE exam_schedules 
+             SET exam_date = $1, start_time = $2, end_time = $3, components = $4
+             WHERE id = $5 AND school_id = $6
+             RETURNING *`,
+            [exam_date, start_time, end_time, JSON.stringify(components || []), id, school_id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Schedule item not found' });
+        }
+
+        res.json({ message: 'Schedule updated successfully', item: result.rows[0] });
+    } catch (error) {
+        console.error('Error updating schedule item:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 };

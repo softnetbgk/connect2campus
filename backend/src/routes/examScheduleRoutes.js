@@ -7,5 +7,6 @@ router.use(authenticateToken);
 
 router.get('/', examScheduleController.getExamSchedule);
 router.post('/save', examScheduleController.saveExamSchedule);
+router.put('/:id', examScheduleController.updateExamScheduleItem);
 
 module.exports = router;

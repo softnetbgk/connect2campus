@@ -69,20 +69,73 @@ exports.createExamType = async (req, res) => {
     }
 };
 
+exports.updateExamType = async (req, res) => {
+    try {
+        const school_id = req.user.schoolId;
+        const { id } = req.params;
+        const { name } = req.body;
+
+        const result = await pool.query(
+            'UPDATE exam_types SET name = $1 WHERE id = $2 AND school_id = $3 RETURNING *',
+            [name, id, school_id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Exam type not found' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Error updating exam type:', error);
+        res.status(500).json({ message: 'Server error updating exam type' });
+    }
+};
+
+exports.deleteExamType = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const school_id = req.user.schoolId;
+        const { id } = req.params;
+
+        await client.query('BEGIN');
+
+        // Delete related schedules
+        await client.query('DELETE FROM exam_schedules WHERE exam_type_id = $1 AND school_id = $2', [id, school_id]);
+
+        // Delete related marks
+        await client.query('DELETE FROM marks WHERE exam_type_id = $1 AND school_id = $2', [id, school_id]);
+
+        // Delete related exam components
+        await client.query('DELETE FROM exam_components WHERE exam_type_id = $1', [id]);
+
+        // Delete the type
+        const result = await client.query('DELETE FROM exam_types WHERE id = $1 AND school_id = $2 RETURNING *', [id, school_id]);
+
+        if (result.rowCount === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: 'Exam type not found' });
+        }
+
+        await client.query('COMMIT');
+        res.json({ message: 'Exam type deleted successfully' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error deleting exam type:', error);
+        res.status(500).json({ message: 'Server error' });
+    } finally {
+        client.release();
+    }
+};
+
 // Get Marks for a Class/Section/Exam
 exports.getMarks = async (req, res) => {
     try {
         const school_id = req.user.schoolId;
         const { class_id, section_id, exam_type_id, year, month } = req.query;
 
-        if (!class_id || !section_id || !exam_type_id) {
-            return res.status(400).json({ message: 'Class, Section, and Exam Type are required' });
+        if (!class_id || !exam_type_id) {
+            return res.status(400).json({ message: 'Class and Exam Type are required' });
         }
-
-
-        // If year is provided, we need to filter.
-        // NOTE: The previous code block had a duplicate query execution which caused the lint error and logic error.
-        // I will clean it up to build query ONCE then execute.
 
         let query = `SELECT m.*, 
                     st.name as student_name,
@@ -95,15 +148,19 @@ exports.getMarks = async (req, res) => {
              JOIN students st ON m.student_id = st.id
              LEFT JOIN subjects sub ON m.subject_id = sub.id
              JOIN exam_types et ON m.exam_type_id = et.id
-             WHERE m.school_id = $1 AND m.class_id = $2 AND m.section_id = $3 AND m.exam_type_id = $4`;
+             WHERE m.school_id = $1 AND m.class_id = $2 AND m.exam_type_id = $3`;
 
-        const params = [school_id, class_id, section_id, exam_type_id];
+        const params = [school_id, class_id, exam_type_id];
+
+        if (section_id) {
+            params.push(section_id);
+            query += ` AND m.section_id = $${params.length}`;
+        }
 
         if (year) {
             params.push(year);
             query += ` AND m.year = $${params.length}`;
         }
-
 
         query += ` ORDER BY st.roll_number, sub.name`;
 
@@ -145,43 +202,82 @@ exports.getMarks = async (req, res) => {
     }
 };
 
-// ...
+exports.getMyMarks = async (req, res) => {
+    try {
+        const user_id = req.user.id;
+
+        // Find student linked to this user
+        const studentRes = await pool.query(
+            `SELECT s.id, s.school_id 
+             FROM students s 
+             JOIN users u ON LOWER(s.email) = LOWER(u.email)
+             WHERE u.id = $1`,
+            [user_id]
+        );
+
+        if (studentRes.rows.length === 0) {
+            return res.status(404).json({ message: 'Student profile not found' });
+        }
+
+        const student = studentRes.rows[0];
+
+        // Fetch exams and marks for this student
+        const marksResult = await pool.query(
+            `SELECT m.*, 
+                    sub.name as subject_name,
+                    et.name as exam_name
+             FROM marks m
+             JOIN subjects sub ON m.subject_id = sub.id
+             JOIN exam_types et ON m.exam_type_id = et.id
+             WHERE m.student_id = $1
+             ORDER BY et.name, sub.name`,
+            [student.id]
+        );
+
+        // Fetch components
+        const marksWithComponents = await Promise.all(marksResult.rows.map(async (mark) => {
+            const componentsResult = await pool.query(
+                `SELECT mc.*, ec.component_name 
+                 FROM mark_components mc
+                 JOIN exam_components ec ON mc.component_id = ec.id
+                 WHERE mc.mark_id = $1`,
+                [mark.id]
+            );
+            return {
+                ...mark,
+                components: componentsResult.rows || []
+            };
+        }));
+
+        res.json(marksWithComponents);
+    } catch (error) {
+        console.error('Error fetching my marks:', error);
+        res.status(500).json({ message: 'Server error fetching your marks' });
+    }
+};
 
 exports.saveMarks = async (req, res) => {
     const client = await pool.connect();
     try {
         const school_id = req.user.schoolId;
-        const { marks, year } = req.body; // Expect global year for this batch
+        const { marks, year } = req.body;
 
         if (!marks || !Array.isArray(marks) || marks.length === 0) {
             return res.status(400).json({ message: 'Marks data is required' });
         }
 
-        // Use provided year or current year
         const targetYear = year || new Date().getFullYear();
 
         await client.query('BEGIN');
 
         for (const mark of marks) {
-            const rowYear = mark.year || targetYear; // individual mark year override?
+            const rowYear = mark.year || targetYear;
+
+            // Allow section_id to be NULL or 0 if not provided
+            const sectionVal = mark.section_id || null;
 
             if (mark.component_id) {
                 // Component-based mark
-                // Ensure main mark entry exists
-
-                // Note: The UNIQUE constraint on marks (school, student, subject, exam) might conflict if we don't include year.
-                // However, without dropping constraint, we can't have duplicate (samestudent, samesubject) for differnt years.
-                // This is a schema limitation. Assuming old marks are archived or we update the same row?
-                // NO, we want historical data.
-                // We really should update the UNIQUE constraint.
-                // But for now, let's just try to update/insert properly.
-
-                // IF we can't alter constraint easily, we assume the user is editing the SINGLE record for that exam type.
-                // BUT "Final Exam 2024" vs "Final Exam 2025".
-                // Usually Exam Type is generic "Final Exam".
-                // So we definitely need year in constraint.
-
-                // For this step, I will just proceed with updating the row columns.
 
                 const mainMarkResult = await client.query(
                     `INSERT INTO marks 
@@ -190,7 +286,7 @@ exports.saveMarks = async (req, res) => {
                      ON CONFLICT (school_id, student_id, subject_id, exam_type_id, year)
                      DO UPDATE SET marks_obtained = marks.marks_obtained, updated_at = CURRENT_TIMESTAMP
                      RETURNING id`,
-                    [school_id, mark.student_id, mark.class_id, mark.section_id,
+                    [school_id, mark.student_id, mark.class_id, sectionVal,
                         mark.subject_id, mark.exam_type_id, rowYear]
                 );
 
@@ -216,18 +312,19 @@ exports.saveMarks = async (req, res) => {
                     [totalResult.rows[0].total, markId]
                 );
             } else {
-                // Simple mark
+                // Simple mark OR JSON-based Component Mark
                 await client.query(
                     `INSERT INTO marks 
-                     (school_id, student_id, class_id, section_id, subject_id, exam_type_id, marks_obtained, remarks, year, updated_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+                     (school_id, student_id, class_id, section_id, subject_id, exam_type_id, marks_obtained, remarks, year, component_scores, updated_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
                      ON CONFLICT (school_id, student_id, subject_id, exam_type_id, year)
                      DO UPDATE SET 
                         marks_obtained = EXCLUDED.marks_obtained,
                         remarks = EXCLUDED.remarks,
+                        component_scores = EXCLUDED.component_scores,
                         updated_at = CURRENT_TIMESTAMP`,
-                    [school_id, mark.student_id, mark.class_id, mark.section_id,
-                        mark.subject_id, mark.exam_type_id, mark.marks_obtained, mark.remarks || null, rowYear]
+                    [school_id, mark.student_id, mark.class_id, sectionVal,
+                        mark.subject_id, mark.exam_type_id, mark.marks_obtained, mark.remarks || null, rowYear, mark.component_scores || {}]
                 );
             }
         }
@@ -238,7 +335,6 @@ exports.saveMarks = async (req, res) => {
         const { sendPushNotification } = require('../services/notificationService');
         const uniqueStudentIds = [...new Set(marks.map(m => m.student_id))];
         for (const studentId of uniqueStudentIds) {
-            // We could fetch exam name here for better context, but generic is fine for now
             await sendPushNotification(studentId, 'Exam Results', 'New marks have been updated in your report card.');
         }
         res.json({ message: 'Marks saved successfully', count: marks.length });
@@ -251,137 +347,32 @@ exports.saveMarks = async (req, res) => {
     }
 };
 
-// Get My Marks (Student View)
-exports.getMyMarks = async (req, res) => {
-    try {
-        const { id, role, email, schoolId, linkedId } = req.user;
-        let student_id = linkedId;
-
-        if (role !== 'STUDENT') {
-            return res.status(403).json({ message: 'Only students can access this route' });
-        }
-
-        // Fallback Logic
-        if (!student_id) {
-            const studentRes = await pool.query(
-                'SELECT id FROM students WHERE school_id = $1 AND LOWER(email) = LOWER($2)',
-                [schoolId, email]
-            );
-            if (studentRes.rows.length > 0) student_id = studentRes.rows[0].id;
-            else {
-                const prefix = email.split('@')[0];
-                const s2 = await pool.query('SELECT id FROM students WHERE admission_no = $1', [prefix]);
-                if (s2.rows.length > 0) student_id = s2.rows[0].id;
-            }
-        }
-
-        if (!student_id) return res.status(404).json({ message: 'Student profile not found' });
-
-        // 1. Fetch Marks
-        // We want all marks across all exams
-        const { month, year } = req.query; // Added filtering params
-
-        let marksQuery = `
-            SELECT m.marks_obtained as marks, 
-                   st.max_marks as "totalMarks",
-                   sub.name as subject,
-                   et.name as "examType",
-                   m.remarks,
-                   CASE 
-                     WHEN (m.marks_obtained / st.max_marks) >= 0.9 THEN 'A+'
-                     WHEN (m.marks_obtained / st.max_marks) >= 0.8 THEN 'A'
-                     WHEN (m.marks_obtained / st.max_marks) >= 0.7 THEN 'B'
-                     ELSE 'C'
-                   END as grade
-            FROM marks m
-            JOIN subjects sub ON m.subject_id = sub.id
-            JOIN exam_types et ON m.exam_type_id = et.id
-            CROSS JOIN LATERAL (SELECT et.max_marks) as st
-            WHERE m.student_id = $1
-        `;
-
-        const queryParams = [student_id];
-
-        if (month && year) {
-            marksQuery += ` AND EXTRACT(MONTH FROM m.created_at) = $2 AND EXTRACT(YEAR FROM m.created_at) = $3`;
-            queryParams.push(month, year);
-        }
-
-        marksQuery += ` ORDER BY m.updated_at DESC`;
-
-        const marksRes = await pool.query(marksQuery, queryParams);
-
-        // 2. Fetch Upcoming Exams (Mock or Real)
-        // Check exam schedule if exists, otherwise return mock
-
-        const exams = [
-            { id: 1, examName: 'Final Exam', subject: 'Mathematics', date: '2025-05-10', time: '10:00 AM' },
-            { id: 2, examName: 'Final Exam', subject: 'Science', date: '2025-05-12', time: '10:00 AM' }
-        ];
-
-        res.json({
-            marks: marksRes.rows,
-            upcomingExams: exams
-        });
-
-    } catch (error) {
-        console.error('Error fetching my marks:', error);
-        res.status(500).json({ message: 'Server error fetching marks' });
-    }
-};
-
-// Get Single Student Marksheet
 exports.getStudentMarksheet = async (req, res) => {
     try {
         const school_id = req.user.schoolId;
-        let { student_id, exam_type_id } = req.query;
-
-        // If user is STUDENT, force student_id to match their profile
-        if (req.user.role === 'STUDENT') {
-            const { email } = req.user;
-            // Lookup Student ID from Email
-            let studentRes = await pool.query(
-                'SELECT id FROM students WHERE school_id = $1 AND LOWER(email) = LOWER($2)',
-                [school_id, email]
-            );
-
-            if (studentRes.rows.length === 0) {
-                const emailParts = email.split('@');
-                if (emailParts.length === 2) {
-                    studentRes = await pool.query(
-                        'SELECT id FROM students WHERE school_id = $1 AND LOWER(admission_no) = LOWER($2)',
-                        [school_id, emailParts[0]]
-                    );
-                }
-            }
-
-            if (studentRes.rows.length === 0) {
-                return res.status(404).json({ message: 'Student profile not linked to user' });
-            }
-            student_id = studentRes.rows[0].id;
-        }
+        const { student_id, exam_type_id } = req.query;
 
         if (!student_id || !exam_type_id) {
-            return res.status(400).json({ message: 'Student and Exam Type are required' });
+            return res.status(400).json({ message: 'Student ID and Exam Type are required' });
         }
 
-        // Get student details
-        const studentResult = await pool.query(
+        // Get student info
+        const studentRes = await pool.query(
             `SELECT st.*, c.name as class_name, sec.name as section_name
              FROM students st
-             LEFT JOIN classes c ON st.class_id = c.id
+             JOIN classes c ON st.class_id = c.id
              LEFT JOIN sections sec ON st.section_id = sec.id
              WHERE st.id = $1 AND st.school_id = $2`,
             [student_id, school_id]
         );
 
-        if (studentResult.rows.length === 0) {
+        if (studentRes.rows.length === 0) {
             return res.status(404).json({ message: 'Student not found' });
         }
 
-        const student = studentResult.rows[0];
+        const student = studentRes.rows[0];
 
-        // Get marks for all subjects - ONLY LATEST YEAR for student portal
+        // Get Marks
         const marksResult = await pool.query(
             `SELECT m.*, 
                     sub.name as subject_name,
@@ -390,31 +381,42 @@ exports.getStudentMarksheet = async (req, res) => {
              FROM marks m
              JOIN subjects sub ON m.subject_id = sub.id
              JOIN exam_types et ON m.exam_type_id = et.id
-             WHERE m.student_id = $1 
-               AND m.exam_type_id = $2 
-               AND m.school_id = $3
-               AND m.year = (
-                   SELECT MAX(year) 
-                   FROM marks 
-                   WHERE student_id = $1 AND exam_type_id = $2 AND school_id = $3
-               )
+             WHERE m.student_id = $1 AND m.exam_type_id = $2
              ORDER BY sub.name`,
-            [student_id, exam_type_id, school_id]
+            [student_id, exam_type_id]
         );
 
-        const totalMarks = marksResult.rows.reduce((sum, m) => sum + parseFloat(m.marks_obtained || 0), 0);
-        const maxMarks = marksResult.rows.reduce((sum, m) => sum + parseFloat(m.max_marks || 0), 0);
+        // Fetch components for these marks
+        const marksWithComponents = await Promise.all(marksResult.rows.map(async (mark) => {
+            const componentsResult = await pool.query(
+                `SELECT mc.*, ec.component_name, ec.max_marks as component_max_marks
+                 FROM mark_components mc
+                 JOIN exam_components ec ON mc.component_id = ec.id
+                 WHERE mc.mark_id = $1
+                 ORDER BY ec.display_order`,
+                [mark.id]
+            );
+            return {
+                ...mark,
+                components: componentsResult.rows || []
+            };
+        }));
+
+        const totalMarks = marksWithComponents.reduce((sum, m) => sum + parseFloat(m.marks_obtained || 0), 0);
+        const maxMarks = marksWithComponents.reduce((sum, m) => sum + parseFloat(m.max_marks || 0), 0);
         const percentage = maxMarks > 0 ? ((totalMarks / maxMarks) * 100).toFixed(2) : 0;
 
-        res.json({
+        const marksheet = {
             student,
-            marks: marksResult.rows,
+            marks: marksWithComponents,
             summary: {
                 total_marks: totalMarks,
                 max_marks: maxMarks,
                 percentage
             }
-        });
+        };
+
+        res.json(marksheet);
     } catch (error) {
         console.error('Error fetching student marksheet:', error);
         res.status(500).json({ message: 'Server error fetching marksheet' });
@@ -426,20 +428,28 @@ exports.getAllMarksheets = async (req, res) => {
         const school_id = req.user.schoolId;
         const { class_id, section_id, exam_type_id } = req.query;
 
-        if (!class_id || !section_id || !exam_type_id) {
-            return res.status(400).json({ message: 'Class, Section, and Exam Type are required' });
+        if (!class_id || !exam_type_id) {
+            return res.status(400).json({ message: 'Class and Exam Type are required' });
         }
 
         // Get all students in this class/section
-        const studentsResult = await pool.query(
-            `SELECT st.*, c.name as class_name, sec.name as section_name
+        // Adjust query to support optional section
+        let studentsQuery = `SELECT st.*, c.name as class_name, sec.name as section_name
              FROM students st
              JOIN classes c ON st.class_id = c.id
-             JOIN sections sec ON st.section_id = sec.id
-             WHERE st.class_id = $1 AND st.section_id = $2 AND st.school_id = $3
-             ORDER BY st.roll_number`,
-            [class_id, section_id, school_id]
-        );
+             LEFT JOIN sections sec ON st.section_id = sec.id
+             WHERE st.class_id = $1 AND st.school_id = $2`;
+
+        const params = [class_id, school_id];
+
+        if (section_id) {
+            params.push(section_id);
+            studentsQuery += ` AND st.section_id = $${params.length}`;
+        }
+
+        studentsQuery += ` ORDER BY st.roll_number`;
+
+        const studentsResult = await pool.query(studentsQuery, params);
 
         const marksheets = [];
 

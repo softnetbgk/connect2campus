@@ -16,11 +16,29 @@ const authenticateToken = (req, res, next) => {
         }
 
         try {
-            // Verify if this is the active session token
-            const dbRes = await pool.query('SELECT current_session_token FROM users WHERE id = $1', [user.id]);
-            if (dbRes.rows.length === 0 || dbRes.rows[0].current_session_token !== token) {
-                return res.status(401).json({ message: 'Session expired or invalidated. You may have logged in on another device.' });
+            // Verify if this is the active session token AND if school is active
+            const dbRes = await pool.query(`
+                SELECT u.current_session_token, u.school_id, s.is_active 
+                FROM users u 
+                LEFT JOIN schools s ON u.school_id = s.id 
+                WHERE u.id = $1
+            `, [user.id]);
+
+            if (dbRes.rows.length === 0) {
+                return res.status(401).json({ message: 'User not found.' });
             }
+
+            const userData = dbRes.rows[0];
+
+            if (userData.current_session_token !== token) {
+                return res.status(401).json({ message: 'Session expired or invalidated.' });
+            }
+
+            // Check if school is active (for non-Super Admins)
+            if (user.role !== 'SUPER_ADMIN' && userData.school_id && userData.is_active === false) {
+                return res.status(403).json({ message: 'School Service Disabled. Contact Super Admin.' });
+            }
+
         } catch (dbErr) {
             console.error('Session verification failed:', dbErr);
             return res.status(500).json({ message: 'Session verification failed' });

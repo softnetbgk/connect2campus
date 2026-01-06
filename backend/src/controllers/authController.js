@@ -82,6 +82,14 @@ const login = async (req, res) => {
             }
         }
 
+        // Check School Status (Is Active?)
+        if (user.school_id) {
+            const schoolStatusRes = await pool.query('SELECT is_active FROM schools WHERE id = $1', [user.school_id]);
+            if (schoolStatusRes.rows.length > 0 && !schoolStatusRes.rows[0].is_active) {
+                return res.status(403).json({ message: 'Contact Super Admin for service' });
+            }
+        }
+
         // Fetch Linked ID (Student/Teacher/Staff ID) to optimize downstream requests
         let linkedId = null;
         if (user.role === 'STUDENT') {

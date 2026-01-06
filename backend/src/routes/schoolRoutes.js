@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createSchool, getSchools, getSchoolDetails, updateSchool, getMySchool } = require('../controllers/schoolController');
+const { createSchool, getSchools, getSchoolDetails, updateSchool, getMySchool, toggleSchoolStatus } = require('../controllers/schoolController');
 const { authenticateToken, requireSuperAdmin, authorize } = require('../middleware/authMiddleware');
 
 // All routes require authentication
@@ -14,5 +14,6 @@ router.post('/', requireSuperAdmin, createSchool);
 router.get('/', requireSuperAdmin, getSchools);
 router.get('/:id', requireSuperAdmin, getSchoolDetails);
 router.put('/:id', requireSuperAdmin, updateSchool);
+router.put('/:id/status', requireSuperAdmin, toggleSchoolStatus);
 
 module.exports = router;

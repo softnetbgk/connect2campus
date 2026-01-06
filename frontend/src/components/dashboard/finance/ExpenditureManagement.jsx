@@ -53,12 +53,22 @@ const ExpenditureManagement = () => {
         }
     };
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = React.useRef(false);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Prevent double submit with immediate ref check
+        if (isSubmitting || isSubmittingRef.current) return;
+
         if (!formData.title || !formData.amount) {
             toast.error('Please fill required fields');
             return;
         }
+
+        setIsSubmitting(true);
+        isSubmittingRef.current = true;
 
         try {
             const payload = { ...formData };
@@ -94,6 +104,9 @@ const ExpenditureManagement = () => {
         } catch (error) {
             console.error(error);
             toast.error(editingId ? 'Failed to update expenditure' : 'Failed to add expenditure');
+        } finally {
+            setIsSubmitting(false);
+            isSubmittingRef.current = false;
         }
     };
 
@@ -505,14 +518,16 @@ const ExpenditureManagement = () => {
                                         type="button"
                                         onClick={() => setShowModal(false)}
                                         className="px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg font-medium"
+                                        disabled={isSubmitting}
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold"
+                                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold disabled:opacity-70 disabled:cursor-not-allowed"
+                                        disabled={isSubmitting}
                                     >
-                                        Save Expenditure
+                                        {isSubmitting ? 'Saving...' : 'Save Expenditure'}
                                     </button>
                                 </div>
                             </form>

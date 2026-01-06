@@ -31,8 +31,16 @@ const HostelOverview = () => {
         }
     };
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmittingRef = React.useRef(false);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (isSubmitting || isSubmittingRef.current) return;
+
+        setIsSubmitting(true);
+        isSubmittingRef.current = true;
         try {
             if (editingId) {
                 await api.put(`/hostel/${editingId}`, formData);
@@ -46,6 +54,9 @@ const HostelOverview = () => {
             resetForm();
         } catch (error) {
             toast.error('Operation failed');
+        } finally {
+            setIsSubmitting(false);
+            isSubmittingRef.current = false;
         }
     };
 
@@ -109,14 +120,14 @@ const HostelOverview = () => {
 
                             <div className="flex items-center gap-4 mb-4">
                                 <div className={`w-12 h-12 rounded-full flex items-center justify-center ${hostel.type === 'Boys' ? 'bg-blue-100 text-blue-600' :
-                                        hostel.type === 'Girls' ? 'bg-pink-100 text-pink-600' : 'bg-purple-100 text-purple-600'
+                                    hostel.type === 'Girls' ? 'bg-pink-100 text-pink-600' : 'bg-purple-100 text-purple-600'
                                     }`}>
                                     <Home size={24} />
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-lg text-slate-800">{hostel.name}</h3>
                                     <span className={`text-xs px-2 py-1 rounded-full ${hostel.type === 'Boys' ? 'bg-blue-50 text-blue-600' :
-                                            hostel.type === 'Girls' ? 'bg-pink-50 text-pink-600' : 'bg-purple-50 text-purple-600'
+                                        hostel.type === 'Girls' ? 'bg-pink-50 text-pink-600' : 'bg-purple-50 text-purple-600'
                                         }`}>
                                         {hostel.type} Hostel
                                     </span>
@@ -216,14 +227,16 @@ const HostelOverview = () => {
                                     type="button"
                                     onClick={() => setShowModal(false)}
                                     className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 font-medium"
+                                    disabled={isSubmitting}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
+                                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+                                    disabled={isSubmitting}
                                 >
-                                    {editingId ? 'Update Hostel' : 'Create Hostel'}
+                                    {isSubmitting ? 'Saving...' : (editingId ? 'Update Hostel' : 'Create Hostel')}
                                 </button>
                             </div>
                         </form>

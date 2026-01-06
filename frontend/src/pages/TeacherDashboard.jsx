@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 import { useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, Users, Calendar,
@@ -79,7 +80,16 @@ const TeacherDashboard = () => {
         }
     };
 
-    const handleLogout = () => { logout(); navigate('/'); };
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+    const handleLogoutClick = () => {
+        setShowLogoutModal(true);
+    };
+
+    const handleConfirmLogout = () => {
+        logout();
+        navigate('/');
+    };
 
     // Construct Config for StudentAttendanceMarking based on assigned class
     const attendanceConfig = teacherProfile?.assigned_class_id ? {
@@ -169,7 +179,7 @@ const TeacherDashboard = () => {
                             </p>
                             <p className="text-[10px] text-blue-200 truncate">{schoolName}</p>
                         </div>
-                        <button onClick={handleLogout} className="text-blue-200 hover:text-white transition-colors">
+                        <button onClick={handleLogoutClick} className="text-blue-200 hover:text-white transition-colors">
                             <LogOut size={18} />
                         </button>
                     </div>
@@ -264,6 +274,11 @@ const TeacherDashboard = () => {
                     ]}
                 />
             )}
+            <LogoutConfirmationModal
+                isOpen={showLogoutModal}
+                onClose={() => setShowLogoutModal(false)}
+                onConfirm={handleConfirmLogout}
+            />
         </div>
     );
 };

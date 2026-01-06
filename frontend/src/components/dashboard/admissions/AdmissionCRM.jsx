@@ -284,7 +284,7 @@ const AdmissionCRM = ({ onNavigate }) => {
                                 >
                                     <option value="">Select Class Applying For</option>
                                     {classes.map(c => (
-                                        <option key={c.class_id} value={c.class_name}>{c.class_name}</option>
+                                        <option key={c.id} value={c.name}>{c.name}</option>
                                     ))}
                                 </select>
                                 <input
