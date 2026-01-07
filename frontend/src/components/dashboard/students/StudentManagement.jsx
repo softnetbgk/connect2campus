@@ -402,8 +402,8 @@ const StudentManagement = ({ config, prefillData }) => {
                     />
                     <button
                         onClick={handlePrint}
-                        disabled={students.length === 0}
-                        className="bg-slate-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-slate-500/20 hover:bg-slate-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        disabled={students.length === 0 || selectedStudents.length > 0}
+                        className={`bg-slate-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-slate-500/20 hover:bg-slate-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${selectedStudents.length > 0 ? 'opacity-30 blur-[1px]' : ''}`}
                     >
                         <Printer size={20} /> Print List
                     </button>
@@ -415,7 +415,11 @@ const StudentManagement = ({ config, prefillData }) => {
                             <GraduationCap size={20} /> Promote ({selectedStudents.length})
                         </button>
                     )}
-                    <button onClick={handleAdd} className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+                    <button
+                        onClick={handleAdd}
+                        disabled={selectedStudents.length > 0}
+                        className={`bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 ${selectedStudents.length > 0 ? 'opacity-30 blur-[1px] pointer-events-none' : ''}`}
+                    >
                         <Plus size={20} /> Add Student
                     </button>
                 </div>
