@@ -121,7 +121,7 @@ exports.addRoute = async (req, res) => {
         const routeRes = await client.query(
             `INSERT INTO transport_routes (school_id, vehicle_id, route_name, start_point, end_point, start_time)
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-            [school_id, vehicle_id, route_name, start_point, end_point, start_time]
+            [school_id, vehicle_id || null, route_name, start_point, end_point, start_time]
         );
         const routeId = routeRes.rows[0].id;
 
@@ -166,7 +166,7 @@ exports.updateRoute = async (req, res) => {
                  start_time = COALESCE($4, start_time), 
                  vehicle_id = COALESCE($5, vehicle_id)
              WHERE id = $6 AND school_id = $7 RETURNING *`,
-            [route_name, start_point, end_point, start_time, vehicle_id, id, school_id]
+            [route_name, start_point, end_point, start_time, vehicle_id || null, id, school_id]
         );
 
         if (routeRes.rows.length === 0) {
