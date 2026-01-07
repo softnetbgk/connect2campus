@@ -136,6 +136,8 @@ const TransportManagement = ({ initialTab }) => {
 
     // Route Form State
     const [showRouteModal, setShowRouteModal] = useState(false);
+    const [isEditingRoute, setIsEditingRoute] = useState(false);
+    const [selectedRouteId, setSelectedRouteId] = useState(null);
     const [routeForm, setRouteForm] = useState({
         route_name: '', start_point: '', end_point: '', start_time: ''
     });
@@ -203,13 +205,33 @@ const TransportManagement = ({ initialTab }) => {
 
     const handleAddRoute = async () => {
         try {
-            await api.post('/transport/routes', { ...routeForm, stops });
-            toast.success('Route created successfully');
+            if (isEditingRoute) {
+                await api.put(`/transport/routes/${selectedRouteId}`, { ...routeForm, stops });
+                toast.success('Route updated successfully');
+            } else {
+                await api.post('/transport/routes', { ...routeForm, stops });
+                toast.success('Route created successfully');
+            }
             setShowRouteModal(false);
+            setIsEditingRoute(false);
+            setSelectedRouteId(null);
             fetchData();
         } catch (error) {
-            toast.error('Failed to create route');
+            toast.error(isEditingRoute ? 'Failed to update route' : 'Failed to create route');
         }
+    };
+
+    const handleEditRoute = (route) => {
+        setRouteForm({
+            route_name: route.route_name,
+            start_point: route.start_point,
+            end_point: route.end_point,
+            start_time: route.start_time
+        });
+        setStops(route.stops || []);
+        setSelectedRouteId(route.id);
+        setIsEditingRoute(true);
+        setShowRouteModal(true);
     };
 
     const handleStopChange = (index, field, value) => {
@@ -352,9 +374,18 @@ const TransportManagement = ({ initialTab }) => {
                                                         <RotateCw size={14} /> {formatTime(route.start_time) || 'N/A'}
                                                     </div>
                                                 </div>
-                                                <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-bold">
-                                                    {route.stops?.length || 0} Stops
-                                                </span>
+                                                <div className="flex gap-2 items-center">
+                                                    <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-bold">
+                                                        {route.stops?.length || 0} Stops
+                                                    </span>
+                                                    <button
+                                                        onClick={() => handleEditRoute(route)}
+                                                        className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                                        title="Edit Route"
+                                                    >
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div className="space-y-3 relative">
                                                 <div className="absolute left-1.5 top-2 bottom-2 w-0.5 bg-slate-200"></div>
@@ -500,7 +531,7 @@ const TransportManagement = ({ initialTab }) => {
                     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
                         <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200 h-[85vh] flex flex-col">
                             <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 flex-shrink-0">
-                                <h3 className="font-bold text-slate-800">Create New Route</h3>
+                                <h3 className="font-bold text-slate-800">{isEditingRoute ? 'Edit Route' : 'Create New Route'}</h3>
                                 <button onClick={() => setShowRouteModal(false)} className="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
                             </div>
 
@@ -590,7 +621,9 @@ const TransportManagement = ({ initialTab }) => {
                             </div>
 
                             <div className="p-4 border-t border-slate-100 bg-slate-50 flex-shrink-0">
-                                <button onClick={handleAddRoute} className="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700">Create Route</button>
+                                <button onClick={handleAddRoute} className="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700">
+                                    {isEditingRoute ? 'Update Route' : 'Create Route'}
+                                </button>
                             </div>
                         </div>
                     </div>
