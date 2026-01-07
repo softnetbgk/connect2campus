@@ -92,7 +92,7 @@ const StaffMyAttendance = () => {
                             ))}
                         </select>
                         <select className="bg-transparent text-sm outline-none font-bold text-slate-700 cursor-pointer" value={year} onChange={e => setYear(parseInt(e.target.value))}>
-                            {Array.from({ length: 11 }, (_, i) => new Date().getFullYear() + i).map(year => (
+                            {Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - i).map(year => (
                                 <option key={year} value={year}>{year}</option>
                             ))}
                         </select>
