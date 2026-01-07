@@ -8,6 +8,21 @@ const StudentMyAttendance = () => {
     const [report, setReport] = useState(null);
     const [stats, setStats] = useState({ present: 0, absent: 0, late: 0, total: 0 });
     const [loading, setLoading] = useState(false);
+    const [startYear, setStartYear] = useState(new Date().getFullYear());
+
+    useEffect(() => {
+        const fetchSchoolStartYear = async () => {
+            try {
+                const res = await api.get('/schools/my-school');
+                if (res.data.created_at) {
+                    setStartYear(new Date(res.data.created_at).getFullYear());
+                }
+            } catch (error) {
+                console.error("Failed to fetch school info", error);
+            }
+        };
+        fetchSchoolStartYear();
+    }, []);
 
     // Generate dates for the selected month
     const daysInMonth = new Date(year, month, 0).getDate();
@@ -56,8 +71,8 @@ const StudentMyAttendance = () => {
                     </select>
                     <div className="w-px h-4 bg-slate-300 mx-2"></div>
                     <select className="bg-transparent text-sm outline-none font-bold text-slate-700 cursor-pointer" value={year} onChange={e => setYear(parseInt(e.target.value))}>
-                        {Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                            <option key={year} value={year}>{year}</option>
+                        {Array.from({ length: new Date().getFullYear() - startYear + 1 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                            <option key={y} value={y}>{y}</option>
                         ))}
                     </select>
                 </div>

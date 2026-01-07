@@ -9,6 +9,21 @@ const StaffMyAttendance = () => {
     const [history, setHistory] = useState([]);
     const [stats, setStats] = useState({ present: 0, absent: 0, leave: 0, late: 0 });
     const [loading, setLoading] = useState(true);
+    const [startYear, setStartYear] = useState(new Date().getFullYear());
+
+    useEffect(() => {
+        const fetchSchoolStartYear = async () => {
+            try {
+                const res = await api.get('/schools/my-school');
+                if (res.data.created_at) {
+                    setStartYear(new Date(res.data.created_at).getFullYear());
+                }
+            } catch (error) {
+                console.error("Failed to fetch school info", error);
+            }
+        };
+        fetchSchoolStartYear();
+    }, []);
 
     useEffect(() => {
         fetchHistory();
@@ -92,8 +107,8 @@ const StaffMyAttendance = () => {
                             ))}
                         </select>
                         <select className="bg-transparent text-sm outline-none font-bold text-slate-700 cursor-pointer" value={year} onChange={e => setYear(parseInt(e.target.value))}>
-                            {Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                                <option key={year} value={year}>{year}</option>
+                            {Array.from({ length: new Date().getFullYear() - startYear + 1 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                                <option key={y} value={y}>{y}</option>
                             ))}
                         </select>
                     </div>
