@@ -288,14 +288,30 @@ exports.getMyAttendance = async (req, res) => {
         const { month, year } = req.query;
 
         // 1. Get Staff ID from User Email
-        const staffRes = await pool.query('SELECT id FROM staff WHERE email = $1 AND school_id = $2', [user_email, school_id]);
+        // Robust matching: Case insensitive, trim spaces
+        const staffRes = await pool.query(
+            'SELECT id, email, name FROM staff WHERE LOWER(TRIM(email)) = LOWER(TRIM($1)) AND school_id = $2',
+            [user_email, school_id]
+        );
 
         if (staffRes.rows.length === 0) {
-            // Check if driver? No, drivers are also in Staff table usually if simplified, or handled separately.
-            // If the user role is driver, they might not be in 'staff' table if schema separates them.
-            // But based on previous contexts, drivers are likely treated as staff or have similar structures.
-            // Let's assume they are in staff table or we return empty.
-            return res.json([]);
+            // FALLBACK: If email is auto-generated (e.g. EMPID@staff.school.com), try finding by Employee ID
+            if (user_email.endsWith('@staff.school.com')) {
+                const potentialEmpId = user_email.split('@')[0].toUpperCase();
+
+                const empIdRes = await pool.query(
+                    'SELECT id, email, name FROM staff WHERE employee_id = $1 AND school_id = $2',
+                    [potentialEmpId, school_id]
+                );
+
+                if (empIdRes.rows.length > 0) {
+                    staffRes.rows = empIdRes.rows; // Found it!
+                } else {
+                    return res.json([]); // Still not found
+                }
+            } else {
+                return res.json([]); // Not found and not auto-generated email
+            }
         }
 
         const staff_id = staffRes.rows[0].id;

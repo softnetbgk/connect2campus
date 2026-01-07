@@ -464,8 +464,23 @@ exports.getMyAttendanceHistory = async (req, res) => {
         const email = req.user.email;
         const { month, year } = req.query;
 
-        // Find teacher ID from email
-        const tRes = await pool.query('SELECT id FROM teachers WHERE email = $1 AND school_id = $2', [email, school_id]);
+        // Find teacher ID from email (Robust Match)
+        let tRes = await pool.query(
+            'SELECT id FROM teachers WHERE LOWER(TRIM(email)) = LOWER(TRIM($1)) AND school_id = $2',
+            [email, school_id]
+        );
+
+        if (tRes.rows.length === 0) {
+            // Fallback for generated emails
+            if (email.endsWith('@teacher.school.com')) {
+                const potentialEmpId = email.split('@')[0].toUpperCase();
+                tRes = await pool.query(
+                    'SELECT id FROM teachers WHERE employee_id = $1 AND school_id = $2',
+                    [potentialEmpId, school_id]
+                );
+            }
+        }
+
         if (tRes.rows.length === 0) return res.status(404).json({ message: 'Teacher profile not found' });
         const teacher_id = tRes.rows[0].id;
 

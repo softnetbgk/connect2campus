@@ -372,6 +372,37 @@ const StaffDashboard = () => {
 
 const StaffOverview = ({ isDriver, schoolName, profile, user }) => {
     const navigate = useNavigate();
+    const [attendancePercent, setAttendancePercent] = useState('0');
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchAttendance = async () => {
+            setLoading(true);
+            try {
+                const now = new Date();
+                const res = await api.get('/staff/attendance/my', {
+                    params: { month: now.getMonth() + 1, year: now.getFullYear() }
+                });
+
+                const data = res.data;
+                // Count Present
+                const presentCount = data.filter(r => r.status?.toLowerCase() === 'present').length;
+                const totalMarked = data.length;
+
+                if (totalMarked > 0) {
+                    setAttendancePercent(Math.round((presentCount / totalMarked) * 100));
+                } else {
+                    setAttendancePercent(0);
+                }
+            } catch (e) {
+                console.error("Failed to load attendance stats", e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAttendance();
+    }, []);
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="col-span-full mb-6">
@@ -405,9 +436,13 @@ const StaffOverview = ({ isDriver, schoolName, profile, user }) => {
 
 
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                <h3 className="font-bold text-slate-500 mb-1">Attendance</h3>
-                <div className="text-3xl font-bold text-slate-800">92%</div>
-                <div className="text-xs text-emerald-500 mt-2 font-bold">Excellent</div>
+                <h3 className="font-bold text-slate-500 mb-1">Attendance (This Month)</h3>
+                <div className="text-3xl font-bold text-slate-800">
+                    {loading ? <span className="text-sm text-slate-400">Loading...</span> : `${attendancePercent}%`}
+                </div>
+                <div className={`text-xs mt-2 font-bold ${attendancePercent >= 90 ? 'text-emerald-500' : attendancePercent >= 75 ? 'text-amber-500' : 'text-rose-500'}`}>
+                    {loading ? '' : attendancePercent >= 90 ? 'Excellent' : attendancePercent >= 75 ? 'Good' : 'Needs Improvement'}
+                </div>
             </div>
         </div>
     );
