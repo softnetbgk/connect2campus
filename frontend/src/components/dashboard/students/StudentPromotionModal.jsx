@@ -111,20 +111,22 @@ const StudentPromotionModal = ({ isOpen, onClose, selectedStudents, config, onSu
 
                 {/* Content */}
                 <div className="p-6 space-y-6">
-                    {/* Selected Students */}
-                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                        <div className="flex items-center gap-2 mb-3">
-                            <Users size={18} className="text-indigo-600" />
-                            <h3 className="font-bold text-slate-700">Selected Students ({selectedStudents.length})</h3>
-                        </div>
-                        <div className="max-h-32 overflow-y-auto space-y-1">
-                            {selectedStudents.map(student => (
-                                <div key={student.id} className="text-sm text-slate-600 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
-                                    <span className="font-medium">{student.name}</span>
-                                    <span className="text-xs text-slate-400">({student.class_name} - {student.section_name})</span>
+                    {/* Selected Students Count */}
+                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-5 border border-indigo-200">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center">
+                                    <Users size={24} className="text-white" />
                                 </div>
-                            ))}
+                                <div>
+                                    <h3 className="font-bold text-slate-800 text-lg">Selected Students</h3>
+                                    <p className="text-sm text-slate-500">Ready for promotion</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-4xl font-bold text-indigo-600">{selectedStudents.length}</div>
+                                <div className="text-xs text-slate-500 uppercase tracking-wider">Students</div>
+                            </div>
                         </div>
                     </div>
 
