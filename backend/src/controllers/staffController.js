@@ -371,8 +371,23 @@ exports.getSalarySlips = async (req, res) => {
         const school_id = req.user.schoolId;
         const user_email = req.user.email;
 
-        // 1. Get Staff ID
-        const staffRes = await pool.query('SELECT id FROM staff WHERE email = $1 AND school_id = $2', [user_email, school_id]);
+        // 1. Get Staff ID (Robust Match)
+        let staffRes = await pool.query(
+            'SELECT id FROM staff WHERE LOWER(TRIM(email)) = LOWER(TRIM($1)) AND school_id = $2',
+            [user_email, school_id]
+        );
+
+        if (staffRes.rows.length === 0) {
+            if (user_email.endsWith('@staff.school.com')) {
+                const potentialEmpId = user_email.split('@')[0].toUpperCase();
+                const empIdRes = await pool.query(
+                    'SELECT id FROM staff WHERE employee_id = $1 AND school_id = $2',
+                    [potentialEmpId, school_id]
+                );
+                if (empIdRes.rows.length > 0) staffRes = empIdRes;
+            }
+        }
+
         if (staffRes.rows.length === 0) return res.json([]);
         const staff_id = staffRes.rows[0].id;
 
