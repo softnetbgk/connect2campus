@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, CreditCard, History, CheckCircle, AlertCircle, Edit, Trash2, IndianRupee, Users, Printer, Receipt } from 'lucide-react';
+import { Search, CreditCard, History, CheckCircle, AlertCircle, Edit, Trash2, IndianRupee, Users, Printer, Receipt, Bus } from 'lucide-react';
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
 
@@ -45,6 +45,47 @@ const FeeCollection = ({ config: initialConfig }) => {
     const [method, setMethod] = useState('Cash');
     const [remarks, setRemarks] = useState('');
     const [transactionId, setTransactionId] = useState('');
+
+    // Transport Fee Modal
+    const [transportModal, setTransportModal] = useState(false);
+    const [routes, setRoutes] = useState([]);
+    const [transportForm, setTransportForm] = useState({ route: '', amount: '' });
+
+    const openTransportModal = async () => {
+        setTransportModal(true);
+        try {
+            const res = await api.get('/transport/routes');
+            setRoutes(res.data || []);
+        } catch (e) {
+            console.error('Failed to fetch routes', e);
+            toast.error('Could not load transport routes');
+        }
+    };
+
+    const handleAddTransportFee = async (e) => {
+        e.preventDefault();
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+        try {
+            await api.post('/fees/student-structure', {
+                student_id: selectedStudent.id,
+                title: `Transport Fee - ${transportForm.route_name || 'Custom'}`,
+                amount: transportForm.amount,
+                due_date: new Date().toISOString().split('T')[0], // Due immediately
+                type: 'TRANSPORT'
+            });
+            toast.success('Transport Fee Assigned');
+            setTransportModal(false);
+            setTransportForm({ route: '', amount: '' });
+            fetchStudentFees(selectedStudent.id);
+            fetchOverview();
+        } catch (e) {
+            console.error(e);
+            toast.error('Failed to assign transport fee');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     const sections = config?.classes?.find(c => c.class_id === parseInt(selectedClass))?.sections || [];
 
@@ -416,6 +457,9 @@ const FeeCollection = ({ config: initialConfig }) => {
                         <div className="flex bg-white rounded-t-xl border-b border-gray-200">
                             <button onClick={() => setActiveTab('dues')} className={`flex-1 p-4 font-bold text-sm ${activeTab === 'dues' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500'}`}>Current Dues</button>
                             <button onClick={() => setActiveTab('history')} className={`flex-1 p-4 font-bold text-sm ${activeTab === 'history' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500'}`}>Payment History</button>
+                            <button onClick={openTransportModal} className="px-4 py-2 text-sm font-bold text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 border-l border-gray-100">
+                                <Bus size={16} /> Add Transport Fee
+                            </button>
                         </div>
 
                         <div className="bg-white rounded-b-xl shadow-sm border border-gray-200 p-6 min-h-[300px] overflow-x-auto">
@@ -603,6 +647,50 @@ const FeeCollection = ({ config: initialConfig }) => {
                                     </>
                                 )}
                                 <button type="submit" className="btn-primary w-full py-3 bg-gray-800 hover:bg-gray-900" disabled={isSubmitting}>{isSubmitting ? 'Updating...' : 'Update Changes'}</button>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {transportModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95">
+                            <h3 className="text-lg font-bold mb-4">Assign Transport Fee</h3>
+                            <form onSubmit={handleAddTransportFee} className="space-y-4">
+                                <div>
+                                    <label className="label">Select Route (Optional)</label>
+                                    <select
+                                        className="input"
+                                        onChange={e => {
+                                            const r = routes.find(x => x.id == e.target.value);
+                                            if (r) {
+                                                setTransportForm({ route: r.id, route_name: r.route_name, amount: r.monthly_fee || transportForm.amount });
+                                            } else {
+                                                setTransportForm({ ...transportForm, route: '', route_name: '' });
+                                            }
+                                        }}
+                                    >
+                                        <option value="">-- Select Route --</option>
+                                        {routes.map(r => (
+                                            <option key={r.id} value={r.id}>{r.route_name} {r.vehicle_number ? `(${r.vehicle_number})` : ''}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="label">Fee Amount (₹)</label>
+                                    <input
+                                        className="input"
+                                        type="number"
+                                        required
+                                        value={transportForm.amount}
+                                        onChange={e => setTransportForm({ ...transportForm, amount: e.target.value })}
+                                        placeholder="Enter Amount"
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={() => setTransportModal(false)} className="btn-secondary w-1/2" disabled={isSubmitting}>Cancel</button>
+                                    <button type="submit" className="btn-primary w-1/2" disabled={isSubmitting}>{isSubmitting ? 'Assigning...' : 'Assign Fee'}</button>
+                                </div>
                             </form>
                         </div>
                     </div>

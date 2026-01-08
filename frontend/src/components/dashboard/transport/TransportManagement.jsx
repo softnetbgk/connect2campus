@@ -4,7 +4,7 @@ import { Bus, MapPin, Navigation, Plus, Edit2, Trash2, Map as MapIcon, RotateCw 
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
 import LiveMap from './LiveMap';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -22,6 +22,37 @@ const LocationPicker = ({ onLocationSelect }) => {
             onLocationSelect(e.latlng);
         },
     });
+    return null;
+};
+
+// Map Controller Component
+const MapController = ({ stops, isEditing }) => {
+    const map = useMap();
+
+    useEffect(() => {
+        // If we have stops with valid coordinates, focus on them
+        const validStops = stops.filter(s => s.lat && s.lng);
+        if (validStops.length > 0) {
+            if (validStops.length === 1) {
+                map.setView([validStops[0].lat, validStops[0].lng], 15);
+            } else {
+                const bounds = L.latLngBounds(validStops.map(s => [s.lat, s.lng]));
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        } else if (!isEditing) {
+            // Only try current location if creating new (and no stops added yet)
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude, longitude } = position.coords;
+                        map.setView([latitude, longitude], 15);
+                    },
+                    (error) => console.error("Location access denied:", error)
+                );
+            }
+        }
+    }, [stops, isEditing, map]);
+
     return null;
 };
 
@@ -205,7 +236,13 @@ const TransportManagement = ({ initialTab }) => {
 
     const handleAddRoute = async () => {
         try {
+            console.log('Saving Route. Edit Mode:', isEditingRoute, 'ID:', selectedRouteId);
+
             if (isEditingRoute) {
+                if (!selectedRouteId) {
+                    toast.error('Error: missing Route ID');
+                    return;
+                }
                 await api.put(`/transport/routes/${selectedRouteId}`, { ...routeForm, stops });
                 toast.success('Route updated successfully');
             } else {
@@ -217,7 +254,12 @@ const TransportManagement = ({ initialTab }) => {
             setSelectedRouteId(null);
             fetchData();
         } catch (error) {
-            toast.error(isEditingRoute ? 'Failed to update route' : 'Failed to create route');
+            console.error('Route Save Error:', error);
+            const serverError = error.response?.data?.error;
+            const fallbackMsg = isEditingRoute ? 'Failed to update route' : 'Failed to create route';
+            const mainMsg = error.response?.data?.message || fallbackMsg;
+
+            toast.error(serverError ? `${mainMsg}: ${serverError}` : mainMsg);
         }
     };
 
@@ -228,9 +270,37 @@ const TransportManagement = ({ initialTab }) => {
             end_point: route.end_point,
             start_time: route.start_time
         });
-        setStops(route.stops || []);
-        setSelectedRouteId(route.id);
+
+        // Map DB stops to Form stops
+        setStops((route.stops || []).map(s => ({
+            name: s.stop_name || '',
+            time: s.pickup_time || '',
+            lat: s.lat != null ? parseFloat(s.lat) : null,
+            lng: s.lng != null ? parseFloat(s.lng) : null
+        })));
+
+        setSelectedRouteId(route.id); // Restored
         setIsEditingRoute(true);
+        setShowRouteModal(true);
+    };
+
+    const handleDeleteRoute = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this route? This will also remove all its stops.')) return;
+        try {
+            await api.delete(`/transport/routes/${id}`);
+            toast.success('Route deleted successfully');
+            fetchData();
+        } catch (error) {
+            console.error('Delete Error:', error);
+            toast.error('Failed to delete route');
+        }
+    };
+
+    const handleCreateRoute = () => {
+        setRouteForm({ route_name: '', start_point: '', end_point: '', start_time: '' });
+        setStops([]); // Start empty to force map selection
+        setSelectedRouteId(null);
+        setIsEditingRoute(false);
         setShowRouteModal(true);
     };
 
@@ -356,7 +426,7 @@ const TransportManagement = ({ initialTab }) => {
                             <div className="space-y-6">
                                 <div className="flex justify-end">
                                     <button
-                                        onClick={() => setShowRouteModal(true)}
+                                        onClick={handleCreateRoute}
                                         className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
                                     >
                                         <Plus size={16} /> Create New Route
@@ -384,6 +454,13 @@ const TransportManagement = ({ initialTab }) => {
                                                         title="Edit Route"
                                                     >
                                                         <Edit2 size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteRoute(route.id)}
+                                                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Delete Route"
+                                                    >
+                                                        <Trash2 size={16} />
                                                     </button>
                                                 </div>
                                             </div>
@@ -487,14 +564,19 @@ const TransportManagement = ({ initialTab }) => {
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">GPS Device ID / IMEI</label>
                                     <input
                                         className="w-full p-2 border rounded-lg text-sm"
-                                        placeholder="Optional: Only for external GPS Hardware"
+                                        placeholder="Enter Device IMEI"
                                         autoComplete="off"
                                         value={vehicleForm.gps_device_id}
                                         onChange={e => setVehicleForm({ ...vehicleForm, gps_device_id: e.target.value })}
                                     />
-                                    <p className="text-[10px] text-slate-400 mt-1">
-                                        * Leave this **EMPTY** if you are using the Mobile App Live Tracking.
-                                    </p>
+                                    <div className="text-[10px] text-slate-500 mt-2 bg-slate-50 p-2 rounded border border-slate-100">
+                                        <p className="font-bold mb-1">Hardware Setup:</p>
+                                        <p>Configure your GPS tracker to send POST requests to:</p>
+                                        <code className="block bg-white p-1 mt-1 rounded border select-all">
+                                            {window.location.origin}/api/transport/gps-webhook
+                                        </code>
+                                        <p className="mt-1">Payload: <code className="text-indigo-600">{`{ "imei": "YOUR_IMEI", "lat": 12.34, "lng": 77.12 }`}</code></p>
+                                    </div>
                                 </div>
                                 <input
                                     type="number" className="w-full p-2 border rounded-lg text-sm" placeholder="Capacity"
@@ -596,7 +678,9 @@ const TransportManagement = ({ initialTab }) => {
                                                 </div>
                                             ))}
                                         </div>
-                                        <button onClick={addStopField} className="mt-2 text-sm text-indigo-600 font-bold hover:underline">+ Add Manually</button>
+                                        <div className="mt-2 text-xs text-slate-500 italic bg-slate-50 p-2 rounded text-center">
+                                            ℹ️ Click on the map to add stops sequentially. A route line will connect them.
+                                        </div>
                                     </div>
                                 </div>
 
@@ -607,6 +691,7 @@ const TransportManagement = ({ initialTab }) => {
                                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                         />
+                                        <MapController stops={stops} isEditing={isEditingRoute} />
                                         <LocationPicker onLocationSelect={handleMapClick} />
 
                                         {stops.map((stop, idx) => (
@@ -616,6 +701,11 @@ const TransportManagement = ({ initialTab }) => {
                                                 </Marker>
                                             )
                                         ))}
+
+                                        <Polyline
+                                            positions={stops.filter(s => s.lat != null && s.lng != null).map(s => [s.lat, s.lng])}
+                                            pathOptions={{ color: '#4f46e5', weight: 4, opacity: 0.8 }}
+                                        />
                                     </MapContainer>
                                 </div>
                             </div>

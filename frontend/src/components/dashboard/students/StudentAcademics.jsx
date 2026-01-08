@@ -8,6 +8,8 @@ const StudentAcademics = () => {
     const [profile, setProfile] = useState(null);
     const [examTypes, setExamTypes] = useState([]);
     const [selectedExam, setSelectedExam] = useState('');
+    const [years, setYears] = useState([]);
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
     const [schedule, setSchedule] = useState([]);
     const [marksheet, setMarksheet] = useState(null);
@@ -19,6 +21,12 @@ const StudentAcademics = () => {
     }, []);
 
     useEffect(() => {
+        if (profile) {
+            fetchYears();
+        }
+    }, [profile]);
+
+    useEffect(() => {
         if (selectedExam && profile) {
             if (activeTab === 'schedule') {
                 fetchSchedule();
@@ -26,7 +34,7 @@ const StudentAcademics = () => {
                 fetchMarks();
             }
         }
-    }, [selectedExam, activeTab, profile]);
+    }, [selectedExam, activeTab, profile, selectedYear]);
 
     const fetchProfile = async () => {
         try {
@@ -34,6 +42,25 @@ const StudentAcademics = () => {
             setProfile(res.data);
         } catch (error) {
             console.error("Failed to load profile", error);
+        }
+    };
+
+    const fetchYears = async () => {
+        if (!profile) return;
+        try {
+            const res = await api.get('/marks/marksheet/years', { params: { student_id: profile.id } });
+            if (res.data && res.data.length > 0) {
+                setYears(res.data);
+                // Default to latest year if current selection is not in list (optional, but good UX)
+                if (!res.data.includes(selectedYear)) {
+                    setSelectedYear(res.data[0]);
+                }
+            } else {
+                // If no years found (new student), keep current year
+                setYears([new Date().getFullYear()]);
+            }
+        } catch (error) {
+            console.error(error);
         }
     };
 
@@ -79,7 +106,8 @@ const StudentAcademics = () => {
             const res = await api.get('/marks/marksheet/student', {
                 params: {
                     student_id: profile.id,
-                    exam_type_id: selectedExam
+                    exam_type_id: selectedExam,
+                    year: selectedYear
                 }
             });
             setMarksheet(res.data);
@@ -133,18 +161,36 @@ const StudentAcademics = () => {
                     </div>
                 </div>
 
-                <div className="max-w-xs">
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Select Exam</label>
-                    <select
-                        value={selectedExam}
-                        onChange={(e) => setSelectedExam(e.target.value)}
-                        className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 bg-slate-50 font-medium"
-                    >
-                        <option value="">-- Choose an Exam --</option>
-                        {examTypes.map((exam) => (
-                            <option key={exam.id} value={exam.id}>{exam.name}</option>
-                        ))}
-                    </select>
+                <div className="flex gap-4">
+                    <div className="max-w-xs flex-1">
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Select Exam</label>
+                        <select
+                            value={selectedExam}
+                            onChange={(e) => setSelectedExam(e.target.value)}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 bg-slate-50 font-medium"
+                        >
+                            <option value="">-- Choose an Exam --</option>
+                            {examTypes.map((exam) => (
+                                <option key={exam.id} value={exam.id}>{exam.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    {activeTab === 'marks' && (
+                        <div className="w-32">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Year</label>
+                            <select
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                                className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 bg-slate-50 font-medium"
+                            >
+                                {years.length > 0 ? (
+                                    years.map(y => <option key={y} value={y}>{y}</option>)
+                                ) : (
+                                    <option value={new Date().getFullYear()}>{new Date().getFullYear()}</option>
+                                )}
+                            </select>
+                        </div>
+                    )}
                 </div>
             </div>
 

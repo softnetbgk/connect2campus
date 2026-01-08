@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Bus, Navigation } from 'lucide-react';
@@ -138,6 +138,29 @@ const LiveMap = ({ vehicles, routes }) => {
                         </Popup>
                     </Marker>
                 ))}
+
+                {/* Render Route Lines */}
+                {routes && routes.map(route => {
+                    const positions = (route.stops || [])
+                        .filter(s => s.lat && s.lng)
+                        .map(s => [parseFloat(s.lat), parseFloat(s.lng)]);
+
+                    if (positions.length < 2) return null;
+
+                    return (
+                        <Polyline
+                            key={`route-${route.id}`}
+                            positions={positions}
+                            pathOptions={{ color: '#4f46e5', weight: 4, opacity: 0.6 }}
+                        >
+                            <Popup>
+                                <div className="text-xs font-bold text-indigo-700">
+                                    Route: {route.route_name}
+                                </div>
+                            </Popup>
+                        </Polyline>
+                    );
+                })}
 
                 <RecenterMap lat={center[0]} lng={center[1]} />
             </MapContainer>

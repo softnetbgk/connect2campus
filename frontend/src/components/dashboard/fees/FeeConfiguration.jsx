@@ -21,6 +21,34 @@ const FeeConfiguration = ({ config }) => {
     const [editMode, setEditMode] = useState(false);
     const [editingFeeId, setEditingFeeId] = useState(null);
 
+    // Class Fee Modal State
+    const [showClassFeeModal, setShowClassFeeModal] = useState(false);
+    const [classFeeForm, setClassFeeForm] = useState({ title: '', amount: '', due_date: '' });
+
+    const handleAddClassFee = async (e) => {
+        e.preventDefault();
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+        try {
+            await api.post('/fees/structures', {
+                class_id: selectedClass,
+                title: classFeeForm.title,
+                amount: classFeeForm.amount,
+                due_date: classFeeForm.due_date,
+                type: 'CLASS_DEFAULT'
+            });
+            toast.success('Class Fee Added Successfully');
+            setShowClassFeeModal(false);
+            setClassFeeForm({ title: '', amount: '', due_date: '' });
+            fetchStudents(); // Refresh overview
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to add class fee');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     // Computed
     const sections = config?.classes?.find(c => c.class_id === parseInt(selectedClass))?.sections || [];
 
@@ -297,12 +325,96 @@ const FeeConfiguration = ({ config }) => {
                         </div>
                     </>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8 text-center">
-                        <User size={48} className="mb-4 text-gray-200" />
-                        <p>Select a student from the list to manage their fees</p>
+                    <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8 text-center bg-gray-50/50">
+                        <div className="bg-white p-6 rounded-full shadow-sm mb-4">
+                            <IndianRupee size={48} className="text-indigo-200" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-700 mb-2">Manage Fees</h3>
+                        <p className="max-w-xs mx-auto mb-6">Select a student to manage individual fees, or assign fees to the entire class below.</p>
+
+                        {selectedClass ? (
+                            <button
+                                onClick={() => setShowClassFeeModal(true)}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95"
+                            >
+                                <Plus size={20} /> Add Fee for Whole Class
+                            </button>
+                        ) : (
+                            <p className="text-sm text-gray-400 font-medium bg-gray-100 px-4 py-2 rounded-lg">Please select a class first</p>
+                        )}
                     </div>
                 )}
             </div>
+
+            {/* Class Fee Modal */}
+            {showClassFeeModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
+                        <div className="bg-indigo-600 p-6 text-white text-center">
+                            <h3 className="text-xl font-bold">Add Class Fee</h3>
+                            <p className="text-indigo-100 text-sm mt-1">
+                                For {config?.classes?.find(c => c.class_id === parseInt(selectedClass))?.class_name}
+                            </p>
+                        </div>
+                        <form onSubmit={handleAddClassFee} className="p-6 space-y-4">
+                            <div>
+                                <label className="label text-indigo-900">Fee Title</label>
+                                <input
+                                    className="input"
+                                    placeholder="e.g. Annual Tuition Fee"
+                                    required
+                                    value={classFeeForm.title}
+                                    onChange={e => setClassFeeForm({ ...classFeeForm, title: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="label text-indigo-900">Amount (₹)</label>
+                                <input
+                                    className="input"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="Enter amount"
+                                    required
+                                    value={classFeeForm.amount}
+                                    onChange={e => setClassFeeForm({ ...classFeeForm, amount: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="label text-indigo-900">Due Date</label>
+                                <input
+                                    type="date"
+                                    className="input"
+                                    min={new Date().toISOString().split('T')[0]}
+                                    required
+                                    value={classFeeForm.due_date}
+                                    onChange={e => setClassFeeForm({ ...classFeeForm, due_date: e.target.value })}
+                                />
+                            </div>
+                            <div className="bg-amber-50 text-amber-800 text-xs p-3 rounded-lg flex gap-2 items-start">
+                                <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                                <p>This fee will be automatically applied to ALL students currently in this class.</p>
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowClassFeeModal(false)}
+                                    className="flex-1 py-3 font-bold text-gray-500 hover:bg-gray-50 rounded-xl transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="flex-1 py-3 font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-all"
+                                >
+                                    {isSubmitting ? 'Adding...' : 'Add Class Fee'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

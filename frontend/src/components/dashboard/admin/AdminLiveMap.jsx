@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, CircleMarker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css'; // Ensure CSS is imported
 import L from 'leaflet';
 import api from '../../../api/axios';
@@ -68,6 +68,7 @@ const MapController = ({ focusTarget }) => {
 
 const AdminLiveMap = () => {
     const [vehicles, setVehicles] = useState([]);
+    const [routes, setRoutes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [focusTarget, setFocusTarget] = useState(null);
 
@@ -88,6 +89,10 @@ const AdminLiveMap = () => {
 
             // Only update if data changed to avoid re-renders? 
             // Better to just set it to ensure latest positions are reflected
+            // Fetch Routes
+            const routesRes = await api.get('/transport/routes');
+            setRoutes(routesRes.data);
+
             setVehicles(allVehicles);
         } catch (error) {
             console.error("Failed to load map data", error);
@@ -159,6 +164,59 @@ const AdminLiveMap = () => {
                                 </Popup>
                             </Marker>
                         ))}
+
+                        {/* Render Route Lines */}
+                        {routes && routes.map(route => {
+                            const positions = (route.stops || [])
+                                .filter(s => s.lat && s.lng)
+                                .map(s => [parseFloat(s.lat), parseFloat(s.lng)]);
+
+                            if (positions.length < 2) return null;
+
+                            // Create markers for stops
+                            const stopMarkers = (route.stops || [])
+                                .filter(s => s.lat && s.lng)
+                                .map((s, idx) => (
+                                    <CircleMarker
+                                        key={`stop-${route.id}-${idx}`}
+                                        center={[parseFloat(s.lat), parseFloat(s.lng)]}
+                                        pathOptions={{ color: '#4f46e5', fillColor: 'white', fillOpacity: 1, radius: 5 }}
+                                    >
+                                        <Popup>
+                                            <div className="text-xs">
+                                                <div className="font-bold text-indigo-700">{s.stop_name}</div>
+                                                <div className="text-slate-500">{s.pickup_time || 'No time'}</div>
+                                            </div>
+                                        </Popup>
+                                    </CircleMarker>
+                                ));
+
+                            return (
+                                <React.Fragment key={`route-group-${route.id}`}>
+                                    <Polyline
+                                        positions={positions}
+                                        pathOptions={{ color: '#4f46e5', weight: 4, opacity: 0.6 }}
+                                    >
+                                        <Popup>
+                                            <div className="min-w-[150px]">
+                                                <div className="text-sm font-bold text-indigo-700 border-b border-indigo-100 pb-1 mb-1">
+                                                    Route: {route.route_name}
+                                                </div>
+                                                <div className="text-xs text-slate-500">
+                                                    <div>From: <span className="font-medium text-slate-700">{route.start_point}</span></div>
+                                                    <div>To: <span className="font-medium text-slate-700">{route.end_point}</span></div>
+                                                    <div className="mt-1 font-mono text-[10px] bg-slate-50 p-1 rounded">
+                                                        {route.stops.length} Stops
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Popup>
+                                    </Polyline>
+                                    {/* Render stop markers directly on map? Or maybe just circle markers? Leaflet CircleMarker is not exported as component usually in older react-leaflet but CircleMarker is. Let's check imports. I need to add CircleMarker to imports. */}
+                                    {stopMarkers}
+                                </React.Fragment>
+                            );
+                        })}
 
                         <FitBounds vehicles={vehicles.filter(v => v.isLive)} />
                     </MapContainer>

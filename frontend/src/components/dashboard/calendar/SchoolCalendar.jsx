@@ -74,6 +74,48 @@ const SchoolCalendar = () => {
         }
     };
 
+    // Karnataka Festivals & Holidays (Mixed recurring and 2026 specific)
+    const karnatakaFestivals = [
+        // Fixed Date Holidays (Recurring)
+        { date: '01-01', title: 'New Year Day', type: 'Holiday', recurring: true },
+        { date: '01-26', title: 'Republic Day', type: 'Holiday', recurring: true },
+        { date: '04-14', title: 'Dr. Ambedkar Jayanti', type: 'Holiday', recurring: true },
+        { date: '05-01', title: 'May Day', type: 'Holiday', recurring: true },
+        { date: '08-15', title: 'Independence Day', type: 'Holiday', recurring: true },
+        { date: '10-02', title: 'Gandhi Jayanti', type: 'Holiday', recurring: true },
+        { date: '11-01', title: 'Kannada Rajyotsava', type: 'Holiday', recurring: true },
+        { date: '12-25', title: 'Christmas', type: 'Holiday', recurring: true },
+
+        // 2026 Specific Holidays
+        { date: '2026-01-15', title: 'Makara Sankranti', type: 'Holiday' },
+        { date: '2026-02-15', title: 'Maha Shivaratri', type: 'Holiday' },
+        { date: '2026-03-19', title: 'Ugadi', type: 'Holiday' },
+        { date: '2026-03-21', title: 'Khutub-E-Ramzan', type: 'Holiday' },
+        { date: '2026-03-31', title: 'Mahaveera Jayanti', type: 'Holiday' },
+        { date: '2026-04-03', title: 'Good Friday', type: 'Holiday' },
+        { date: '2026-04-20', title: 'Basava Jayanti', type: 'Holiday' },
+        { date: '2026-05-28', title: 'Bakrid', type: 'Holiday' },
+        { date: '2026-06-26', title: 'Last Day of Moharam', type: 'Holiday' },
+        { date: '2026-08-21', title: 'Varamahalakshmi Vrata', type: 'Holiday' },
+        { date: '2026-08-26', title: 'Eid-Milad', type: 'Holiday' },
+        { date: '2026-09-14', title: 'Ganesh Chaturthi', type: 'Holiday' },
+        { date: '2026-10-19', title: 'Maha Navami / Ayudha Puja', type: 'Holiday' },
+        { date: '2026-10-20', title: 'Vijaya Dashami', type: 'Holiday' },
+        { date: '2026-11-10', title: 'Deepavali', type: 'Holiday' },
+    ];
+
+    const getHolidaysForDate = (dateString) => {
+        // dateString is YYYY-MM-DD
+        const [y, m, d] = dateString.split('-');
+        const monthDay = `${m}-${d}`;
+        return karnatakaFestivals.filter(h => {
+            if (h.recurring) {
+                return h.date === monthDay;
+            }
+            return h.date === dateString;
+        });
+    };
+
     // Calendar rendering logic
     const renderCalendar = () => {
         const year = currentDate.getFullYear();
@@ -91,25 +133,43 @@ const SchoolCalendar = () => {
         }
 
         for (let i = 1; i <= totalDays; i++) {
-            const currentDayDate = new Date(year, month, i);
-            const dateString = currentDayDate.toISOString().split('T')[0];
+            const date = new Date(year, month, i);
+            const dateString = date.toISOString().split('T')[0];
+            const isSunday = date.getDay() === 0;
 
             const dayEvents = events.filter(e => {
                 const eventDate = new Date(e.start_date).toISOString().split('T')[0];
                 return eventDate === dateString;
             });
 
+            // Get static holidays
+            const holidays = getHolidaysForDate(dateString);
+
             days.push(
-                <div key={i} className="h-24 md:h-32 border border-slate-100 bg-white p-2 relative hover:bg-slate-50 transition-colors group overflow-hidden">
-                    <span className={`text-sm font-medium ${new Date().toDateString() === currentDayDate.toDateString()
-                        ? 'bg-indigo-600 text-white w-6 h-6 flex items-center justify-center rounded-full'
-                        : 'text-slate-700'
-                        }`}>
-                        {i}
-                    </span>
+                <div key={i} className={`h-24 md:h-32 border border-slate-100 bg-white p-2 relative hover:bg-slate-50 transition-colors group overflow-hidden ${isSunday ? 'bg-rose-50/30' : ''}`}>
+                    <div className="flex justify-between items-start">
+                        <span className={`text-sm font-medium ${new Date().toDateString() === date.toDateString()
+                            ? 'bg-indigo-600 text-white w-6 h-6 flex items-center justify-center rounded-full'
+                            : isSunday ? 'text-rose-500' : 'text-slate-700'
+                            }`}>
+                            {i}
+                        </span>
+                        {isSunday && <span className="text-[10px] font-bold text-rose-400 uppercase">Sunday</span>}
+                    </div>
+
                     <div className="mt-1 space-y-1 overflow-y-auto max-h-[calc(100%-24px)] custom-scrollbar">
+                        {/* Static Holidays */}
+                        {holidays.map((h, idx) => (
+                            <div key={`hol-${idx}`} className="text-[10px] md:text-xs p-1 rounded border border-rose-100 bg-rose-50 text-rose-700 truncate font-bold" title={h.title}>
+                                🎉 {h.title}
+                            </div>
+                        ))}
+
+                        {/* Dynamic Events */}
                         {dayEvents.map(ev => (
-                            <div key={ev.id} className="text-[10px] md:text-xs p-1 rounded border border-indigo-100 bg-indigo-50 text-indigo-700 truncate cursor-pointer hover:bg-indigo-100" title={ev.title}>
+                            <div key={ev.id} className={`text-[10px] md:text-xs p-1 rounded border truncate cursor-pointer hover:opacity-80
+                                ${ev.event_type === 'Holiday' ? 'border-rose-100 bg-rose-50 text-rose-700' : 'border-indigo-100 bg-indigo-50 text-indigo-700'}
+                            `} title={ev.title}>
                                 {ev.title}
                             </div>
                         ))}

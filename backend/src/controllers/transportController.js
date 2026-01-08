@@ -113,25 +113,34 @@ exports.getRoutes = async (req, res) => {
 exports.addRoute = async (req, res) => {
     const client = await pool.connect();
     try {
+        console.log('Adding Route Payload:', req.body);
         const { route_name, start_point, end_point, start_time, vehicle_id, stops } = req.body;
         const school_id = req.user.schoolId;
+
+        // Sanitize inputs
+        const validStartTime = (start_time && start_time.trim() !== '') ? start_time : null;
 
         await client.query('BEGIN');
 
         const routeRes = await client.query(
             `INSERT INTO transport_routes (school_id, vehicle_id, route_name, start_point, end_point, start_time)
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-            [school_id, vehicle_id || null, route_name, start_point, end_point, start_time]
+            [school_id, vehicle_id || null, route_name, start_point, end_point, validStartTime]
         );
         const routeId = routeRes.rows[0].id;
 
         if (stops && stops.length > 0) {
             for (let i = 0; i < stops.length; i++) {
                 const stop = stops[i];
+                const validPickupTime = (stop.time && stop.time.trim() !== '') ? stop.time : null;
+                // Ensure number or 0, avoiding empty strings for lat/lng
+                const lat = (stop.lat && stop.lat !== '') ? stop.lat : 0;
+                const lng = (stop.lng && stop.lng !== '') ? stop.lng : 0;
+
                 await client.query(
                     `INSERT INTO transport_stops (route_id, stop_name, stop_order, lat, lng, pickup_time)
                      VALUES ($1, $2, $3, $4, $5, $6)`,
-                    [routeId, stop.name, i + 1, stop.lat || 0, stop.lng || 0, stop.time]
+                    [routeId, stop.name, i + 1, lat, lng, validPickupTime]
                 );
             }
         }
@@ -140,8 +149,8 @@ exports.addRoute = async (req, res) => {
         res.status(201).json({ message: 'Route created successfully', routeId });
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error(error);
-        res.status(500).json({ message: 'Server error adding route' });
+        console.error('Error adding route:', error);
+        res.status(500).json({ message: 'Server error adding route', error: error.message });
     } finally {
         client.release();
     }
@@ -151,9 +160,14 @@ exports.addRoute = async (req, res) => {
 exports.updateRoute = async (req, res) => {
     const client = await pool.connect();
     try {
+        console.log('Updating Route ID:', req.params.id);
+        console.log('Update Payload:', req.body);
         const { id } = req.params;
         const { route_name, start_point, end_point, start_time, vehicle_id, stops } = req.body;
         const school_id = req.user.schoolId;
+
+        // Sanitize inputs
+        const validStartTime = (start_time && start_time.trim() !== '') ? start_time : null;
 
         await client.query('BEGIN');
 
@@ -166,7 +180,7 @@ exports.updateRoute = async (req, res) => {
                  start_time = COALESCE($4, start_time), 
                  vehicle_id = COALESCE($5, vehicle_id)
              WHERE id = $6 AND school_id = $7 RETURNING *`,
-            [route_name, start_point, end_point, start_time, vehicle_id || null, id, school_id]
+            [route_name, start_point, end_point, validStartTime, vehicle_id || null, id, school_id]
         );
 
         if (routeRes.rows.length === 0) {
@@ -179,10 +193,21 @@ exports.updateRoute = async (req, res) => {
             await client.query('DELETE FROM transport_stops WHERE route_id = $1', [id]);
             for (let i = 0; i < stops.length; i++) {
                 const stop = stops[i];
+                const validPickupTime = (stop.time && stop.time.trim() !== '') ? stop.time : null;
+                // Parse lat/lng as floats, default to 0 if invalid
+                const latitude = parseFloat(stop.lat);
+                const longitude = parseFloat(stop.lng);
+                const lat = !isNaN(latitude) ? latitude : 0;
+                const lng = !isNaN(longitude) ? longitude : 0;
+
+                const stopName = stop.name || `Stop ${i + 1}`;
+
+                console.log(`Processing stop ${i}:`, stopName, lat, lng, validPickupTime); // Debug log
+
                 await client.query(
                     `INSERT INTO transport_stops (route_id, stop_name, stop_order, lat, lng, pickup_time)
                      VALUES ($1, $2, $3, $4, $5, $6)`,
-                    [id, stop.name, i + 1, stop.lat || 0, stop.lng || 0, stop.time]
+                    [id, stopName, i + 1, lat, lng, validPickupTime]
                 );
             }
         }
@@ -191,8 +216,8 @@ exports.updateRoute = async (req, res) => {
         res.json(routeRes.rows[0]);
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error(error);
-        res.status(500).json({ message: 'Server error updating route' });
+        console.error('Error updating route:', error);
+        res.status(500).json({ message: 'Server error updating route', error: error.message });
     } finally {
         client.release();
     }

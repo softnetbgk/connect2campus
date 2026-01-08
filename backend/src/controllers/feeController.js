@@ -56,7 +56,7 @@ exports.createStudentFeeStructure = async (req, res) => {
     const client = await pool.connect();
     try {
         const school_id = req.user.schoolId;
-        const { student_id, title, amount, due_date } = req.body;
+        const { student_id, title, amount, due_date, type } = req.body;
 
         await client.query('BEGIN');
 
@@ -65,11 +65,12 @@ exports.createStudentFeeStructure = async (req, res) => {
         if (studRes.rows.length === 0) throw new Error('Student not found');
         const class_id = studRes.rows[0].class_id;
 
-        // 2. Create Fee Structure (INDIVIDUAL)
+        // 2. Create Fee Structure (INDIVIDUAL or types like TRANSPORT)
+        const feeType = type || 'INDIVIDUAL';
         const feeRes = await client.query(
             `INSERT INTO fee_structures (school_id, class_id, title, amount, due_date, type)
-             VALUES ($1, $2, $3, $4, $5, 'INDIVIDUAL') RETURNING id, title, amount, due_date, type`,
-            [school_id, class_id, title, amount, due_date]
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, title, amount, due_date, type`,
+            [school_id, class_id, title, amount, due_date, feeType]
         );
         const fee = feeRes.rows[0];
 

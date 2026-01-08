@@ -33,6 +33,7 @@ import StaffAttendanceReports from '../components/dashboard/staff/StaffAttendanc
 // Fee Components
 import FeeConfiguration from '../components/dashboard/fees/FeeConfiguration';
 import FeeCollection from '../components/dashboard/fees/FeeCollection';
+import TransportFees from '../components/dashboard/fees/TransportFees';
 import ExpenditureManagement from '../components/dashboard/finance/ExpenditureManagement';
 
 // Library Components
@@ -242,9 +243,11 @@ const SchoolAdminDashboard = () => {
                         onToggle={() => toggleSection('students')}
                     >
                         <NavSubButton active={activeTab === 'student-list'} onClick={() => handleTabChange('student-list')} label="Admission List" />
+                        <NavSubButton active={activeTab === 'student-promotion'} onClick={() => handleTabChange('student-promotion')} label="Promote Students" />
                         <NavSubButton active={activeTab === 'student-attendance'} onClick={() => handleTabChange('student-attendance')} label="Take Attendance" />
                         <NavSubButton active={activeTab === 'student-daily-status'} onClick={() => handleTabChange('student-daily-status')} label="Daily Status" />
                         <NavSubButton active={activeTab === 'student-report'} onClick={() => handleTabChange('student-report')} label="Reports" />
+                        <NavSubButton active={activeTab === 'student-bin'} onClick={() => handleTabChange('student-bin')} label="Recycle Bin" />
                     </NavGroup>
 
                     <NavGroup
@@ -288,6 +291,7 @@ const SchoolAdminDashboard = () => {
                         onToggle={() => toggleSection('fees')}
                     >
                         <NavSubButton active={activeTab === 'fee-config'} onClick={() => handleTabChange('fee-config')} label="Fee Structure" />
+                        <NavSubButton active={activeTab === 'transport-fees'} onClick={() => handleTabChange('transport-fees')} label="Transport Fees" />
                         <NavSubButton active={activeTab === 'fee-collection'} onClick={() => handleTabChange('fee-collection')} label="Collection Board" />
                     </NavGroup>
                     <NavButton
@@ -464,7 +468,9 @@ const SchoolAdminDashboard = () => {
 
                     <div className="max-w-7xl mx-auto animate-in fade-in duration-300">
                         {activeTab === 'overview' && <Overview config={academicConfig} />}
-                        {activeTab === 'student-list' && <StudentManagement config={academicConfig} prefillData={activeTabState} />}
+                        {activeTab === 'student-list' && <StudentManagement key="student-list" config={academicConfig} prefillData={activeTabState} />}
+                        {activeTab === 'student-promotion' && <StudentManagement key="student-promotion" config={academicConfig} isPromotionView={true} />}
+                        {activeTab === 'student-bin' && <StudentManagement key="student-bin" config={academicConfig} defaultViewMode="bin" />}
                         {activeTab === 'admissions-crm' && <AdmissionCRM onNavigate={(tab, data) => { setActiveTab(tab); setActiveTabState(data); }} />}
                         {activeTab === 'student-attendance' && <StudentAttendanceMarking config={academicConfig} />}
                         {activeTab === 'student-daily-status' && <DailyAttendanceStatus config={academicConfig} />}
@@ -481,6 +487,7 @@ const SchoolAdminDashboard = () => {
                         {activeTab === 'staff-report' && <StaffAttendanceReports />}
 
                         {activeTab === 'fee-config' && <FeeConfiguration config={academicConfig} />}
+                        {activeTab === 'transport-fees' && <TransportFees config={academicConfig} />}
                         {activeTab === 'fee-collection' && <FeeCollection config={academicConfig} />}
                         {activeTab === 'expenditures' && <ExpenditureManagement />}
 
@@ -595,6 +602,7 @@ const getTabTitle = (tab) => {
     const titles = {
         'overview': 'Dashboard Overview',
         'student-list': 'Student Admission List',
+        'student-promotion': 'Promote Students',
         'admissions-crm': 'Admissions Enquiry CRM',
         'student-attendance': 'Student Attendance',
         'student-daily-status': 'Daily Attendance Status',
@@ -608,6 +616,7 @@ const getTabTitle = (tab) => {
         'staff-daily-status': 'Staff Status',
         'staff-report': 'Staff Reports',
         'fee-config': 'Fee Structure Configuration',
+        'transport-fees': 'Transport Fee Management',
         'fee-collection': 'Fee Collection & Dues',
         'expenditures': 'Office Expenditures',
         'library-overview': 'Library Information',

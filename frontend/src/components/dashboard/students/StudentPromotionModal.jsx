@@ -10,6 +10,9 @@ const StudentPromotionModal = ({ isOpen, onClose, selectedStudents, config, onSu
     const [endDate, setEndDate] = useState('');
     const [academicYear, setAcademicYear] = useState('');
     const [notes, setNotes] = useState('');
+    const [targetStudentCount, setTargetStudentCount] = useState(null);
+    const [checkingVacancy, setCheckingVacancy] = useState(false);
+    const [confirmMerge, setConfirmMerge] = useState(false); // User must confirm if not empty
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Get available sections for selected class
@@ -39,6 +42,36 @@ const StudentPromotionModal = ({ isOpen, onClose, selectedStudents, config, onSu
         }
     }, [isOpen]);
 
+    // Check Target Variance
+    useEffect(() => {
+        const checkVacancy = async () => {
+            if (toClassId && toSectionId) {
+                setCheckingVacancy(true);
+                setConfirmMerge(false); // Reset confirmation
+                try {
+                    const res = await api.get('/students', {
+                        params: {
+                            class_id: toClassId,
+                            section_id: toSectionId,
+                            limit: 1 // We only need the total count
+                        }
+                    });
+                    setTargetStudentCount(res.data.pagination?.total || 0);
+                } catch (error) {
+                    console.error("Failed to check vacancy", error);
+                    setTargetStudentCount(null);
+                } finally {
+                    setCheckingVacancy(false);
+                }
+            } else {
+                setTargetStudentCount(null);
+            }
+        };
+
+        const timeoutId = setTimeout(checkVacancy, 300); // 300ms debounce
+        return () => clearTimeout(timeoutId);
+    }, [toClassId, toSectionId]);
+
     // Auto-generate academic year when dates change
     useEffect(() => {
         if (startDate && endDate) {
@@ -64,13 +97,15 @@ const StudentPromotionModal = ({ isOpen, onClose, selectedStudents, config, onSu
         setIsSubmitting(true);
 
         try {
-            const res = await api.post('/students/promote', {
+            const payload = {
                 student_ids: selectedStudents.map(s => s.id),
                 to_class_id: parseInt(toClassId),
                 to_section_id: toSectionId ? parseInt(toSectionId) : null,
                 to_academic_year: academicYear,
                 notes: notes.trim()
-            });
+            };
+
+            const res = await api.post('/students/promote', payload);
 
             toast.success(res.data.message);
 
@@ -157,7 +192,7 @@ const StudentPromotionModal = ({ isOpen, onClose, selectedStudents, config, onSu
                                 Target Section {availableSections.length > 0 && <span className="text-red-500">*</span>}
                             </label>
                             <select
-                                className="w-full p-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-slate-100"
+                                className="w-full p-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
                                 value={toSectionId}
                                 onChange={e => setToSectionId(e.target.value)}
                                 disabled={!toClassId || availableSections.length === 0}
@@ -170,6 +205,45 @@ const StudentPromotionModal = ({ isOpen, onClose, selectedStudents, config, onSu
                             </select>
                         </div>
                     </div>
+
+                    {/* Vacancy Check Warning */}
+                    {toClassId && toSectionId && !checkingVacancy && targetStudentCount !== null && (
+                        <div className={`mt-2 p-3 rounded-lg border ${targetStudentCount > 0 ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
+                            <div className="flex items-start gap-3">
+                                {targetStudentCount > 0 ? (
+                                    <>
+                                        <div className="mt-0.5 font-bold text-lg">⚠️</div>
+                                        <div>
+                                            <p className="font-bold text-sm">Target Class is NOT Vacant ({targetStudentCount} students)</p>
+                                            <p className="text-xs mt-1">
+                                                Ideally, you should promote the existing students of this class to the next level before promoting new students into it, to avoid mixing batches.
+                                            </p>
+                                            <div className="mt-2 flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id="confirmMerge"
+                                                    className="w-4 h-4 rounded border-amber-400 text-indigo-600 focus:ring-indigo-500"
+                                                    checked={confirmMerge}
+                                                    onChange={e => setConfirmMerge(e.target.checked)}
+                                                />
+                                                <label htmlFor="confirmMerge" className="text-xs font-bold cursor-pointer select-none">
+                                                    Yes, merge with existing {targetStudentCount} students
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="mt-0.5 font-bold text-lg">✓</div>
+                                        <div>
+                                            <p className="font-bold text-sm">Target Class is Vacant</p>
+                                            <p className="text-xs opacity-80">Ready to accept new students.</p>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Academic Year Date Selection */}
                     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-200">
@@ -246,7 +320,7 @@ const StudentPromotionModal = ({ isOpen, onClose, selectedStudents, config, onSu
                     <button
                         onClick={handlePromote}
                         className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={isSubmitting || !toClassId || !startDate || !endDate || !academicYear}
+                        disabled={isSubmitting || !toClassId || !startDate || !endDate || !academicYear || (targetStudentCount > 0 && !confirmMerge)}
                     >
                         {isSubmitting ? (
                             <>

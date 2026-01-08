@@ -17,6 +17,7 @@ router.get('/', marksController.getMarks);
 router.post('/save', marksController.saveMarks);
 
 // Marksheets
+router.get('/marksheet/years', marksController.getStudentResultYears);
 router.get('/marksheet/student', marksController.getStudentMarksheet);
 router.get('/marksheet/all', marksController.getAllMarksheets);
 

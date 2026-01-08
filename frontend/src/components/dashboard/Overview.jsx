@@ -137,9 +137,8 @@ const Overview = ({ config }) => {
 
             {/* Class Distribution */}
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-                <div className="flex items-center justify-between mb-8">
+                <div className="mb-8">
                     <h3 className="text-lg font-bold text-slate-800">Class-wise Distribution</h3>
-                    <button className="text-sm text-indigo-600 font-bold hover:underline">View Detailed Report</button>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">

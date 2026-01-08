@@ -376,18 +376,26 @@ exports.getStudentMarksheet = async (req, res) => {
         const student = studentRes.rows[0];
 
         // Get Marks
-        const marksResult = await pool.query(
-            `SELECT m.*, 
+        // Get Marks
+        let marksQuery = `SELECT m.*, 
                     sub.name as subject_name,
                     et.name as exam_name,
                     et.max_marks
              FROM marks m
              JOIN subjects sub ON m.subject_id = sub.id
              JOIN exam_types et ON m.exam_type_id = et.id
-             WHERE m.student_id = $1 AND m.exam_type_id = $2
-             ORDER BY sub.name`,
-            [student_id, exam_type_id]
-        );
+             WHERE m.student_id = $1 AND m.exam_type_id = $2`;
+
+        const marksParams = [student_id, exam_type_id];
+
+        if (req.query.year) {
+            marksParams.push(req.query.year);
+            marksQuery += ` AND m.year = $${marksParams.length}`;
+        }
+
+        marksQuery += ` ORDER BY sub.name`;
+
+        const marksResult = await pool.query(marksQuery, marksParams);
 
         // Fetch components for these marks
         const marksWithComponents = await Promise.all(marksResult.rows.map(async (mark) => {
@@ -423,6 +431,27 @@ exports.getStudentMarksheet = async (req, res) => {
     } catch (error) {
         console.error('Error fetching student marksheet:', error);
         res.status(500).json({ message: 'Server error fetching marksheet' });
+    }
+};
+
+exports.getStudentResultYears = async (req, res) => {
+    try {
+        const school_id = req.user.schoolId;
+        const { student_id } = req.query;
+
+        if (!student_id) {
+            return res.status(400).json({ message: 'Student ID is required' });
+        }
+
+        const result = await pool.query(
+            `SELECT DISTINCT year FROM marks WHERE student_id = $1 AND school_id = $2 ORDER BY year DESC`,
+            [student_id, school_id]
+        );
+
+        res.json(result.rows.map(row => row.year));
+    } catch (error) {
+        console.error('Error fetching student years:', error);
+        res.status(500).json({ message: 'Server error fetching years' });
     }
 };
 

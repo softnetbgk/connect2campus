@@ -15,6 +15,11 @@ router.get('/my-fees', authorize('STUDENT'), studentController.getMyFees);
 // Restrict remaining routes to Admin/Teacher
 router.use(authorize('SCHOOL_ADMIN', 'TEACHER', 'STAFF')); // Added STAFF if they need access, usually Admin/Teacher
 
+// Bin Routes - Placed at top priority
+router.get('/bin', studentController.getDeletedStudents);
+router.put('/:id/restore', studentController.restoreStudent);
+router.delete('/:id/permanent', studentController.permanentDeleteStudent);
+
 router.post('/', studentController.addStudent);
 router.get('/', studentController.getStudents);
 router.put('/:id', studentController.updateStudent);

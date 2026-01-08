@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Filter, Plus, SortAsc, Edit2, Trash2, X, Printer, GraduationCap } from 'lucide-react';
+import { Filter, Plus, SortAsc, Edit2, Trash2, X, Printer, GraduationCap, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../../api/axios';
 import StudentPromotionModal from './StudentPromotionModal';
 
-const StudentManagement = ({ config, prefillData }) => {
+const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMode = 'active' }) => {
     const [students, setStudents] = useState([]);
     const [filterClass, setFilterClass] = useState('');
     const [filterSection, setFilterSection] = useState('');
@@ -14,6 +14,7 @@ const StudentManagement = ({ config, prefillData }) => {
     const [searchQuery, setSearchQuery] = useState(''); // Added Search State
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
+    const [viewMode, setViewMode] = useState(defaultViewMode); // 'active' | 'bin'
 
     // Promotion States
     const [selectedStudents, setSelectedStudents] = useState([]);
@@ -99,7 +100,7 @@ const StudentManagement = ({ config, prefillData }) => {
         }, 500);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [filterClass, filterSection, searchQuery]);
+    }, [filterClass, filterSection, searchQuery, viewMode]);
 
     useEffect(() => {
         if (page > 1) fetchStudents(page);
@@ -120,19 +121,33 @@ const StudentManagement = ({ config, prefillData }) => {
     }, [formData.dob]);
 
     const fetchStudents = async (targetPage = page) => {
+        // In Promotion View, enforce Class & Section selection first
+        if (isPromotionView && (!filterClass || !filterSection)) {
+            setStudents([]);
+            setPagination({ total: 0, totalPages: 1 });
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         try {
-            const params = {
-                page: targetPage,
-                limit: 50,
-                search: searchQuery
-            };
-            if (filterClass) params.class_id = filterClass;
-            if (filterSection) params.section_id = filterSection;
+            if (viewMode === 'bin') {
+                const res = await api.get('/students/bin');
+                setStudents(res.data || []);
+                setPagination({ total: res.data?.length || 0, totalPages: 1 }); // Bin has no server pagination yet
+            } else {
+                const params = {
+                    page: targetPage,
+                    limit: 50,
+                    search: searchQuery
+                };
+                if (filterClass) params.class_id = filterClass;
+                if (filterSection) params.section_id = filterSection;
 
-            const res = await api.get('/students', { params });
-            setStudents(res.data.data || []);
-            setPagination(res.data.pagination || { total: 0, totalPages: 1 });
+                const res = await api.get('/students', { params });
+                setStudents(res.data.data || []);
+                setPagination(res.data.pagination || { total: 0, totalPages: 1 });
+            }
         } catch (error) {
             console.error('Fetch error:', error);
             toast.error('Failed to load students');
@@ -142,15 +157,74 @@ const StudentManagement = ({ config, prefillData }) => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this student?')) return;
+        if (!window.confirm('Are you sure you want to move this student to the Recycle Bin?')) return;
         try {
             await api.delete(`/students/${id}`);
-            toast.success('Student deleted');
+            toast.success('Student moved to bin');
             fetchStudents();
         } catch (error) {
             console.error('Delete error:', error);
             const errorMsg = error.response?.data?.message || error.message || 'Failed to delete student';
             toast.error(errorMsg);
+        }
+    };
+
+    const handleRestore = async (id) => {
+        if (!window.confirm('Are you sure you want to restore this student?')) return;
+        try {
+            await api.put(`/students/${id}/restore`);
+            toast.success('Student restored successfully');
+            fetchStudents();
+        } catch (error) {
+            toast.error('Failed to restore student');
+        }
+    };
+
+    const handlePermanentDelete = async (id) => {
+        if (!window.confirm('WARNING: This action is irreversible. Are you sure you want to PERMANENTLY delete this student?')) return;
+        try {
+            await api.delete(`/students/${id}/permanent`);
+            toast.success('Student permanently deleted');
+            fetchStudents();
+        } catch (error) {
+            toast.error('Failed to delete student permanently');
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (!window.confirm(`Are you sure you want to move ${selectedStudents.length} students to the Recycle Bin?`)) return;
+        try {
+            await Promise.all(selectedStudents.map(s => api.delete(`/students/${s.id}`)));
+            toast.success('Students moved to bin');
+            setSelectedStudents([]);
+            fetchStudents();
+        } catch (error) {
+            console.error('Bulk delete error', error);
+            toast.error('Failed to delete some students');
+        }
+    };
+
+    const handleBulkRestore = async () => {
+        if (!window.confirm(`Are you sure you want to restore ${selectedStudents.length} students?`)) return;
+        try {
+            await Promise.all(selectedStudents.map(s => api.put(`/students/${s.id}/restore`)));
+            toast.success('Students restored successfully');
+            setSelectedStudents([]);
+            fetchStudents();
+        } catch (error) {
+            toast.error('Failed to restore students');
+        }
+    };
+
+    const handleBulkPermanentDelete = async () => {
+        if (!window.confirm(`WARNING: IRREVERSIBLE ACTION.\nAre you sure you want to PERMANENTLY delete ${selectedStudents.length} students?`)) return;
+        try {
+            await Promise.all(selectedStudents.map(s => api.delete(`/students/${s.id}/permanent`)));
+            toast.success('Students permanently deleted');
+            setSelectedStudents([]);
+            fetchStudents();
+        } catch (error) {
+            toast.error('Failed to delete students permanently');
         }
     };
 
@@ -370,67 +444,120 @@ const StudentManagement = ({ config, prefillData }) => {
             {/* Header & Filters */}
             {/* Header & Filters */}
             <div className="flex flex-col md:flex-row justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors">
-                        <Filter size={18} className="text-slate-400" />
-                        <select
-                            className="bg-transparent text-sm outline-none text-slate-700 font-bold min-w-[140px] cursor-pointer"
-                            value={filterClass}
-                            onChange={e => { setFilterClass(e.target.value); setFilterSection(''); }}
-                        >
-                            <option value="">All Classes</option>
-                            {config.classes?.map(c => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
-                        </select>
-                    </div>
-                    {filterClass && (
-                        <div className="flex items-center gap-2 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors animate-in fade-in slide-in-from-left-2">
-                            <span className="text-slate-300 font-light">/</span>
-                            <select
-                                className="bg-transparent text-sm outline-none text-slate-700 font-bold min-w-[120px] cursor-pointer"
-                                value={filterSection}
-                                onChange={e => setFilterSection(e.target.value)}
+                <div className="flex flex-col gap-4">
+                    {/* View Toggle */}
+                    {!isPromotionView && defaultViewMode !== 'bin' && (
+                        <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
+                            <button
+                                onClick={() => setViewMode('active')}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'active' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
-                                <option value="">All Sections</option>
-                                {availableSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                            </select>
+                                Active Students
+                            </button>
+                            <button
+                                onClick={() => setViewMode('bin')}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${viewMode === 'bin' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                <Trash2 size={16} /> Recycle Bin
+                            </button>
+                        </div>
+                    )}
+
+                    {(viewMode === 'active' || isPromotionView) && (
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex items-center gap-2 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors">
+                                <Filter size={18} className="text-slate-400" />
+                                <select
+                                    className="bg-transparent text-sm outline-none text-slate-700 font-bold min-w-[140px] cursor-pointer"
+                                    value={filterClass}
+                                    onChange={e => { setFilterClass(e.target.value); setFilterSection(''); }}
+                                >
+                                    <option value="">All Classes</option>
+                                    {config.classes?.map(c => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
+                                </select>
+                            </div>
+                            {filterClass && (
+                                <div className="flex items-center gap-2 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors animate-in fade-in slide-in-from-left-2">
+                                    <span className="text-slate-300 font-light">/</span>
+                                    <select
+                                        className="bg-transparent text-sm outline-none text-slate-700 font-bold min-w-[120px] cursor-pointer"
+                                        value={filterSection}
+                                        onChange={e => setFilterSection(e.target.value)}
+                                    >
+                                        <option value="">All Sections</option>
+                                        {availableSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                    </select>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
                 <div className="flex gap-3 items-center">
-                    <input
-                        type="search"
-                        placeholder="Search Name/ID..."
-                        autoComplete="off"
-                        className="bg-slate-50 border border-slate-200 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-indigo-400 w-40 md:w-56 transition-all"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9 ]/g, '').replace(/^\s+/, ''))}
-                    />
-                    <button
-                        onClick={handlePrint}
-                        disabled={students.length === 0 || selectedStudents.length > 0}
-                        className={`bg-slate-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-slate-500/20 hover:bg-slate-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${selectedStudents.length > 0 ? 'opacity-30 blur-[1px]' : ''}`}
-                    >
-                        <Printer size={20} /> Print List
-                    </button>
-                    {selectedStudents.length > 0 && (
+                    {!isPromotionView && (
+                        <>
+                            <input
+                                type="search"
+                                placeholder="Search Name/ID..."
+                                autoComplete="off"
+                                className="bg-slate-50 border border-slate-200 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-indigo-400 w-40 md:w-56 transition-all"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9 ]/g, '').replace(/^\s+/, ''))}
+                            />
+                            <button
+                                onClick={handlePrint}
+                                disabled={students.length === 0 || selectedStudents.length > 0}
+                                className={`bg-slate-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-slate-500/20 hover:bg-slate-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${selectedStudents.length > 0 ? 'opacity-30 blur-[1px]' : ''}`}
+                            >
+                                <Printer size={20} /> Print List
+                            </button>
+                        </>
+                    )}
+                    {selectedStudents.length > 0 && viewMode === 'active' && (
+                        <button
+                            onClick={handleBulkDelete}
+                            className="bg-rose-100 text-rose-700 px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-rose-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 animate-in fade-in slide-in-from-left-2"
+                        >
+                            <Trash2 size={20} /> Delete ({selectedStudents.length})
+                        </button>
+                    )}
+                    {selectedStudents.length > 0 && viewMode === 'bin' && (
+                        <>
+                            <button
+                                onClick={handleBulkRestore}
+                                className="bg-emerald-100 text-emerald-700 px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-emerald-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 animate-in fade-in slide-in-from-left-2"
+                            >
+                                <Check size={20} /> Restore ({selectedStudents.length})
+                            </button>
+                            <button
+                                onClick={handleBulkPermanentDelete}
+                                className="bg-red-100 text-red-700 px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-red-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 animate-in fade-in slide-in-from-left-2"
+                            >
+                                <X size={20} /> Delete Forever ({selectedStudents.length})
+                            </button>
+                        </>
+                    )}
+                    {(selectedStudents.length > 0 || isPromotionView) && (
                         <button
                             onClick={() => setShowPromotionModal(true)}
-                            className="bg-purple-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20 hover:bg-purple-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 animate-in fade-in slide-in-from-left-2"
+                            disabled={selectedStudents.length === 0}
+                            className={`bg-purple-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20 hover:bg-purple-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 animate-in fade-in slide-in-from-left-2 disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                             <GraduationCap size={20} /> Promote ({selectedStudents.length})
                         </button>
                     )}
-                    <button
-                        onClick={handleAdd}
-                        disabled={selectedStudents.length > 0}
-                        className={`bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 ${selectedStudents.length > 0 ? 'opacity-30 blur-[1px] pointer-events-none' : ''}`}
-                    >
-                        <Plus size={20} /> Add Student
-                    </button>
+                    {!isPromotionView && (
+                        <button
+                            onClick={handleAdd}
+                            disabled={selectedStudents.length > 0}
+                            className={`bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 ${selectedStudents.length > 0 ? 'opacity-30 blur-[1px] pointer-events-none' : ''}`}
+                        >
+                            <Plus size={20} /> Add Student
+                        </button>
+                    )}
                 </div>
             </div>
 
-            {filterClass && filterSection && (
+            {!isPromotionView && filterClass && filterSection && (
                 <div className="flex justify-end px-2">
                     <button
                         onClick={async () => {
@@ -474,12 +601,12 @@ const StudentManagement = ({ config, prefillData }) => {
                                     )}
                                 </th>
                                 <th className="p-4">Roll No.</th>
-                                <th className="p-4">Admission Date</th>
+                                {!isPromotionView && <th className="p-4">Admission Date</th>}
                                 <th className="p-4">Name & ID</th>
                                 <th className="p-4">Class</th>
-                                <th className="p-4">Demographics</th>
-                                <th className="p-4">Parents / Contact</th>
-                                <th className="p-4 text-right pr-6">Actions</th>
+                                {!isPromotionView && <th className="p-4">Demographics</th>}
+                                {!isPromotionView && <th className="p-4">Parents / Contact</th>}
+                                {!isPromotionView && <th className="p-4 text-right pr-6">Actions</th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -536,9 +663,11 @@ const StudentManagement = ({ config, prefillData }) => {
                                                     {student.roll_number || '-'}
                                                 </div>
                                             </td>
-                                            <td className="p-4 font-mono text-slate-500 text-xs">
-                                                {student.admission_date ? new Date(student.admission_date).toLocaleDateString() : (student.created_at ? new Date(student.created_at).toLocaleDateString() : '-')}
-                                            </td>
+                                            {!isPromotionView && (
+                                                <td className="p-4 font-mono text-slate-500 text-xs">
+                                                    {student.admission_date ? new Date(student.admission_date).toLocaleDateString() : (student.created_at ? new Date(student.created_at).toLocaleDateString() : '-')}
+                                                </td>
+                                            )}
                                             <td className="p-4">
                                                 <div className="font-bold text-slate-700">{student.name}</div>
                                                 <div className="text-[10px] text-indigo-500 font-mono font-medium bg-indigo-50 inline-block px-1.5 py-0.5 rounded mt-0.5 border border-indigo-100">ID: {student.admission_no}</div>
@@ -548,31 +677,64 @@ const StudentManagement = ({ config, prefillData }) => {
                                                     {student.class_name} - {student.section_name}
                                                 </span>
                                             </td>
-                                            <td className="p-4">
-                                                <div className="text-slate-600 text-xs font-medium">{student.gender}</div>
-                                                <div className="text-slate-400 text-[10px]">{student.age} Years Old</div>
-                                            </td>
-                                            <td className="p-4">
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="text-xs font-bold text-slate-700">{student.father_name}</span>
-                                                    <span className="text-[10px] text-slate-400">{student.mother_name}</span>
-                                                    <span className="text-xs text-indigo-600 font-medium">{student.contact_number}</span>
-                                                </div>
-                                            </td>
-                                            <td className="p-4 pr-6 text-right">
-                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button onClick={() => handleEdit(student)} className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"><Edit2 size={18} /></button>
-                                                    <button onClick={() => handleDelete(student.id)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"><Trash2 size={18} /></button>
-                                                </div>
-                                            </td>
+                                            {!isPromotionView && (
+                                                <td className="p-4">
+                                                    <div className="text-slate-600 text-xs font-medium">{student.gender}</div>
+                                                    <div className="text-slate-400 text-[10px]">{student.age} Years Old</div>
+                                                </td>
+                                            )}
+                                            {!isPromotionView && (
+                                                <td className="p-4">
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-xs font-bold text-slate-700">{student.father_name}</span>
+                                                        <span className="text-[10px] text-slate-400">{student.mother_name}</span>
+                                                        <span className="text-xs text-indigo-600 font-medium">{student.contact_number}</span>
+                                                    </div>
+                                                </td>
+                                            )}
+                                            {!isPromotionView && (
+                                                <td className="p-4 pr-6 text-right">
+                                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        {viewMode === 'active' ? (
+                                                            <>
+                                                                {!isPromotionView && (
+                                                                    <button onClick={() => handleEdit(student)} className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors" title="Edit"><Edit2 size={18} /></button>
+                                                                )}
+                                                                <button onClick={() => handleDelete(student.id)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="Move to Bin"><Trash2 size={18} /></button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <button onClick={() => handleRestore(student.id)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors font-bold text-xs flex items-center gap-1 border border-emerald-200 bg-emerald-50/50" title="Restore">
+                                                                    Restore
+                                                                </button>
+                                                                <button onClick={() => handlePermanentDelete(student.id)} className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors text-xs font-bold border border-rose-200 bg-rose-50/50" title="Delete Permanently">
+                                                                    Permanently Delete
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                     {students.length === 0 && (
                                         <tr>
-                                            <td colSpan={7} className="p-12 text-center text-slate-400">
+                                            <td colSpan={8} className="p-12 text-center text-slate-400">
                                                 <div className="flex flex-col items-center justify-center">
-                                                    <p className="font-medium text-slate-500 mb-1">No students found</p>
-                                                    <p className="text-xs">Try changing filters or add a new student.</p>
+                                                    {isPromotionView && (!filterClass || !filterSection) ? (
+                                                        <>
+                                                            <div className="bg-indigo-50 p-4 rounded-full mb-3">
+                                                                <Filter size={24} className="text-indigo-500" />
+                                                            </div>
+                                                            <p className="font-bold text-slate-700 mb-1">Select Class & Section</p>
+                                                            <p className="text-xs text-slate-500">Please select a class and section to view students for promotion.</p>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <p className="font-medium text-slate-500 mb-1">No students found</p>
+                                                            <p className="text-xs">Try changing filters or add a new student.</p>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

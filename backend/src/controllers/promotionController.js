@@ -13,9 +13,13 @@ exports.promoteStudents = async (req, res) => {
             return res.status(400).json({ message: 'Please select at least one student' });
         }
 
-        if (!to_class_id || !to_academic_year) {
+        if ((!to_class_id && to_class_id !== 'vacant') || !to_academic_year) {
             return res.status(400).json({ message: 'Target class and academic year are required' });
         }
+
+        const isVacantPromotion = to_class_id === 'vacant';
+        const targetClassId = isVacantPromotion ? null : to_class_id;
+        const targetSectionId = isVacantPromotion ? null : to_section_id;
 
         await client.query('BEGIN');
 
@@ -48,8 +52,8 @@ exports.promoteStudents = async (req, res) => {
                     school_id,
                     student.class_id,
                     student.section_id,
-                    to_class_id,
-                    to_section_id,
+                    targetClassId,
+                    targetSectionId,
                     student.academic_year || '2025-2026',
                     to_academic_year,
                     promoted_by,
@@ -61,13 +65,22 @@ exports.promoteStudents = async (req, res) => {
                     UPDATE students 
                     SET class_id = $1, section_id = $2, academic_year = $3
                     WHERE id = $4 AND school_id = $5
-                `, [to_class_id, to_section_id, to_academic_year, student_id, school_id]);
+                `, [targetClassId, targetSectionId, to_academic_year, student_id, school_id]);
+
+                // If Class is CHANGING (not just section), clear individual fee assignments
+                // Use strict comparison, but handle nulls for targetClassId (vacant)
+                if (student.class_id != targetClassId) {
+                    await client.query(`
+                        DELETE FROM student_fees 
+                        WHERE student_id = $1 AND school_id = $2
+                    `, [student_id, school_id]);
+                }
 
                 promotedStudents.push({
                     student_id,
                     name: student.name,
                     from_class: student.class_id,
-                    to_class: to_class_id
+                    to_class: targetClassId
                 });
 
             } catch (error) {

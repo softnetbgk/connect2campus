@@ -129,7 +129,7 @@ exports.getStudents = async (req, res) => {
             FROM students s
             LEFT JOIN classes c ON s.class_id = c.id
             LEFT JOIN sections sec ON s.section_id = sec.id
-            WHERE s.school_id = $1
+            WHERE s.school_id = $1 AND (s.status IS NULL OR s.status != 'Deleted')
         `;
         const params = [school_id];
 
@@ -153,7 +153,8 @@ exports.getStudents = async (req, res) => {
         const result = await pool.query(query, params);
 
         // Get total count for pagination metadata
-        let countQuery = `SELECT COUNT(*) FROM students WHERE school_id = $1`;
+        // Get total count for pagination metadata
+        let countQuery = `SELECT COUNT(*) FROM students WHERE school_id = $1 AND (status IS NULL OR status != 'Deleted')`;
         const countParams = [school_id];
 
         if (class_id) {
@@ -222,7 +223,70 @@ exports.updateStudent = async (req, res) => {
 };
 
 // Delete student
+// Soft Delete student (Move to Bin)
 exports.deleteStudent = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query(
+            "UPDATE students SET status = 'Deleted' WHERE id = $1 AND school_id = $2 RETURNING *",
+            [id, req.user.schoolId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+
+        res.json({ message: 'Student moved to bin successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error deleting student' });
+    }
+};
+
+// Get Deleted Students (Bin)
+exports.getDeletedStudents = async (req, res) => {
+    try {
+        const school_id = req.user.schoolId;
+        console.log('Fetching deleted students for school:', school_id);
+        const result = await pool.query(`
+            SELECT s.*, c.name as class_name, sec.name as section_name 
+            FROM students s
+            LEFT JOIN classes c ON s.class_id = c.id
+            LEFT JOIN sections sec ON s.section_id = sec.id
+            WHERE s.school_id = $1 AND s.status = 'Deleted'
+            ORDER BY s.id DESC
+        `, [school_id]);
+
+        console.log(`Found ${result.rows.length} deleted students`);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching deleted students:', error);
+        res.status(500).json({ message: 'Server error fetching deleted students' });
+    }
+};
+
+// Restore Student
+exports.restoreStudent = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await pool.query(
+            "UPDATE students SET status = 'Active' WHERE id = $1 AND school_id = $2 RETURNING *",
+            [id, req.user.schoolId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+
+        res.json({ message: 'Student restored successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error restoring student' });
+    }
+};
+
+// Permanent Delete Student
+exports.permanentDeleteStudent = async (req, res) => {
     try {
         const { id } = req.params;
         const result = await pool.query(
@@ -234,10 +298,10 @@ exports.deleteStudent = async (req, res) => {
             return res.status(404).json({ message: 'Student not found' });
         }
 
-        res.json({ message: 'Student deleted successfully' });
+        res.json({ message: 'Student permanently deleted' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Server error deleting student' });
+        res.status(500).json({ message: 'Server error deleting student permanently' });
     }
 };
 
