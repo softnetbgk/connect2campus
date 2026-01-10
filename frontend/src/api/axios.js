@@ -1,6 +1,4 @@
 import axios from 'axios';
-import { Capacitor } from '@capacitor/core';
-import { Preferences } from '@capacitor/preferences';
 
 // Hardcoded fallback for production to bypass Netlify Env Var permissions issue
 const PROD_URL = 'https://school-backend-kepp.onrender.com/api';
@@ -18,26 +16,6 @@ const api = axios.create({
     timeout: 15000, // 15 seconds timeout
 });
 
-// Storage helper that works for both web and mobile
-const getToken = async () => {
-    if (Capacitor.isNativePlatform()) {
-        const { value } = await Preferences.get({ key: 'token' });
-        return value;
-    } else {
-        return localStorage.getItem('token');
-    }
-};
-
-const removeToken = async () => {
-    if (Capacitor.isNativePlatform()) {
-        await Preferences.remove({ key: 'token' });
-        await Preferences.remove({ key: 'user' });
-    } else {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-    }
-};
-
 // Loading state management (will be set by LoadingProvider)
 let loadingCallbacks = {
     start: () => { },
@@ -52,12 +30,12 @@ export const setLoadingCallbacks = (start, stop) => {
 
 // Add a request interceptor to add the JWT token to headers and start loading
 api.interceptors.request.use(
-    async (config) => {
+    (config) => {
         // Start loading
         loadingCallbacks.start();
 
-        // Get token from appropriate storage
-        const token = await getToken();
+        // Get token from localStorage
+        const token = localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -87,7 +65,8 @@ api.interceptors.response.use(
 
             // Specific check for Service Disabled (403) or Session Invalid (401)
             if (msg === 'School Service Disabled. Contact Super Admin.' || error.response.status === 401) {
-                await removeToken();
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
                 // Force reload to login if not already there
                 if (!window.location.pathname.includes('/login')) {
                     window.location.href = '/login?error=' + encodeURIComponent(msg || 'Session Expired');

@@ -1,78 +1,38 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import api from '../api/axios';
-import { Capacitor } from '@capacitor/core';
-import { Preferences } from '@capacitor/preferences';
 
 const AuthContext = createContext(null);
-
-// Storage helper that works for both web and mobile
-const storage = {
-    async setItem(key, value) {
-        if (Capacitor.isNativePlatform()) {
-            await Preferences.set({ key, value });
-        } else {
-            localStorage.setItem(key, value);
-        }
-    },
-    async getItem(key) {
-        if (Capacitor.isNativePlatform()) {
-            const { value } = await Preferences.get({ key });
-            return value;
-        } else {
-            return localStorage.getItem(key);
-        }
-    },
-    async removeItem(key) {
-        if (Capacitor.isNativePlatform()) {
-            await Preferences.remove({ key });
-        } else {
-            localStorage.removeItem(key);
-        }
-    }
-};
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Initial load - Restore session from Storage
+    // Initial load - Restore session from localStorage
     useEffect(() => {
-        const restoreSession = async () => {
+        const token = localStorage.getItem('token');
+        const storedUser = localStorage.getItem('user');
+
+        if (token && storedUser) {
             try {
-
-
-                const token = await storage.getItem('token');
-                const storedUser = await storage.getItem('user');
-
-
-
-                if (token && storedUser) {
-                    try {
-                        const parsedUser = JSON.parse(storedUser);
-                        setUser(parsedUser);
-
-                    } catch (e) {
-                        console.error("[AUTH] ❌ Failed to parse stored user", e);
-                        await storage.removeItem('token');
-                        await storage.removeItem('user');
-                    }
-                } else {
-
-                }
-            } catch (error) {
-                console.error("[AUTH] ❌ Failed to restore session", error);
-            } finally {
-                setLoading(false);
-
+                setUser(JSON.parse(storedUser));
+            } catch (e) {
+                console.error("Failed to parse stored user", e);
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
             }
-        };
-
-        restoreSession();
+        }
+        setLoading(false);
     }, []);
 
     // Broadcast Channel for Multi-tab management (Web only)
     useEffect(() => {
-        if (Capacitor.isNativePlatform()) return; // Skip for mobile app
+        // Capacitor import is removed, so this check needs to be removed or handled differently if it's still relevant for web-only.
+        // Assuming this check was primarily for Capacitor's native platform detection.
+        // If this code is only for web, this check is no longer needed.
+        // For now, I'll remove the check as per the instruction's implied simplification.
+        // If the intent was to keep it web-only, a different check would be needed.
+        // Given the context of removing Capacitor, this line becomes irrelevant.
+        // if (Capacitor.isNativePlatform()) return; // Skip for mobile app
 
         let channel = null;
         try {
@@ -104,20 +64,18 @@ export const AuthProvider = ({ children }) => {
             const response = await api.post('/auth/login', { email, password, role });
             const { token, user } = response.data;
 
-            // Save to storage (works for both web and mobile)
-            await storage.setItem('token', token);
-            await storage.setItem('user', JSON.stringify(user));
+            // Save to localStorage
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(user));
             setUser(user);
 
-            // Broadcast only on web
-            if (!Capacitor.isNativePlatform()) {
-                try {
-                    const channel = new BroadcastChannel('school_auth_channel');
-                    channel.postMessage({ type: 'LOGIN_SUCCESS', userId: user.id });
-                    channel.close();
-                } catch (bcError) {
-                    console.warn('BroadcastChannel suppressed:', bcError);
-                }
+            // Broadcast
+            try {
+                const channel = new BroadcastChannel('school_auth_channel');
+                channel.postMessage({ type: 'LOGIN_SUCCESS', userId: user.id });
+                channel.close();
+            } catch (bcError) {
+                console.warn('BroadcastChannel suppressed:', bcError);
             }
 
             return { success: true, user };
@@ -160,22 +118,20 @@ export const AuthProvider = ({ children }) => {
     const logout = async (isAutoLogout = false, isRemote = false) => {
         try {
             if (!isRemote && !isAutoLogout) {
-                // Broadcast only on web
-                if (!Capacitor.isNativePlatform()) {
-                    try {
-                        const channel = new BroadcastChannel('school_auth_channel');
-                        channel.postMessage({ type: 'LOGOUT', userId: user?.id });
-                        channel.close();
-                    } catch (e) { console.warn('BroadcastChannel suppressed inside logout'); }
-                }
+                // Broadcast
+                try {
+                    const channel = new BroadcastChannel('school_auth_channel');
+                    channel.postMessage({ type: 'LOGOUT', userId: user?.id });
+                    channel.close();
+                } catch (e) { console.warn('BroadcastChannel suppressed inside logout'); }
 
                 await api.post('/auth/logout');
             }
         } catch (error) {
             console.error("Logout API failed", error);
         } finally {
-            await storage.removeItem('token');
-            await storage.removeItem('user');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
             setUser(null);
             if (isAutoLogout) alert("Session timed out due to inactivity.");
         }
