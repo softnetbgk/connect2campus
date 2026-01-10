@@ -39,33 +39,31 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const restoreSession = async () => {
             try {
-                console.log('[AUTH] Restoring session...');
-                console.log('[AUTH] Platform:', Capacitor.isNativePlatform() ? 'Mobile' : 'Web');
+
 
                 const token = await storage.getItem('token');
                 const storedUser = await storage.getItem('user');
 
-                console.log('[AUTH] Token found:', !!token);
-                console.log('[AUTH] User found:', !!storedUser);
+
 
                 if (token && storedUser) {
                     try {
                         const parsedUser = JSON.parse(storedUser);
                         setUser(parsedUser);
-                        console.log('[AUTH] ✅ Session restored successfully for:', parsedUser.email);
+
                     } catch (e) {
                         console.error("[AUTH] ❌ Failed to parse stored user", e);
                         await storage.removeItem('token');
                         await storage.removeItem('user');
                     }
                 } else {
-                    console.log('[AUTH] ℹ️ No stored session found');
+
                 }
             } catch (error) {
                 console.error("[AUTH] ❌ Failed to restore session", error);
             } finally {
                 setLoading(false);
-                console.log('[AUTH] Loading complete');
+
             }
         };
 
@@ -107,12 +105,9 @@ export const AuthProvider = ({ children }) => {
             const { token, user } = response.data;
 
             // Save to storage (works for both web and mobile)
-            console.log('[AUTH] Saving login data...');
-            console.log('[AUTH] Platform:', Capacitor.isNativePlatform() ? 'Mobile' : 'Web');
             await storage.setItem('token', token);
             await storage.setItem('user', JSON.stringify(user));
             setUser(user);
-            console.log('[AUTH] ✅ Login data saved successfully for:', user.email);
 
             // Broadcast only on web
             if (!Capacitor.isNativePlatform()) {
