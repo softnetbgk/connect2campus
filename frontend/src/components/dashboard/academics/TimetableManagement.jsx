@@ -90,6 +90,7 @@ const TimetableManagement = ({ config }) => {
     };
 
     const handleAutoGenerate = async () => {
+        if (loading) return;
         if (!selectedClass) {
             toast.error('Please select class');
             return;
@@ -103,7 +104,9 @@ const TimetableManagement = ({ config }) => {
         try {
             await api.post('/timetable/generate', {
                 class_id: selectedClass,
-                section_id: selectedSection || null
+                section_id: selectedSection || null,
+                subjects: autoGenConfig.subjects.filter(s => s.enabled),
+                periods: autoGenConfig.periods
             });
             toast.success('Timetable generated successfully!');
             fetchTimetable();
@@ -172,6 +175,7 @@ const TimetableManagement = ({ config }) => {
     };
 
     const handleSaveAll = async () => {
+        if (loading) return;
         if (pendingChanges.length === 0) return;
 
         setLoading(true);

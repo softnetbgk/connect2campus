@@ -23,6 +23,7 @@ import StudentDashboard from './pages/StudentDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import StaffDashboard from './pages/StaffDashboard';
 import Welcome from './pages/Welcome';
+import DownloadApp from './pages/DownloadApp';
 
 // Components
 import DriverTracking from './components/dashboard/transport/DriverTracking';
@@ -115,6 +116,7 @@ const AppContent = () => {
               <Route path="/" element={<Navigate to="/welcome" />} />
               <Route path="/welcome" element={<Welcome />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/download" element={<DownloadApp />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route path="/change-password" element={<ChangePassword />} />

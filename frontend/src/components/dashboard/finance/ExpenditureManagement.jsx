@@ -127,7 +127,10 @@ const ExpenditureManagement = () => {
     };
 
     const handleDelete = async (id) => {
+        if (isSubmitting) return;
         if (!window.confirm('Are you sure you want to delete this expenditure?')) return;
+
+        setIsSubmitting(true);
         try {
             await api.delete(`/finance/expenditures/${id}`);
             toast.success('Expenditure deleted');
@@ -135,6 +138,8 @@ const ExpenditureManagement = () => {
             fetchStats();
         } catch (error) {
             toast.error('Failed to delete');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -360,7 +365,8 @@ const ExpenditureManagement = () => {
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(item.id)}
-                                                    className="text-slate-400 hover:text-red-600 transition-colors"
+                                                    disabled={isSubmitting}
+                                                    className={`text-slate-400 transition-colors ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:text-red-600'}`}
                                                     title="Delete"
                                                 >
                                                     <Trash2 size={16} />

@@ -95,9 +95,19 @@ const TeacherManagement = ({ config }) => {
     };
 
     const handleDelete = async (id) => {
+        if (isSubmitting) return;
         if (!confirm('Delete teacher?')) return;
-        try { await api.delete(`/teachers/${id}`); toast.success('Deleted'); fetchTeachers(); }
-        catch (e) { toast.error('Failed to delete'); }
+
+        setIsSubmitting(true);
+        try {
+            await api.delete(`/teachers/${id}`);
+            toast.success('Deleted');
+            fetchTeachers();
+        } catch (e) {
+            toast.error('Failed to delete');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const openAddModal = () => {
@@ -194,7 +204,7 @@ const TeacherManagement = ({ config }) => {
                                             <td className="p-4 pr-6 text-right">
                                                 <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <button onClick={() => { setIsEditing(true); setFieldErrors({}); setSelectedId(t.id); setFormData({ ...t, assign_class_id: t.assigned_class_id || '', assign_section_id: t.assigned_section_id || '' }); setIsClassTeacher(!!t.assigned_class_id); setShowModal(true); }} className="text-indigo-500 hover:bg-indigo-50 p-2 rounded-lg transition-colors"><Edit2 size={18} /></button>
-                                                    <button onClick={() => handleDelete(t.id)} className="text-rose-500 hover:bg-rose-50 p-2 rounded-lg transition-colors"><Trash2 size={18} /></button>
+                                                    <button onClick={() => handleDelete(t.id)} disabled={isSubmitting} className={`text-rose-500 hover:bg-rose-50 p-2 rounded-lg transition-colors ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}><Trash2 size={18} /></button>
                                                 </div>
                                             </td>
                                         </tr>

@@ -1,31 +1,36 @@
 import React from 'react';
 import { Home, Users, CreditCard, Menu, UserCheck, GraduationCap, ArrowLeft } from 'lucide-react';
 
-export const MobileHeader = ({ title, onMenuClick, schoolName, onBack }) => {
+export const MobileHeader = ({ title, onMenuClick, schoolName, onBack, userName, subtitle }) => {
     return (
-        <div className="fixed top-0 left-0 right-0 bg-indigo-600 text-white z-[60] shadow-md safe-area-top flex flex-col justify-end md:hidden min-h-[5rem] pb-2">
-            <div className="h-14 w-full flex items-center px-4 justify-between">
-                <div className="flex items-center gap-3">
+        <div className="fixed top-0 left-0 right-0 bg-indigo-600 text-white z-[60] shadow-md safe-area-top flex flex-col justify-end md:hidden min-h-[5.5rem] pb-2 transition-all duration-300">
+            <div className="h-auto py-1 w-full flex items-center px-4 justify-between gap-2">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                     {onBack && (
                         <button
                             onClick={onBack}
-                            className="p-2 -ml-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                            className="p-2 -ml-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors flex-shrink-0"
                         >
                             <ArrowLeft size={20} />
                         </button>
                     )}
                     {/* Logo/Icon */}
-                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                        <GraduationCap size={20} className="text-white" />
+                    <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm flex-shrink-0">
+                        <GraduationCap size={22} className="text-white" />
                     </div>
-                    <div>
-                        <h1 className="text-[10px] font-black text-white tracking-[0.2em] leading-none drop-shadow-md uppercase">Connect to Campus</h1>
-                        <p className="text-[10px] text-indigo-200 font-bold uppercase tracking-wider mt-1">{schoolName || 'Software'}</p>
+                    <div className="flex flex-col min-w-0">
+                        <h1 className="text-[10px] font-black text-white tracking-[0.2em] leading-none drop-shadow-md uppercase truncate">Connect to Campus</h1>
+                        <p className="text-[11px] text-indigo-100 font-bold uppercase tracking-wider mt-0.5 truncate">{schoolName || 'Software'}</p>
+                        {userName && (
+                            <p className="text-[11px] font-medium text-white mt-0.5 leading-tight truncate">
+                                <span className="font-bold">{userName}</span> {subtitle && <span className="opacity-80 text-[10px]"> • {subtitle}</span>}
+                            </p>
+                        )}
                     </div>
                 </div>
 
                 {/* Right Side Actions */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                     {onMenuClick && (
                         <button
                             onClick={onMenuClick}

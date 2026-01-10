@@ -350,7 +350,7 @@ const TeacherOverview = ({ profile, schoolName, user }) => {
                 <h3 className="font-bold text-emerald-100 mb-1 relative z-10">My Assigned Class</h3>
                 {profile?.class_name ? (
                     <>
-                        <div className="text-3xl font-bold relative z-10">{profile.class_name} - {profile.section_name}</div>
+                        <div className="text-3xl font-bold relative z-10">{profile.class_name}{profile.section_name ? ` - ${profile.section_name}` : ''}</div>
                         <div className="text-xs text-emerald-200 mt-2 relative z-10 font-medium bg-emerald-700/30 inline-block px-2 py-1 rounded">Class Teacher</div>
                     </>
                 ) : (

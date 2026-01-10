@@ -76,13 +76,17 @@ const RoomManagement = () => {
     };
 
     const handleDelete = async (id) => {
+        if (isSubmitting) return;
         if (!window.confirm('Delete this room?')) return;
+        setIsSubmitting(true);
         try {
             await api.delete(`/hostel/rooms/${id}`);
             toast.success('Room deleted');
             fetchRooms(selectedHostel.id);
         } catch (error) {
             toast.error('Failed to delete room');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -127,7 +131,7 @@ const RoomManagement = () => {
                     {rooms.map((room) => (
                         <div key={room.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative group overflow-hidden">
                             <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-bl from-white via-white to-transparent">
-                                <button onClick={() => handleDelete(room.id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-full">
+                                <button onClick={() => handleDelete(room.id)} disabled={isSubmitting} className={`text-red-500 hover:bg-red-50 p-1.5 rounded-full ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                     <Trash2 size={14} />
                                 </button>
                             </div>

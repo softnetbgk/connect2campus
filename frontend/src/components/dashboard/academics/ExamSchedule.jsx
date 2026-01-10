@@ -819,7 +819,7 @@ const ExamSchedule = () => {
                         <div key={idx} className="mb-8 break-inside-avoid page-break-after-always">
                             <div className="text-center mb-4 border-b pb-2 border-black">
                                 <h2 className="text-xl font-bold uppercase">{selectedExamType?.name || 'Exam Schedule'}</h2>
-                                <h3 className="text-lg font-bold">Class: {group.className} - {group.sectionName}</h3>
+                                <h3 className="text-lg font-bold">Class: {group.className}{group.sectionName ? ` - ${group.sectionName}` : ''}</h3>
                             </div>
                             <table className="w-full text-sm text-left mb-4 border-collapse border border-black">
                                 <thead>

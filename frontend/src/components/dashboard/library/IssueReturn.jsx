@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 const IssueReturn = () => {
     const [activeTab, setActiveTab] = useState('issue');
     const [transactions, setTransactions] = useState([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Issue Form State
     const [issueData, setIssueData] = useState({
@@ -106,6 +107,9 @@ const IssueReturn = () => {
 
     const handleIssueSubmit = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
         try {
             const res = await api.post('/library/issue', issueData);
             toast.success(`Book "${res.data.book}" issued to ${res.data.patron}`);
@@ -116,11 +120,16 @@ const IssueReturn = () => {
         } catch (error) {
             console.error(error);
             toast.error(error.response?.data?.error || 'Failed to issue book');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleReturnSubmit = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
         try {
             const res = await api.post('/library/return', returnData);
             toast.success(`Book "${res.data.book}" returned successfully`);
@@ -129,6 +138,8 @@ const IssueReturn = () => {
         } catch (error) {
             console.error(error);
             toast.error(error.response?.data?.error || 'Failed to return book');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -254,9 +265,9 @@ const IssueReturn = () => {
                                     )}
                                 </div>
 
-                                <button type="submit" disabled={verifiedPatron?.valid === false || verifiedBook?.valid === false} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2">
-                                    Confirm Issue
-                                    <ArrowRight size={18} />
+                                <button type="submit" disabled={isSubmitting || verifiedPatron?.valid === false || verifiedBook?.valid === false} className={`w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2 ${isSubmitting ? 'cursor-not-allowed' : ''}`}>
+                                    {isSubmitting ? 'Processing...' : 'Confirm Issue'}
+                                    {!isSubmitting && <ArrowRight size={18} />}
                                 </button>
                             </form>
                         ) : (
@@ -277,9 +288,9 @@ const IssueReturn = () => {
                                     <p className="text-xs text-slate-500 mt-2 ml-1">Currently supporting returns by Book Number only.</p>
                                 </div>
 
-                                <button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-teal-200 transition-all flex items-center justify-center gap-2">
-                                    Confirm Return
-                                    <CheckCircle size={18} />
+                                <button type="submit" disabled={isSubmitting} className={`w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl shadow-lg shadow-teal-200 transition-all flex items-center justify-center gap-2`}>
+                                    {isSubmitting ? 'Processing...' : 'Confirm Return'}
+                                    {!isSubmitting && <CheckCircle size={18} />}
                                 </button>
                             </form>
                         )}

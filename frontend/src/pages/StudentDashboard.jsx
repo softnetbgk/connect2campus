@@ -304,10 +304,10 @@ const StudentDashboard = () => {
                             {(studentData?.name || user?.name || 'S')?.[0]?.toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-white truncate">{studentData?.name || user?.name || 'Student'}</p>
                             <p className="text-[10px] text-blue-100 uppercase font-medium tracking-tight">
                                 {studentData?.class_name ? `Class ${studentData.class_name.toString().replace(/class/i, '').trim()}${studentData.section_name ? `-${studentData.section_name}` : ''}` : 'Student'} • {studentData?.admission_no || '--'}
                             </p>
+                            <p className="text-sm font-bold text-white truncate">{studentData?.name || user?.name || 'Student'}</p>
                             <p className="text-[10px] text-blue-200 truncate">{schoolName}</p>
                         </div>
                         <button onClick={handleLogoutClick} className="text-blue-200 hover:text-white transition-colors">
@@ -324,6 +324,8 @@ const StudentDashboard = () => {
                     <MobileHeader
                         title={getTabTitle(activeTab)}
                         schoolName={schoolName}
+                        subtitle={user?.name}
+                        userName={studentData?.class_name ? `Class ${studentData.class_name.toString().replace(/class/i, '').trim()}${studentData.section_name ? ` - ${studentData.section_name}` : ''}` : ''}
                         onMenuClick={() => setIsMobileMenuOpen(true)}
                     />
                 )}
@@ -411,8 +413,7 @@ const StudentOverview = ({ schoolName, stats, student, user }) => (
                     </h3>
                     {user && (
                         <div className="mt-4 flex flex-col gap-1">
-                            <h2 className="text-xl font-bold text-slate-700">{user.name}</h2>
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500 font-medium">
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500 font-medium mb-1">
                                 <span className="flex items-center gap-1">
                                     <GraduationCap size={14} className="text-indigo-500" />
                                     {student?.class_name ? `Class ${student.class_name.toString().replace(/class/i, '').trim()}${student.section_name ? `-${student.section_name}` : ''}` : 'Student'}
@@ -424,6 +425,7 @@ const StudentOverview = ({ schoolName, stats, student, user }) => (
                                     </span>
                                 )}
                             </div>
+                            <h2 className="text-xl font-bold text-slate-700">{student?.name || user?.name || 'Student'}</h2>
                         </div>
                     )}
                 </div>

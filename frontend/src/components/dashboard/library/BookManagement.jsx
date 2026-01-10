@@ -118,7 +118,9 @@ const BookManagement = () => {
     };
 
     const handleDelete = async (id) => {
+        if (isSubmitting) return;
         if (!window.confirm('Are you sure you want to delete this book?')) return;
+        setIsSubmitting(true);
         try {
             await api.delete(`/library/books/${id}`);
             toast.success('Book deleted successfully');
@@ -126,6 +128,8 @@ const BookManagement = () => {
         } catch (error) {
             console.error(error);
             toast.error(error.response?.data?.error || 'Failed to delete book');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -459,7 +463,8 @@ const BookManagement = () => {
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(book.id)}
-                                                className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                disabled={isSubmitting}
+                                                className={`text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100 ${isSubmitting ? 'cursor-not-allowed opacity-50' : ''}`}
                                                 title="Delete Book"
                                             >
                                                 <Trash2 size={18} />

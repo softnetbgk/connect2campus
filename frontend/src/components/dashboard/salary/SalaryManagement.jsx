@@ -7,6 +7,7 @@ import { useReactToPrint } from 'react-to-print';
 const SalaryManagement = () => {
     const [salaryData, setSalaryData] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [filterType, setFilterType] = useState('all'); // 'all', 'teacher', 'staff'
@@ -65,6 +66,7 @@ const SalaryManagement = () => {
     };
 
     const handleMarkPaid = async () => {
+        if (isSubmitting) return;
         if (!selectedEmployee) return;
 
         // Validation for Online Payments
@@ -75,6 +77,7 @@ const SalaryManagement = () => {
             return toast.error('Cheque Number is required');
         }
 
+        setIsSubmitting(true);
         try {
             await api.post('/salary/mark-paid', {
                 employee_id: selectedEmployee.id,
@@ -98,6 +101,8 @@ const SalaryManagement = () => {
         } catch (error) {
             toast.error('Failed to mark salary as paid');
             console.error(error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -427,10 +432,11 @@ const SalaryManagement = () => {
                                 </button>
                                 <button
                                     onClick={handleMarkPaid}
-                                    className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold transition-colors flex items-center justify-center gap-2"
+                                    disabled={isSubmitting}
+                                    className={`flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold transition-colors flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     <CheckCircle size={18} />
-                                    Confirm Payment
+                                    {isSubmitting ? 'Confirming...' : 'Confirm Payment'}
                                 </button>
                             </div>
                         </div>

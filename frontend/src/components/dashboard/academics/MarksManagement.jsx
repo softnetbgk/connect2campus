@@ -16,6 +16,7 @@ const MarksManagement = ({ config }) => {
     const [subjects, setSubjects] = useState([]);
     const [marks, setMarks] = useState({});
     const [loading, setLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [showExamModal, setShowExamModal] = useState(false);
     const [showMarksheetModal, setShowMarksheetModal] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState(null);
@@ -287,6 +288,8 @@ const MarksManagement = ({ config }) => {
 
 
     const handleCreateExamType = async () => {
+        if (isSubmitting) return;
+
         if (!newExam.name) {
             toast.error('Please enter exam name');
             return;
@@ -301,6 +304,7 @@ const MarksManagement = ({ config }) => {
             }
         }
 
+        setIsSubmitting(true);
         try {
             await api.post('/marks/exam-types', newExam);
             toast.success('Exam type created!');
@@ -310,6 +314,8 @@ const MarksManagement = ({ config }) => {
         } catch (error) {
             toast.error('Failed to create exam type');
             console.error(error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -444,6 +450,7 @@ const MarksManagement = ({ config }) => {
     // const hasComponents = selectedExamType?.components?.length > 0; // This is now dynamic per subject
 
     const handleSave = async () => {
+        if (loading) return;
         if (!selectedExam) {
             toast.error('Please select an exam type');
             return;
@@ -816,8 +823,8 @@ const MarksManagement = ({ config }) => {
                             <button onClick={() => setShowExamModal(false)} className="px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-700 hover:bg-slate-100">
                                 Cancel
                             </button>
-                            <button onClick={handleCreateExamType} className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold flex items-center gap-2">
-                                <Plus size={16} /> Create Exam Type
+                            <button onClick={handleCreateExamType} disabled={isSubmitting} className={`px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold flex items-center gap-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                <Plus size={16} /> {isSubmitting ? 'Creating...' : 'Create Exam Type'}
                             </button>
                         </div>
                     </div>
@@ -861,7 +868,7 @@ const MarksManagement = ({ config }) => {
                                     </div>
                                     <div>
                                         <div className="text-xs text-slate-500 uppercase font-bold">Class</div>
-                                        <div className="font-medium text-slate-700">{marksheetData.student.class_name} - {marksheetData.student.section_name}</div>
+                                        <div className="font-medium text-slate-700">{marksheetData.student.class_name}{marksheetData.student.section_name ? ` - ${marksheetData.student.section_name}` : ''}</div>
                                     </div>
                                     <div>
                                         <div className="text-xs text-slate-500 uppercase font-bold">Exam</div>

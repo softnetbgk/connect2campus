@@ -37,7 +37,7 @@ const CertificateTemplate = React.forwardRef(({ type, student, schoolName, detai
                 </p>
 
                 <p className="mb-6 indent-8">
-                    He/She is currently studying in <strong>Class {student?.class_name || '...'} - {student?.section_name || '...'}</strong>
+                    He/She is currently studying in <strong>Class {student?.class_name || '...'}{student?.section_name ? ` - ${student.section_name}` : ''}</strong>
                     during the academic year <strong>{new Date().getFullYear()}</strong>.
                 </p>
 

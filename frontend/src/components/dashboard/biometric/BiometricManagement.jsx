@@ -38,6 +38,7 @@ const EnrollmentPanel = () => {
     const [users, setUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [cardInput, setCardInput] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Hardware State
     const [deviceStatus, setDeviceStatus] = useState('unknown'); // unknown, connected, disconnected, checking
@@ -113,7 +114,10 @@ const EnrollmentPanel = () => {
     };
 
     const handleUpdate = async (field, value) => {
+        if (isSubmitting) return;
         if (!selectedUser) return;
+
+        setIsSubmitting(true);
         try {
             await api.post('/biometric/enroll', {
                 type: userType,
@@ -126,21 +130,21 @@ const EnrollmentPanel = () => {
             setSelectedUser(prev => ({ ...prev, [field]: value }));
         } catch (error) {
             toast.error('Update failed');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const captureFingerprint = async () => {
+        if (isSubmitting) return;
+
         if (deviceStatus !== 'connected') {
             await checkDevice();
-            // Re-check status after attempt
-            // Note: Since checkDevice is async/state update, we can't trust current 'deviceStatus' var immediately without ref or effect
-            // But for simplicity in this flow, we'll assume the user sees the toast and tries again or the state is fast enough
-            // Better: return status from checkDevice or check if element updated.
-            // For now, let's just proceed if we *think* it might be there, or show error inside try/catch
         }
 
         toast.loading('Place finger on scanner...');
 
+        setIsSubmitting(true);
         try {
             // SIMULATION: In real world, call axios.post('http://127.0.0.1:11100/rd/capture', ...)
             await new Promise(r => setTimeout(r, 2000));
@@ -149,6 +153,8 @@ const EnrollmentPanel = () => {
             handleUpdate('biometric_template', fakeTemplate);
         } catch (error) {
             toast.error("Capture Failed");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -310,9 +316,10 @@ const EnrollmentPanel = () => {
                                 />
                                 <button
                                     onClick={() => handleUpdate('rfid_card_id', cardInput)}
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 rounded-lg text-sm font-bold shadow-md active:scale-95 transition-all"
+                                    disabled={isSubmitting}
+                                    className={`bg-indigo-600 hover:bg-indigo-700 text-white px-4 rounded-lg text-sm font-bold shadow-md active:scale-95 transition-all ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
-                                    Save
+                                    {isSubmitting ? 'Saving...' : 'Save'}
                                 </button>
                             </div>
                             <p className="text-[10px] text-slate-500 mt-2 leading-relaxed">
@@ -329,10 +336,11 @@ const EnrollmentPanel = () => {
                             <label className="text-xs font-bold text-slate-400 uppercase block mb-2">USB Scanner Enrollment (Optional)</label>
                             <button
                                 onClick={captureFingerprint}
-                                className={`w-full py-3 rounded-lg border-2 border-dashed flex items-center justify-center gap-2 font-bold transition-colors ${selectedUser.biometric_template ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-300 text-slate-400 hover:border-indigo-400 hover:text-indigo-600'}`}
+                                disabled={isSubmitting}
+                                className={`w-full py-3 rounded-lg border-2 border-dashed flex items-center justify-center gap-2 font-bold transition-colors ${selectedUser.biometric_template ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-300 text-slate-400 hover:border-indigo-400 hover:text-indigo-600'} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 <Fingerprint />
-                                {selectedUser.biometric_template ? 'Re-Scan Legacy Template' : 'Scan via USB Device'}
+                                {isSubmitting ? 'Processing...' : (selectedUser.biometric_template ? 'Re-Scan Legacy Template' : 'Scan via USB Device')}
                             </button>
                         </div>
                     </div>

@@ -9,6 +9,7 @@ const RoomAllocation = () => {
     const [allocations, setAllocations] = useState([]);
     const [rooms, setRooms] = useState([]);
     const [showModal, setShowModal] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // For allocation modal
     const [selectedRoomId, setSelectedRoomId] = useState('');
@@ -63,11 +64,14 @@ const RoomAllocation = () => {
 
     const handleAllocate = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
+
         if (!selectedRoomId || !selectedStudent) {
             toast.error('Please select room and student');
             return;
         }
 
+        setIsSubmitting(true);
         try {
             await api.post(`/hostel/rooms/${selectedRoomId}/allocate`, {
                 student_id: selectedStudent.id
@@ -81,17 +85,24 @@ const RoomAllocation = () => {
             setSelectedRoomId('');
         } catch (error) {
             toast.error(error.response?.data?.error || 'Allocation failed');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleVacate = async (allocationId) => {
+        if (isSubmitting) return;
         if (!window.confirm('Are you sure you want to vacate this room?')) return;
+
+        setIsSubmitting(true);
         try {
             await api.post(`/hostel/allocations/${allocationId}/vacate`);
             toast.success('Room vacated');
             fetchAllocations(selectedHostel.id);
         } catch (error) {
             toast.error('Operation failed');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -185,10 +196,10 @@ const RoomAllocation = () => {
                                 </td>
                                 <td className="px-6 py-4">
                                     <button
-                                        onClick={() => handleVacate(alloc.id)}
-                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                                        disabled={isSubmitting}
+                                        className={`text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
-                                        <LogOut size={14} /> Vacate
+                                        <LogOut size={14} /> {isSubmitting ? 'Vacating...' : 'Vacate'}
                                     </button>
                                 </td>
                             </tr>
@@ -271,7 +282,7 @@ const RoomAllocation = () => {
                                         </div>
                                         <div>
                                             <p className="font-bold text-indigo-900">{selectedStudent.name}</p>
-                                            <p className="text-xs text-indigo-600">Class: {selectedStudent.class_name || 'N/A'} - {selectedStudent.section_name || 'N/A'}</p>
+                                            <p className="text-xs text-indigo-600">Class: {selectedStudent.class_name || 'N/A'}{selectedStudent.section_name ? ` - ${selectedStudent.section_name}` : ''}</p>
                                         </div>
                                         <div className="ml-auto">
                                             <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center">
@@ -284,10 +295,10 @@ const RoomAllocation = () => {
 
                             <button
                                 type="submit"
-                                disabled={!selectedRoomId || !selectedStudent}
-                                className="w-full mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={isSubmitting || !selectedRoomId || !selectedStudent}
+                                className={`w-full mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
-                                Confirm Allocation
+                                {isSubmitting ? 'Allocating...' : 'Confirm Allocation'}
                             </button>
                         </form>
                     </div>

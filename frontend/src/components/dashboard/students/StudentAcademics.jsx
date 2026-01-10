@@ -23,6 +23,7 @@ const StudentAcademics = () => {
     useEffect(() => {
         if (profile) {
             fetchYears();
+            fetchExamTypes();
         }
     }, [profile]);
 
@@ -66,12 +67,13 @@ const StudentAcademics = () => {
 
     const fetchExamTypes = async () => {
         try {
-            const res = await api.get('/marks/exam-types');
-            setExamTypes(res.data);
-            if (res.data.length > 0) {
-                // Optionally select the latest exam or none
-                // setSelectedExam(res.data[0].id);
+            const params = {};
+            if (profile) {
+                params.class_id = profile.class_id;
+                params.student_id = profile.id;
             }
+            const res = await api.get('/marks/exam-types', { params });
+            setExamTypes(res.data);
         } catch (error) {
             console.error(error);
         }
@@ -142,7 +144,9 @@ const StudentAcademics = () => {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div>
                         <h3 className="text-xl font-bold text-slate-800">Academics & Exams</h3>
-                        <p className="text-sm text-slate-500 font-medium">Class: {profile.class_name} - {profile.section_name}</p>
+                        <p className="text-sm text-slate-500 font-medium">
+                            {profile.class_name}{profile.section_name ? ` - ${profile.section_name}` : ''}
+                        </p>
                     </div>
 
                     <div className="flex gap-2 bg-slate-100 p-1 rounded-xl">

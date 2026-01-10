@@ -8,7 +8,9 @@ const LeaveManagement = ({ onAction }) => {
     const [filterStatus, setFilterStatus] = useState('Pending'); // Pending, Approved, Rejected, All
     const [filterRole, setFilterRole] = useState('All'); // All, Student, Teacher, Staff
     const [loading, setLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [confirmDialog, setConfirmDialog] = useState({ show: false, id: null, status: null });
+
 
     useEffect(() => {
         fetchLeaves();
@@ -28,12 +30,14 @@ const LeaveManagement = ({ onAction }) => {
     };
 
     const handleStatusUpdate = async () => {
+        if (isSubmitting) return;
         const { id, status: newStatus } = confirmDialog;
-        setConfirmDialog({ show: false, id: null, status: null });
 
+        setIsSubmitting(true);
         try {
             await api.put(`/leaves/${id}`, { status: newStatus });
             toast.success(`Leave ${newStatus}`);
+            setConfirmDialog({ show: false, id: null, status: null });
 
             // Optimistic update: Remove the item from list immediately if we are in 'Pending' view
             if (filterStatus === 'Pending') {
@@ -46,6 +50,8 @@ const LeaveManagement = ({ onAction }) => {
         } catch (error) {
             console.error('Update failed', error);
             toast.error('Failed to update status');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -191,12 +197,13 @@ const LeaveManagement = ({ onAction }) => {
                                 </button>
                                 <button
                                     onClick={handleStatusUpdate}
+                                    disabled={isSubmitting}
                                     className={`px-4 py-2 rounded-lg font-medium transition-colors ${confirmDialog.status === 'Approved'
                                         ? 'bg-green-600 hover:bg-green-700 text-white'
                                         : 'bg-red-600 hover:bg-red-700 text-white'
-                                        }`}
+                                        } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
-                                    Confirm
+                                    {isSubmitting ? 'Processing...' : 'Confirm'}
                                 </button>
                             </div>
                         </div>

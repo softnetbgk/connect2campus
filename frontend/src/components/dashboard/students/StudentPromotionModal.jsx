@@ -82,6 +82,7 @@ const StudentPromotionModal = ({ isOpen, onClose, selectedStudents, config, onSu
     }, [startDate, endDate]);
 
     const handlePromote = async () => {
+        if (isSubmitting) return;
         if (!toClassId) {
             return toast.error('Please select a target class');
         }

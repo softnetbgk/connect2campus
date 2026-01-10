@@ -123,6 +123,7 @@ const TransportManagement = ({ initialTab }) => {
     const [vehicles, setVehicles] = useState([]);
     const [routes, setRoutes] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Vehicle Form State
     const [showVehicleModal, setShowVehicleModal] = useState(false);
@@ -196,6 +197,8 @@ const TransportManagement = ({ initialTab }) => {
     }, []);
 
     const handleAddVehicle = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         try {
             const payload = { ...vehicleForm };
             const assignRouteId = payload.assign_route_id;
@@ -220,21 +223,29 @@ const TransportManagement = ({ initialTab }) => {
         } catch (error) {
             console.error(error);
             toast.error('Failed to add vehicle');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleDeleteVehicle = async (id) => {
+        if (isSubmitting) return;
         if (!window.confirm('Are you sure?')) return;
+        setIsSubmitting(true);
         try {
             await api.delete(`/transport/vehicles/${id}`);
             toast.success('Vehicle deleted');
             fetchData();
         } catch (error) {
             toast.error('Failed to delete vehicle');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleAddRoute = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         try {
             console.log('Saving Route. Edit Mode:', isEditingRoute, 'ID:', selectedRouteId);
 
@@ -260,6 +271,8 @@ const TransportManagement = ({ initialTab }) => {
             const mainMsg = error.response?.data?.message || fallbackMsg;
 
             toast.error(serverError ? `${mainMsg}: ${serverError}` : mainMsg);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -285,7 +298,9 @@ const TransportManagement = ({ initialTab }) => {
     };
 
     const handleDeleteRoute = async (id) => {
+        if (isSubmitting) return;
         if (!window.confirm('Are you sure you want to delete this route? This will also remove all its stops.')) return;
+        setIsSubmitting(true);
         try {
             await api.delete(`/transport/routes/${id}`);
             toast.success('Route deleted successfully');
@@ -293,6 +308,8 @@ const TransportManagement = ({ initialTab }) => {
         } catch (error) {
             console.error('Delete Error:', error);
             toast.error('Failed to delete route');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -410,7 +427,7 @@ const TransportManagement = ({ initialTab }) => {
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 flex gap-2">
-                                                        <button onClick={() => handleDeleteVehicle(vehicle.id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-md">
+                                                        <button onClick={() => handleDeleteVehicle(vehicle.id)} disabled={isSubmitting} className={`text-red-500 hover:bg-red-50 p-1.5 rounded-md ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                                             <Trash2 size={16} />
                                                         </button>
                                                     </td>
@@ -457,7 +474,8 @@ const TransportManagement = ({ initialTab }) => {
                                                     </button>
                                                     <button
                                                         onClick={() => handleDeleteRoute(route.id)}
-                                                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                        disabled={isSubmitting}
+                                                        className={`p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                         title="Delete Route"
                                                     >
                                                         <Trash2 size={16} />
@@ -600,7 +618,7 @@ const TransportManagement = ({ initialTab }) => {
                                     </select>
                                     <p className="text-[10px] text-slate-400 mt-1">* Selecting a route will assign this vehicle to it.</p>
                                 </div>
-                                <button onClick={handleAddVehicle} className="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700">Add Vehicle</button>
+                                <button onClick={handleAddVehicle} disabled={isSubmitting} className={`w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>{isSubmitting ? 'Adding...' : 'Add Vehicle'}</button>
                             </div>
                         </div>
                     </div>
@@ -711,8 +729,8 @@ const TransportManagement = ({ initialTab }) => {
                             </div>
 
                             <div className="p-4 border-t border-slate-100 bg-slate-50 flex-shrink-0">
-                                <button onClick={handleAddRoute} className="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700">
-                                    {isEditingRoute ? 'Update Route' : 'Create Route'}
+                                <button onClick={handleAddRoute} disabled={isSubmitting} className={`w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                    {isSubmitting ? 'Saving...' : (isEditingRoute ? 'Update Route' : 'Create Route')}
                                 </button>
                             </div>
                         </div>

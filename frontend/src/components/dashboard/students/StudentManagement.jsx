@@ -157,7 +157,10 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
     };
 
     const handleDelete = async (id) => {
+        if (isSubmitting) return;
         if (!window.confirm('Are you sure you want to move this student to the Recycle Bin?')) return;
+
+        setIsSubmitting(true);
         try {
             await api.delete(`/students/${id}`);
             toast.success('Student moved to bin');
@@ -166,33 +169,48 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
             console.error('Delete error:', error);
             const errorMsg = error.response?.data?.message || error.message || 'Failed to delete student';
             toast.error(errorMsg);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleRestore = async (id) => {
+        if (isSubmitting) return;
         if (!window.confirm('Are you sure you want to restore this student?')) return;
+
+        setIsSubmitting(true);
         try {
             await api.put(`/students/${id}/restore`);
             toast.success('Student restored successfully');
             fetchStudents();
         } catch (error) {
             toast.error('Failed to restore student');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handlePermanentDelete = async (id) => {
+        if (isSubmitting) return;
         if (!window.confirm('WARNING: This action is irreversible. Are you sure you want to PERMANENTLY delete this student?')) return;
+
+        setIsSubmitting(true);
         try {
             await api.delete(`/students/${id}/permanent`);
             toast.success('Student permanently deleted');
             fetchStudents();
         } catch (error) {
             toast.error('Failed to delete student permanently');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleBulkDelete = async () => {
+        if (isSubmitting) return;
         if (!window.confirm(`Are you sure you want to move ${selectedStudents.length} students to the Recycle Bin?`)) return;
+
+        setIsSubmitting(true);
         try {
             await Promise.all(selectedStudents.map(s => api.delete(`/students/${s.id}`)));
             toast.success('Students moved to bin');
@@ -201,11 +219,16 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
         } catch (error) {
             console.error('Bulk delete error', error);
             toast.error('Failed to delete some students');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleBulkRestore = async () => {
+        if (isSubmitting) return;
         if (!window.confirm(`Are you sure you want to restore ${selectedStudents.length} students?`)) return;
+
+        setIsSubmitting(true);
         try {
             await Promise.all(selectedStudents.map(s => api.put(`/students/${s.id}/restore`)));
             toast.success('Students restored successfully');
@@ -213,11 +236,16 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
             fetchStudents();
         } catch (error) {
             toast.error('Failed to restore students');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleBulkPermanentDelete = async () => {
+        if (isSubmitting) return;
         if (!window.confirm(`WARNING: IRREVERSIBLE ACTION.\nAre you sure you want to PERMANENTLY delete ${selectedStudents.length} students?`)) return;
+
+        setIsSubmitting(true);
         try {
             await Promise.all(selectedStudents.map(s => api.delete(`/students/${s.id}/permanent`)));
             toast.success('Students permanently deleted');
@@ -225,6 +253,8 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
             fetchStudents();
         } catch (error) {
             toast.error('Failed to delete students permanently');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -515,7 +545,8 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
                     {selectedStudents.length > 0 && viewMode === 'active' && (
                         <button
                             onClick={handleBulkDelete}
-                            className="bg-rose-100 text-rose-700 px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-rose-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 animate-in fade-in slide-in-from-left-2"
+                            disabled={isSubmitting}
+                            className={`bg-rose-100 text-rose-700 px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-rose-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 animate-in fade-in slide-in-from-left-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             <Trash2 size={20} /> Delete ({selectedStudents.length})
                         </button>
@@ -524,13 +555,15 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
                         <>
                             <button
                                 onClick={handleBulkRestore}
-                                className="bg-emerald-100 text-emerald-700 px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-emerald-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 animate-in fade-in slide-in-from-left-2"
+                                disabled={isSubmitting}
+                                className={`bg-emerald-100 text-emerald-700 px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-emerald-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 animate-in fade-in slide-in-from-left-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 <Check size={20} /> Restore ({selectedStudents.length})
                             </button>
                             <button
                                 onClick={handleBulkPermanentDelete}
-                                className="bg-red-100 text-red-700 px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-red-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 animate-in fade-in slide-in-from-left-2"
+                                disabled={isSubmitting}
+                                className={`bg-red-100 text-red-700 px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-red-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 animate-in fade-in slide-in-from-left-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 <X size={20} /> Delete Forever ({selectedStudents.length})
                             </button>
@@ -561,16 +594,21 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
                 <div className="flex justify-end px-2">
                     <button
                         onClick={async () => {
+                            if (isSubmitting) return;
                             if (!window.confirm('This will reassign roll numbers alphabetically for the selected section. Continue?')) return;
+                            setIsSubmitting(true);
                             try {
                                 await api.post('/students/roll-numbers', { class_id: filterClass, section_id: filterSection });
                                 toast.success('Roll numbers updated');
                                 fetchStudents();
                             } catch (error) {
                                 toast.error('Failed to update roll numbers');
+                            } finally {
+                                setIsSubmitting(false);
                             }
                         }}
-                        className="text-indigo-600 text-xs font-bold hover:underline mb-2 flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors"
+                        disabled={isSubmitting}
+                        className={`text-indigo-600 text-xs font-bold hover:underline mb-2 flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         <SortAsc size={14} /> Re-assign Roll Numbers Alphabetically
                     </button>
@@ -674,7 +712,7 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
                                             </td>
                                             <td className="p-4">
                                                 <span className="bg-white text-slate-600 px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 shadow-sm">
-                                                    {student.class_name} - {student.section_name}
+                                                    {student.class_name}{student.section_name ? ` - ${student.section_name}` : ''}
                                                 </span>
                                             </td>
                                             {!isPromotionView && (
@@ -700,14 +738,14 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
                                                                 {!isPromotionView && (
                                                                     <button onClick={() => handleEdit(student)} className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors" title="Edit"><Edit2 size={18} /></button>
                                                                 )}
-                                                                <button onClick={() => handleDelete(student.id)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="Move to Bin"><Trash2 size={18} /></button>
+                                                                <button onClick={() => handleDelete(student.id)} disabled={isSubmitting} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title="Move to Bin"><Trash2 size={18} /></button>
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <button onClick={() => handleRestore(student.id)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors font-bold text-xs flex items-center gap-1 border border-emerald-200 bg-emerald-50/50" title="Restore">
+                                                                <button onClick={() => handleRestore(student.id)} disabled={isSubmitting} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors font-bold text-xs flex items-center gap-1 border border-emerald-200 bg-emerald-50/50 disabled:opacity-50 disabled:cursor-not-allowed" title="Restore">
                                                                     Restore
                                                                 </button>
-                                                                <button onClick={() => handlePermanentDelete(student.id)} className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors text-xs font-bold border border-rose-200 bg-rose-50/50" title="Delete Permanently">
+                                                                <button onClick={() => handlePermanentDelete(student.id)} disabled={isSubmitting} className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors text-xs font-bold border border-rose-200 bg-rose-50/50 disabled:opacity-50 disabled:cursor-not-allowed" title="Delete Permanently">
                                                                     Permanently Delete
                                                                 </button>
                                                             </>

@@ -13,6 +13,7 @@ const SchoolCalendar = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [showModal, setShowModal] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [newEvent, setNewEvent] = useState({
         title: '',
@@ -40,11 +41,14 @@ const SchoolCalendar = () => {
     };
 
     const handleAddEvent = async () => {
+        if (isSubmitting) return;
+
         if (!newEvent.title || !newEvent.start_date) {
             toast.error('Title and Start Date are required');
             return;
         }
 
+        setIsSubmitting(true);
         try {
             await api.post('/calendar/events', newEvent);
             toast.success('Event added successfully');
@@ -60,17 +64,24 @@ const SchoolCalendar = () => {
             fetchEvents();
         } catch (error) {
             toast.error('Failed to add event');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleDeleteEvent = async (id) => {
+        if (isSubmitting) return;
         if (!window.confirm('Are you sure you want to delete this event?')) return;
+
+        setIsSubmitting(true);
         try {
             await api.delete(`/calendar/events/${id}`);
             toast.success('Event deleted');
             fetchEvents();
         } catch (error) {
             toast.error('Failed to delete event');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -87,21 +98,21 @@ const SchoolCalendar = () => {
         { date: '12-25', title: 'Christmas', type: 'Holiday', recurring: true },
 
         // 2026 Specific Holidays
-        { date: '2026-01-15', title: 'Makara Sankranti', type: 'Holiday' },
+        { date: '2026-01-14', title: 'Makara Sankranti', type: 'Holiday' },
         { date: '2026-02-15', title: 'Maha Shivaratri', type: 'Holiday' },
         { date: '2026-03-19', title: 'Ugadi', type: 'Holiday' },
-        { date: '2026-03-21', title: 'Khutub-E-Ramzan', type: 'Holiday' },
+        { date: '2026-03-20', title: 'Khutub-E-Ramzan', type: 'Holiday' },
         { date: '2026-03-31', title: 'Mahaveera Jayanti', type: 'Holiday' },
         { date: '2026-04-03', title: 'Good Friday', type: 'Holiday' },
         { date: '2026-04-20', title: 'Basava Jayanti', type: 'Holiday' },
-        { date: '2026-05-28', title: 'Bakrid', type: 'Holiday' },
-        { date: '2026-06-26', title: 'Last Day of Moharam', type: 'Holiday' },
+        { date: '2026-05-27', title: 'Bakrid', type: 'Holiday' },
+        { date: '2026-06-25', title: 'Last Day of Moharam', type: 'Holiday' },
         { date: '2026-08-21', title: 'Varamahalakshmi Vrata', type: 'Holiday' },
         { date: '2026-08-26', title: 'Eid-Milad', type: 'Holiday' },
         { date: '2026-09-14', title: 'Ganesh Chaturthi', type: 'Holiday' },
         { date: '2026-10-19', title: 'Maha Navami / Ayudha Puja', type: 'Holiday' },
         { date: '2026-10-20', title: 'Vijaya Dashami', type: 'Holiday' },
-        { date: '2026-11-10', title: 'Deepavali', type: 'Holiday' },
+        { date: '2026-11-08', title: 'Deepavali', type: 'Holiday' },
     ];
 
     const getHolidaysForDate = (dateString) => {
@@ -134,7 +145,7 @@ const SchoolCalendar = () => {
 
         for (let i = 1; i <= totalDays; i++) {
             const date = new Date(year, month, i);
-            const dateString = date.toISOString().split('T')[0];
+            const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
             const isSunday = date.getDay() === 0;
 
             const dayEvents = events.filter(e => {
@@ -368,9 +379,10 @@ const SchoolCalendar = () => {
                             </div>
                             <button
                                 onClick={handleAddEvent}
-                                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-bold"
+                                disabled={isSubmitting}
+                                className={`w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-bold ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                                Create Event
+                                {isSubmitting ? 'Creating...' : 'Create Event'}
                             </button>
                         </div>
                     </div>

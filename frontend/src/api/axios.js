@@ -2,7 +2,8 @@ import axios from 'axios';
 
 // Hardcoded fallback for production to bypass Netlify Env Var permissions issue
 const PROD_URL = 'https://school-backend-kepp.onrender.com/api';
-const DEV_URL = 'http://localhost:5000/api';
+// Dynamic URL that works on localhost AND local network IPs (for mobile testing)
+const DEV_URL = `http://${window.location.hostname}:5000/api`;
 
 // Use Localhost in Development, Production URL otherwise
 const baseURL = import.meta.env.MODE === 'development' ? DEV_URL : PROD_URL;

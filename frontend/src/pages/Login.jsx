@@ -31,6 +31,7 @@ const Login = () => {
     ].filter(r => !isMobileApp || r.id !== 'SCHOOL_ADMIN');
 
     const isLoggingInRef = React.useRef(false);
+    const abortControllerRef = React.useRef(null);
 
     // Check for error message in URL (from axios interceptor)
     React.useEffect(() => {
@@ -44,6 +45,17 @@ const Login = () => {
         }
     }, [location]);
 
+    // Function to cancel ongoing verification
+    const cancelVerification = () => {
+        if (isLoggingIn && abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+            setIsLoggingIn(false);
+            isLoggingInRef.current = false;
+            toast.error('Verification cancelled - credentials changed');
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (isLoggingIn || isLoggingInRef.current) return; // Prevent double click
@@ -52,8 +64,17 @@ const Login = () => {
         setIsLoggingIn(true);
         isLoggingInRef.current = true;
 
+        // Create new AbortController for this request
+        abortControllerRef.current = new AbortController();
+
         try {
             const result = await login(email.trim(), password.trim(), role);
+
+            // Check if request was aborted
+            if (abortControllerRef.current?.signal.aborted) {
+                return;
+            }
+
             if (result.success) {
                 // Check for must_change_password flag from backend
                 if (result.user?.mustChangePassword) {
@@ -78,10 +99,17 @@ const Login = () => {
                 isLoggingInRef.current = false;
             }
         } catch (error) {
+            // Don't show error if request was aborted
+            if (error.name === 'AbortError' || abortControllerRef.current?.signal.aborted) {
+                return;
+            }
+
             console.error(error);
             setIsLoggingIn(false);
             isLoggingInRef.current = false;
             setErrorMessage('An unexpected error occurred');
+        } finally {
+            abortControllerRef.current = null;
         }
     };
 
@@ -154,7 +182,11 @@ const Login = () => {
                                             ['TEACHER', 'STAFF'].includes(role) ? 'Enter Employee ID' :
                                                 'admin@school.com'}
                                     value={email}
-                                    onChange={(e) => { setEmail(e.target.value.replace(/\s/g, '')); setErrorMessage(''); }}
+                                    onChange={(e) => {
+                                        cancelVerification();
+                                        setEmail(e.target.value.replace(/\s/g, ''));
+                                        setErrorMessage('');
+                                    }}
                                 />
                             </div>
 
@@ -171,7 +203,11 @@ const Login = () => {
                                         className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 focus:border-yellow-400 transition-all font-sans text-sm pr-10"
                                         placeholder="••••••••"
                                         value={password}
-                                        onChange={(e) => { setPassword(e.target.value); setErrorMessage(''); }}
+                                        onChange={(e) => {
+                                            cancelVerification();
+                                            setPassword(e.target.value);
+                                            setErrorMessage('');
+                                        }}
                                     />
                                     <button
                                         type="button"
@@ -207,13 +243,13 @@ const Login = () => {
                     {/* Mobile App Download Section */}
                     {!isMobileApp && (
                         <div className="mt-4 pt-4 border-t border-white/10">
-                            <button
-                                onClick={() => setShowQR(true)}
+                            <Link
+                                to="/download"
                                 className="w-full flex items-center justify-center gap-2 text-gray-400 hover:text-yellow-400 transition-colors text-xs font-semibold group"
                             >
                                 <Smartphone size={16} className="group-hover:scale-110 transition-transform" />
-                                Download Android App
-                            </button>
+                                Download App for Android
+                            </Link>
                         </div>
                     )}
                 </div>

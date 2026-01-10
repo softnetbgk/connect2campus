@@ -14,6 +14,7 @@ const HostelFinance = () => {
     const [activeTab, setActiveTab] = useState('rent'); // 'rent' or 'mess'
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentRemarks, setPaymentRemarks] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Mess Bill Form
     const [showBillModal, setShowBillModal] = useState(false);
@@ -84,11 +85,14 @@ const HostelFinance = () => {
 
     const handlePayment = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
+
         if (!paymentAmount || isNaN(paymentAmount) || parseFloat(paymentAmount) <= 0) {
             toast.error('Please enter a valid amount');
             return;
         }
 
+        setIsSubmitting(true);
         try {
             await api.post('/hostel/finance/payment', {
                 student_id: studentData.id,
@@ -106,11 +110,16 @@ const HostelFinance = () => {
             fetchDashboardStats(); // Update stats too
         } catch (error) {
             toast.error('Payment failed');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handlePayBill = async (billId, amount) => {
+        if (isSubmitting) return;
         if (!window.confirm(`Confirm payment of ₹${amount} for this bill?`)) return;
+
+        setIsSubmitting(true);
         try {
             await api.post('/hostel/finance/payment', {
                 student_id: studentData.id,
@@ -126,11 +135,16 @@ const HostelFinance = () => {
             fetchDashboardStats();
         } catch (error) {
             toast.error('Payment failed');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleCreateBill = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
         try {
             await api.post('/hostel/finance/mess-bill', {
                 student_id: studentData.id,
@@ -144,13 +158,17 @@ const HostelFinance = () => {
             fetchDashboardStats();
         } catch (error) {
             toast.error(error.response?.data?.error || 'Failed to generate bill');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleBulkBill = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
         if (!window.confirm(`Generate mess bill of ₹${bulkBillData.amount} for ALL active hostel students?`)) return;
 
+        setIsSubmitting(true);
         try {
             const res = await api.post('/hostel/finance/bulk-mess-bill', bulkBillData);
             toast.success(res.data.message);
@@ -158,6 +176,8 @@ const HostelFinance = () => {
             fetchDashboardStats();
         } catch (error) {
             toast.error('Failed to generate bulk bills');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -605,8 +625,8 @@ const HostelFinance = () => {
                                                         onChange={e => setPaymentRemarks(e.target.value)}
                                                     />
                                                 </div>
-                                                <button className="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700 transition-colors">
-                                                    Record Payment
+                                                <button disabled={isSubmitting} className={`w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700 transition-colors ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                                    {isSubmitting ? 'Processing...' : 'Record Payment'}
                                                 </button>
                                             </form>
                                         </div>
@@ -682,10 +702,10 @@ const HostelFinance = () => {
 
                                                 {bill.status !== 'Paid' ? (
                                                     <button
-                                                        onClick={() => handlePayBill(bill.id, bill.amount)}
-                                                        className="w-full mt-2 py-2 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 font-medium transition-colors text-sm"
+                                                        disabled={isSubmitting}
+                                                        className={`w-full mt-2 py-2 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 font-medium transition-colors text-sm ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                     >
-                                                        Mark as Paid
+                                                        {isSubmitting ? 'Processing...' : 'Mark as Paid'}
                                                     </button>
                                                 ) : (
                                                     <div className="w-full mt-2 py-2 flex items-center justify-center gap-2 text-green-600 bg-green-50 rounded-lg font-medium text-sm">
@@ -788,7 +808,7 @@ const HostelFinance = () => {
                                 </div>
                                 <div className="flex gap-3 pt-2">
                                     <button type="button" onClick={() => setShowBillModal(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50">Cancel</button>
-                                    <button type="submit" className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Generate</button>
+                                    <button type="submit" disabled={isSubmitting} className={`flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>{isSubmitting ? 'Generating...' : 'Generate'}</button>
                                 </div>
                             </form>
                         </div>
@@ -838,7 +858,7 @@ const HostelFinance = () => {
                                 </div>
                                 <div className="flex gap-3 pt-2">
                                     <button type="button" onClick={() => setShowBulkModal(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50">Cancel</button>
-                                    <button type="submit" className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Generate Bulk Bills</button>
+                                    <button type="submit" disabled={isSubmitting} className={`flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>{isSubmitting ? 'Processing...' : 'Generate Bulk Bills'}</button>
                                 </div>
                             </form>
                         </div>
