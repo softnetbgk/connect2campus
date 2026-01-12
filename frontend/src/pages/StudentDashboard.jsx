@@ -251,9 +251,15 @@ const StudentDashboard = () => {
                 {/* Brand Area */}
                 <div className="p-6 flex items-center justify-between border-b border-white/20 pt-10">
                     <div className="flex items-center gap-3">
-                        <div className="bg-white/20 p-2.5 rounded-xl shadow-[0_0_15px_rgba(255,255,255,0.2)] border border-white/30 backdrop-blur-sm">
-                            <GraduationCap className="text-white w-6 h-6" />
-                        </div>
+                        {schoolLogo ? (
+                            <div className="h-10 w-10 rounded-xl overflow-hidden bg-white/20 flex items-center justify-center border border-white/30 backdrop-blur-sm">
+                                <img src={schoolLogo} alt="Logo" className="w-full h-full object-cover" />
+                            </div>
+                        ) : (
+                            <div className="bg-white/20 p-2.5 rounded-xl shadow-[0_0_15px_rgba(255,255,255,0.2)] border border-white/30 backdrop-blur-sm">
+                                <GraduationCap className="text-white w-6 h-6" />
+                            </div>
+                        )}
                         <div className="w-full">
                             <h1 className="text-sm font-black text-white tracking-widest leading-none drop-shadow-md uppercase">Connect to Campus</h1>
                             <p className="text-[10px] font-bold uppercase tracking-wider text-blue-100 mt-1 opacity-80">{schoolName || 'Software'}</p>

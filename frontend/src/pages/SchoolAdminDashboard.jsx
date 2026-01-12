@@ -213,9 +213,15 @@ const SchoolAdminDashboard = () => {
                 {/* Brand Area */}
                 <div className="p-6 flex items-center justify-between border-b border-white/10">
                     <div className="flex items-center gap-3">
-                        <div className="bg-yellow-400/20 p-2.5 rounded-xl shadow-[0_0_15px_rgba(250,204,21,0.2)] border border-yellow-400/30">
-                            <Users className="text-yellow-400 w-6 h-6" />
-                        </div>
+                        {academicConfig.logo ? (
+                            <div className="h-10 w-10 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center border border-white/20">
+                                <img src={academicConfig.logo} alt="Logo" className="w-full h-full object-cover" />
+                            </div>
+                        ) : (
+                            <div className="bg-yellow-400/20 p-2.5 rounded-xl shadow-[0_0_15px_rgba(250,204,21,0.2)] border border-yellow-400/30">
+                                <Users className="text-yellow-400 w-6 h-6" />
+                            </div>
+                        )}
                         <div className="w-full">
                             <h1 className="text-xl font-serif font-black italic text-white tracking-wide leading-tight drop-shadow-md">{academicConfig.name || 'School Admin'}</h1>
                             <p className="text-[10px] font-bold uppercase tracking-wider text-yellow-400/80">Admin Portal</p>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Building } from 'lucide-react';
+import { Save, Building, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
 
@@ -20,12 +20,35 @@ const SchoolSettings = () => {
         }
     };
 
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                toast.error('Image size should be less than 5MB');
+                return;
+            }
+
+            // Convert to Base64
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setLogoUrl(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveLogo = () => {
+        setLogoUrl('');
+    };
+
     const handleSave = async () => {
         setLoading(true);
         try {
+            // Send the Base64 string directly
             await api.put('/schools/my-school/logo', { logo: logoUrl });
             toast.success('School Logo Updated!');
-            window.location.reload(); // Refresh to reflect changes in Header immediately
+            // Reload to reflect across the app
+            window.location.reload();
         } catch (error) {
             toast.error('Failed to update logo');
             console.error(error);
@@ -42,40 +65,48 @@ const SchoolSettings = () => {
 
             <div className="space-y-6">
                 <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">School Logo URL</label>
-                    <div className="flex gap-2">
+                    <label className="block text-sm font-bold text-slate-700 mb-3">School Logo</label>
+
+                    <div className="relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
+                        {logoUrl ? (
+                            <div className="relative group">
+                                <img
+                                    src={logoUrl}
+                                    alt="Logo Preview"
+                                    className="h-32 object-contain"
+                                />
+                                <button
+                                    onClick={handleRemoveLogo}
+                                    className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-md hover:bg-red-600 transition-colors"
+                                    title="Remove Logo"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="text-center">
+                                <div className="bg-indigo-100 p-3 rounded-full inline-block mb-3">
+                                    <ImageIcon className="text-indigo-600" size={32} />
+                                </div>
+                                <p className="text-sm font-medium text-slate-900">Click to upload logo</p>
+                                <p className="text-xs text-slate-500 mt-1">PNG, JPG up to 5MB</p>
+                            </div>
+                        )}
+
                         <input
-                            type="text"
-                            value={logoUrl}
-                            onChange={(e) => setLogoUrl(e.target.value)}
-                            className="flex-1 p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                            placeholder="https://example.com/logo.png"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            title={logoUrl ? "Click to change logo" : "Click to upload logo"}
                         />
                     </div>
-                    <p className="text-xs text-slate-500 mt-2">
-                        Provide a direct link to your school logo image (PNG/JPG).
-                        This logo will appear on the Mobile App header and Login screen.
+                    <p className="text-xs text-slate-500 mt-2 text-center">
+                        This logo will appear in the Sidebar and Mobile App Header.
                     </p>
                 </div>
 
-                {logoUrl && (
-                    <div className="border border-slate-200 rounded-lg p-4">
-                        <p className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Preview</p>
-                        <div className="bg-slate-50 rounded-lg p-4 flex justify-center items-center h-32">
-                            <img
-                                src={logoUrl}
-                                alt="Logo Preview"
-                                className="h-full object-contain"
-                                onError={(e) => {
-                                    e.target.style.display = 'none';
-                                    toast.error('Invalid Image URL');
-                                }}
-                            />
-                        </div>
-                    </div>
-                )}
-
-                <div className="pt-4 border-t border-slate-100">
+                <div className="pt-4 border-t border-slate-100 flex justify-end">
                     <button
                         onClick={handleSave}
                         disabled={loading}
