@@ -49,6 +49,7 @@ const StudentDashboard = () => {
 
     const [studentData, setStudentData] = useState(null);
     const [schoolName, setSchoolName] = useState('');
+    const [schoolLogo, setSchoolLogo] = useState(null);
     const [leaveNotifications, setLeaveNotifications] = useState([]);
     const [overviewStats, setOverviewStats] = useState({
         attendance: { percentage: 0, present: 0, total: 0 },
@@ -73,6 +74,7 @@ const StudentDashboard = () => {
             try {
                 const res = await api.get('/schools/my-school');
                 setSchoolName(res.data.name);
+                setSchoolLogo(res.data.logo);
             } catch (error) {
                 console.error("Failed to load school info", error);
             }
@@ -324,6 +326,7 @@ const StudentDashboard = () => {
                     <MobileHeader
                         title={getTabTitle(activeTab)}
                         schoolName={schoolName}
+                        logo={schoolLogo}
                         subtitle={user?.name}
                         userName={studentData?.class_name ? `Class ${studentData.class_name.toString().replace(/class/i, '').trim()}${studentData.section_name ? ` - ${studentData.section_name}` : ''}` : ''}
                         onMenuClick={() => setIsMobileMenuOpen(true)}

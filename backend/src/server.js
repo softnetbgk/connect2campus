@@ -38,6 +38,9 @@ const startServer = async () => {
 
             ALTER TABLE doubts 
             ALTER COLUMN subject_id DROP NOT NULL;
+
+            ALTER TABLE schools
+            ADD COLUMN IF NOT EXISTS logo TEXT;
         `);
         console.log('✅ Database schema verified.');
 

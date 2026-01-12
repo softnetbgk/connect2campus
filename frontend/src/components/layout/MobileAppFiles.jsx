@@ -1,7 +1,7 @@
 import React from 'react';
 import { Home, Users, CreditCard, Menu, UserCheck, GraduationCap, ArrowLeft } from 'lucide-react';
 
-export const MobileHeader = ({ title, onMenuClick, schoolName, onBack, userName, subtitle }) => {
+export const MobileHeader = ({ title, onMenuClick, schoolName, onBack, userName, subtitle, logo }) => {
     return (
         <div className="fixed top-0 left-0 right-0 bg-indigo-600 text-white z-[60] shadow-md safe-area-top flex flex-col justify-end md:hidden min-h-[5.5rem] pb-2 transition-all duration-300">
             <div className="h-auto py-1 w-full flex items-center px-4 justify-between gap-2">
@@ -15,8 +15,12 @@ export const MobileHeader = ({ title, onMenuClick, schoolName, onBack, userName,
                         </button>
                     )}
                     {/* Logo/Icon */}
-                    <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm flex-shrink-0">
-                        <GraduationCap size={22} className="text-white" />
+                    <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm flex-shrink-0 overflow-hidden">
+                        {logo ? (
+                            <img src={logo} alt="School Logo" className="w-full h-full object-cover" />
+                        ) : (
+                            <GraduationCap size={22} className="text-white" />
+                        )}
                     </div>
                     <div className="flex flex-col min-w-0">
                         <p className="text-sm text-white font-bold tracking-wide leading-tight truncate">{schoolName || 'School Portal'}</p>
