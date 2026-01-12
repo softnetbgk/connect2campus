@@ -194,7 +194,8 @@ const TeacherManagement = ({ config }) => {
                                             <td className="p-4">
                                                 {t.class_name ? (
                                                     <span className="px-3 py-1 bg-violet-50 text-violet-700 rounded-lg text-xs font-bold border border-violet-100 inline-flex items-center gap-1 shadow-sm">
-                                                        {t.class_name} {t.section_name && t.section_name !== 'Class Teacher' ? `- ${t.section_name}` : ''}
+                                                        {t.class_name}
+                                                        {(config?.classes?.find(c => c.class_id === t.assigned_class_id)?.sections?.length > 1) && t.section_name && t.section_name !== 'Class Teacher' ? ` - ${t.section_name}` : ''}
                                                     </span>
                                                 ) : <span className="text-slate-300 text-xs italic">Not Assigned</span>}
                                             </td>
