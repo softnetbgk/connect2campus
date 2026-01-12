@@ -72,7 +72,8 @@ const QuestionPaperGenerator = ({ config: academicConfig }) => {
             const className = selectedClass ? selectedClass.class_name : 'Grade 10';
 
             const formData = new FormData();
-            formData.append('topic', paperConfig.topic);
+            // In image mode, explicitly send empty topic so AI focuses on image
+            formData.append('topic', mode === 'image' ? '' : paperConfig.topic);
             formData.append('subject', paperConfig.subject);
             formData.append('classLevel', className);
             formData.append('difficulty', paperConfig.difficulty);
@@ -413,31 +414,36 @@ const QuestionPaperGenerator = ({ config: academicConfig }) => {
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Difficulty & Type</label>
-                            <div className="flex gap-2 mb-3">
-                                {['Easy', 'Medium', 'Hard'].map(lvl => (
-                                    <button
-                                        key={lvl}
-                                        onClick={() => setPaperConfig({ ...paperConfig, difficulty: lvl.toLowerCase() })}
-                                        className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${paperConfig.difficulty === lvl.toLowerCase() ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-500 border-slate-200'}`}
-                                    >
-                                        {lvl}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                        {/* Hide Difficulty and Question Count in Image Mode */}
+                        {mode === 'text' && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Difficulty & Type</label>
+                                    <div className="flex gap-2 mb-3">
+                                        {['Easy', 'Medium', 'Hard'].map(lvl => (
+                                            <button
+                                                key={lvl}
+                                                onClick={() => setPaperConfig({ ...paperConfig, difficulty: lvl.toLowerCase() })}
+                                                className={`flex-1 py-2 text-xs font-bold rounded-lg border transition-all ${paperConfig.difficulty === lvl.toLowerCase() ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-500 border-slate-200'}`}
+                                            >
+                                                {lvl}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
 
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Number of Questions: {paperConfig.questionCount}</label>
-                            <input
-                                type="range"
-                                min="1" max="20"
-                                value={paperConfig.questionCount}
-                                onChange={(e) => setPaperConfig({ ...paperConfig, questionCount: parseInt(e.target.value) })}
-                                className="w-full accent-indigo-600"
-                            />
-                        </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Number of Questions: {paperConfig.questionCount}</label>
+                                    <input
+                                        type="range"
+                                        min="1" max="20"
+                                        value={paperConfig.questionCount}
+                                        onChange={(e) => setPaperConfig({ ...paperConfig, questionCount: parseInt(e.target.value) })}
+                                        className="w-full accent-indigo-600"
+                                    />
+                                </div>
+                            </>
+                        )}
 
                         <button
                             onClick={handleGenerate}

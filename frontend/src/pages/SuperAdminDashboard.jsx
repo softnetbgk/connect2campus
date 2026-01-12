@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
-import { Plus, School, LogOut, ChevronDown, Check, Trash2, X, Eye, Edit2, Search, Filter, Shield, Info, MapPin, Phone, Mail, Users, Power } from 'lucide-react';
+import { Plus, School, LogOut, ChevronDown, Check, Trash2, X, Eye, Edit2, Search, Filter, Shield, Info, MapPin, Phone, Mail, Users, Power, RotateCcw, Home } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -15,11 +15,13 @@ const SuperAdminDashboard = () => {
     const { logout, user } = useAuth();
     const navigate = useNavigate();
     const [schools, setSchools] = useState([]);
+    const [deletedSchools, setDeletedSchools] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [viewSchool, setViewSchool] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editSchoolId, setEditSchoolId] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [viewMode, setViewMode] = useState('active'); // 'active' or 'deleted'
 
     // Form State
     const [formData, setFormData] = useState({
@@ -56,6 +58,8 @@ const SuperAdminDashboard = () => {
         subjects: []
     });
 
+
+
     const handleToggleService = async (school) => {
         const newStatus = !school.is_active;
         const action = newStatus ? 'Enable' : 'Disable';
@@ -72,12 +76,25 @@ const SuperAdminDashboard = () => {
         }
     };
 
+    const handleToggleHostel = async (school) => {
+        const newStatus = !(school.has_hostel !== false); // Toggle. Default True if undefined.
+        try {
+            await api.put(`/schools/${school.id}/features`, { has_hostel: newStatus });
+            toast.success(`Hostel Feature ${newStatus ? 'Enabled' : 'Disabled'}`);
+            fetchSchools();
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to update feature');
+        }
+    };
+
     const classConfigRef = useRef(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const isSubmittingRef = useRef(false);
 
     useEffect(() => {
         fetchSchools();
+        fetchDeletedSchools();
     }, []);
 
     const fetchSchools = async () => {
@@ -85,7 +102,85 @@ const SuperAdminDashboard = () => {
             const res = await api.get('/schools');
             setSchools(res.data);
         } catch (error) {
-            toast.error('Failed to load schools');
+            console.error(error);
+            const msg = error.response?.data?.message || error.message;
+            const detail = error.response?.data?.error || '';
+            toast.error(`Failed to load schools: ${msg} ${detail ? `(${detail})` : ''}`);
+        }
+    };
+
+    const fetchDeletedSchools = async () => {
+        try {
+            const res = await api.get('/schools/deleted/all');
+            setDeletedSchools(res.data);
+        } catch (error) {
+            console.error(error);
+            const msg = error.response?.data?.message || error.message;
+            const detail = error.response?.data?.error || '';
+            toast.error(`Failed to load deleted schools: ${msg} ${detail ? `(${detail})` : ''}`);
+        }
+    };
+
+    const handleDeleteSchool = async (school) => {
+        if (!window.confirm(`Are you sure you want to delete "${school.name}"? This will move it to the dustbin.`)) return;
+
+        try {
+            await api.delete(`/schools/${school.id}`);
+            toast.success('School moved to dustbin');
+            fetchSchools();
+            fetchDeletedSchools();
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to delete school');
+        }
+    };
+
+    const handleRestoreSchool = async (school) => {
+        if (!window.confirm(`Are you sure you want to restore "${school.name}"?`)) return;
+
+        try {
+            await api.put(`/schools/${school.id}/restore`);
+            toast.success('School restored successfully');
+            fetchSchools();
+            fetchDeletedSchools();
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to restore school');
+        }
+    };
+
+    const handlePermanentDeleteSchool = async (school) => {
+        const confirmed = window.confirm(
+            `⚠️ PERMANENT DELETE WARNING ⚠️\n\n` +
+            `You are about to PERMANENTLY delete "${school.name}".\n\n` +
+            `This will DELETE ALL DATA including:\n` +
+            `• All students, teachers, and staff\n` +
+            `• All attendance, marks, and fees records\n` +
+            `• All classes, sections, and subjects\n` +
+            `• All user accounts\n\n` +
+            `THIS ACTION CANNOT BE UNDONE!\n\n` +
+            `Are you absolutely sure?`
+        );
+
+        if (!confirmed) return;
+
+        // Double confirmation
+        const doubleConfirm = window.confirm(
+            `FINAL CONFIRMATION\n\n` +
+            `Type the school name to confirm: "${school.name}"\n\n` +
+            `This is your last chance to cancel. Proceed with permanent deletion?`
+        );
+
+        if (!doubleConfirm) return;
+
+        try {
+            await api.delete(`/schools/${school.id}/permanent`);
+            toast.success('School permanently deleted');
+            fetchSchools();
+            fetchDeletedSchools();
+        } catch (error) {
+            console.error(error);
+            toast.error(error.response?.data?.message || 'Failed to permanently delete school');
         }
     };
 
@@ -217,8 +312,15 @@ const SuperAdminDashboard = () => {
     };
 
     const removeClass = (index) => {
-        // Prevent removal in edit mode (extra safety)
-        if (isEditing) return;
+        const classToRemove = formData.classes[index];
+
+        // In edit mode, show warning about student impact
+        if (isEditing) {
+            const confirmed = window.confirm(
+                `⚠️ WARNING: Removing "${classToRemove.name}" will move all students in this class to the Unassigned bin.\n\nSchool Admin can later restore them by assigning a new class.\n\nAre you sure you want to proceed?`
+            );
+            if (!confirmed) return;
+        }
 
         setFormData(prev => ({
             ...prev,
@@ -252,7 +354,8 @@ const SuperAdminDashboard = () => {
                     address: formData.address,
                     contactEmail: formData.contactEmail,
                     contactNumber: formData.contactNumber,
-                    classes: formData.classes // Send updated classes for expansion
+                    classes: formData.classes, // Send updated classes for expansion/deletion
+                    allowDeletions: true // Enable class/section deletion
                 });
                 toast.success('School updated successfully! ✏️');
             } else {
@@ -297,10 +400,11 @@ const SuperAdminDashboard = () => {
         });
     };
 
-    const filteredSchools = schools.filter(school =>
-        school.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        school.contact_email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const currentSchools = (viewMode === 'active' ? schools : deletedSchools) || [];
+    const filteredSchools = Array.isArray(currentSchools) ? currentSchools.filter(school =>
+        (school.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (school.contact_email || '').toLowerCase().includes(searchTerm.toLowerCase())
+    ) : [];
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 selection:bg-indigo-500/30 font-sans relative overflow-hidden">
@@ -351,11 +455,39 @@ const SuperAdminDashboard = () => {
                 {/* Dashboard Stats / Controls */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
                     <div>
-                        <h2 className="text-3xl font-bold text-white tracking-tight mb-2">Registered Schools</h2>
-                        <p className="text-slate-400">Manage and monitor all school instances.</p>
+                        <h2 className="text-3xl font-bold text-white tracking-tight mb-2">
+                            {viewMode === 'active' ? 'Registered Schools' : 'Deleted Schools (Dustbin)'}
+                        </h2>
+                        <p className="text-slate-400">
+                            {viewMode === 'active' ? 'Manage and monitor all school instances.' : 'Restore or permanently manage deleted schools.'}
+                        </p>
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                        {/* View Mode Toggle */}
+                        <div className="flex bg-slate-900 border border-slate-700 rounded-xl p-1">
+                            <button
+                                onClick={() => setViewMode('active')}
+                                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${viewMode === 'active'
+                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
+                                    : 'text-slate-400 hover:text-slate-200'
+                                    }`}
+                            >
+                                <School size={16} className="inline mr-2" />
+                                Active ({schools.length})
+                            </button>
+                            <button
+                                onClick={() => setViewMode('deleted')}
+                                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${viewMode === 'deleted'
+                                    ? 'bg-red-600 text-white shadow-lg shadow-red-500/25'
+                                    : 'text-slate-400 hover:text-slate-200'
+                                    }`}
+                            >
+                                <Trash2 size={16} className="inline mr-2" />
+                                Dustbin ({deletedSchools.length})
+                            </button>
+                        </div>
+
                         <div className="relative group">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-400 transition-colors" size={18} />
                             <input
@@ -367,14 +499,21 @@ const SuperAdminDashboard = () => {
                                 className="pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none w-full sm:w-64 transition-all"
                             />
                         </div>
-                        <button
-                            onClick={handleAddSchool}
-                            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-6 py-2.5 rounded-xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5 active:scale-95 font-semibold text-sm"
-                        >
-                            <Plus size={18} /> Add New School
-                        </button>
+                        {viewMode === 'active' && (
+                            <div className="flex gap-2">
+
+                                <button
+                                    onClick={handleAddSchool}
+                                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-6 py-2.5 rounded-xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5 active:scale-95 font-semibold text-sm"
+                                >
+                                    <Plus size={18} /> Add New School
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
+
+
 
                 {/* Grid */}
                 {filteredSchools.length > 0 ? (
@@ -406,25 +545,74 @@ const SuperAdminDashboard = () => {
                                                     <Power size={10} className={school.is_active ? "text-emerald-500" : "text-red-500"} />
                                                     {school.is_active ? 'Service Online' : 'Service Offline'}
                                                 </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleToggleHostel(school);
+                                                    }}
+                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border transition-all ${school.has_hostel !== false
+                                                        ? 'bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20'
+                                                        : 'bg-slate-500/10 text-slate-400 border-slate-500/20 hover:bg-slate-500/20'
+                                                        }`}
+                                                    title={school.has_hostel !== false ? "Disable Hostel" : "Enable Hostel"}
+                                                >
+                                                    <Home size={10} />
+                                                    {school.has_hostel !== false ? 'Hostel ON' : 'Hostel OFF'}
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                        <button
-                                            onClick={() => handleEditSchool(school)}
-                                            className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
-                                            title="Edit"
-                                        >
-                                            <Edit2 size={16} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleViewDetails(school.id)}
-                                            className="p-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors"
-                                            title="View Details"
-                                        >
-                                            <Eye size={16} />
-                                        </button>
+                                        {viewMode === 'active' ? (
+                                            <>
+                                                <button
+                                                    onClick={() => handleEditSchool(school)}
+                                                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <Edit2 size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleViewDetails(school.id)}
+                                                    className="p-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                                                    title="View Details"
+                                                >
+                                                    <Eye size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteSchool(school)}
+                                                    className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                    title="Delete School"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={() => handleRestoreSchool(school)}
+                                                    className="p-2 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                                    title="Restore School"
+                                                >
+                                                    <RotateCcw size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleViewDetails(school.id)}
+                                                    className="p-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                                                    title="View Details"
+                                                >
+                                                    <Eye size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handlePermanentDeleteSchool(school)}
+                                                    className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                    title="Permanent Delete (Cannot be undone!)"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
 
@@ -636,10 +824,10 @@ const SuperAdminDashboard = () => {
                                     </div>
 
                                     {isEditing && (
-                                        <div className="mb-6 flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                                            <Info className="text-amber-500 shrink-0 mt-0.5" size={18} />
-                                            <p className="text-amber-200 text-sm">
-                                                To protect existing student data, you can only <strong>add new</strong> classes, sections, and subjects. Existing configurations cannot be removed here.
+                                        <div className="mb-6 flex items-start gap-3 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
+                                            <Info className="text-indigo-400 shrink-0 mt-0.5" size={18} />
+                                            <p className="text-indigo-200 text-sm">
+                                                You can <strong>add or remove</strong> classes, sections, and subjects. <strong className="text-amber-300">⚠️ Note:</strong> Removing a class/section will move affected students to the <strong>Unassigned bin</strong>, where School Admin can later restore them.
                                             </p>
                                         </div>
                                     )}

@@ -61,6 +61,11 @@ api.interceptors.response.use(
 
         // Handle Session Expiry or Service Disabled
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            // Ignore for Login requests - let the component handle the error
+            if (error.config && error.config.url && (error.config.url.includes('/login') || error.config.url.includes('/admin/login'))) {
+                return Promise.reject(error);
+            }
+
             const msg = error.response.data?.message;
 
             // Specific check for Service Disabled (403) or Session Invalid (401)

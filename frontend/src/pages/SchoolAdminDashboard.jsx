@@ -336,17 +336,19 @@ const SchoolAdminDashboard = () => {
                         <NavSubButton active={activeTab === 'question-generator'} onClick={() => handleTabChange('question-generator')} label="AI Question Paper" />
                     </NavGroup>
 
-                    <NavGroup
-                        label="Hostel"
-                        icon={Home}
-                        expanded={expandedSections.hostel}
-                        onToggle={() => toggleSection('hostel')}
-                    >
-                        <NavSubButton active={activeTab === 'hostel-overview'} onClick={() => handleTabChange('hostel-overview')} label="Hostel Overview" />
-                        <NavSubButton active={activeTab === 'hostel-rooms'} onClick={() => handleTabChange('hostel-rooms')} label="Room Management" />
-                        <NavSubButton active={activeTab === 'hostel-allocation'} onClick={() => handleTabChange('hostel-allocation')} label="Room Allocation" />
-                        <NavSubButton active={activeTab === 'hostel-finance'} onClick={() => handleTabChange('hostel-finance')} label="Hostel Finance" />
-                    </NavGroup>
+                    {academicConfig.has_hostel !== false && (
+                        <NavGroup
+                            label="Hostel"
+                            icon={Home}
+                            expanded={expandedSections.hostel}
+                            onToggle={() => toggleSection('hostel')}
+                        >
+                            <NavSubButton active={activeTab === 'hostel-overview'} onClick={() => handleTabChange('hostel-overview')} label="Hostel Overview" />
+                            <NavSubButton active={activeTab === 'hostel-rooms'} onClick={() => handleTabChange('hostel-rooms')} label="Room Management" />
+                            <NavSubButton active={activeTab === 'hostel-allocation'} onClick={() => handleTabChange('hostel-allocation')} label="Room Allocation" />
+                            <NavSubButton active={activeTab === 'hostel-finance'} onClick={() => handleTabChange('hostel-finance')} label="Hostel Finance" />
+                        </NavGroup>
+                    )}
 
                     <NavGroup
                         label="Calendar & Events"

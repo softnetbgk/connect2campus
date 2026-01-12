@@ -24,6 +24,15 @@ router.post('/auto-mark', holidayController.autoMarkHolidays);
 // Sync holidays from school calendar
 router.post('/sync-from-calendar', holidayController.syncFromCalendar);
 
+// Broadcast Holiday to ALL Schools (Super Admin)
+router.post('/broadcast', holidayController.broadcastOfficialHoliday);
+router.post('/broadcast-bulk', holidayController.broadcastBulkHolidays); // Bulk Broadcast Official Holidays
+router.get('/fix-schema', holidayController.fixSchema); // Fix Schema Route
+router.get('/school/:schoolId', holidayController.getSchoolHolidaysAdmin); // Fetch holidays for specific school
+
+// Sync Holidays from One School to All Active Schools (Super Admin)
+router.post('/sync-all', holidayController.syncHolidaysFromSchool);
+
 // Test endpoint for debugging
 const testController = require('../controllers/testController');
 router.post('/test-auto-mark', testController.testAutoMark);

@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const { generateAnnualCalendar } = require('../utils/holidayUtils');
 
 // Helper to format Date object to YYYY-MM-DD string without timezone shifts
 const formatDateLocal = (date) => {
@@ -444,5 +445,362 @@ exports.syncFromCalendar = async (req, res) => {
         res.status(500).json({ message: 'Server error during sync', error: error.message });
     } finally {
         client.release();
+    }
+};
+
+// Broadcast Official Holiday to ALL Schools (Super Admin Only)
+exports.broadcastOfficialHoliday = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        // Enforce Super Admin Role
+        if (req.user.role !== 'SUPER_ADMIN') {
+            return res.status(403).json({ message: 'Access denied. Super Admin only.' });
+        }
+
+        const { holiday_date, holiday_name } = req.body;
+
+        if (!holiday_date || !holiday_name) {
+            return res.status(400).json({ message: 'Holiday date and name are required' });
+        }
+
+        await client.query('BEGIN');
+
+        console.log(`[BROADCAST HOLIDAY] Broadcasting "${holiday_name}" on ${holiday_date} to all schools...`);
+
+        // 1. Insert into school_holidays for ALL schools
+        // We use ON CONFLICT DO UPDATE to ensure we don't fail if it already exists
+        const holidayResult = await client.query(`
+            INSERT INTO school_holidays (school_id, holiday_date, holiday_name, is_paid)
+            SELECT id, $1, $2, true
+            FROM schools
+            WHERE status != 'Deleted'
+            ON CONFLICT (school_id, holiday_date) 
+            DO UPDATE SET holiday_name = EXCLUDED.holiday_name, is_paid = true
+            RETURNING school_id
+        `, [holiday_date, holiday_name]);
+
+        // 2. Insert/Update events table for ALL schools
+        await client.query(`
+            DELETE FROM events 
+            WHERE event_type = 'Holiday' 
+            AND start_date = $1 
+            AND school_id IN (SELECT id FROM schools WHERE status != 'Deleted')
+        `, [holiday_date]);
+
+        await client.query(`
+            INSERT INTO events (school_id, title, event_type, start_date, end_date, description, audience)
+            SELECT id, $2, 'Holiday', $1, $1, 'Official Holiday', 'All'
+            FROM schools
+            WHERE status != 'Deleted'
+        `, [holiday_date, holiday_name]);
+
+        await client.query('COMMIT');
+
+        const count = holidayResult.rowCount;
+        console.log(`[BROADCAST HOLIDAY] Successfully added to ${count} schools.`);
+
+        res.json({
+            message: `Official holiday broadcasted successfully to ${count} schools.`,
+            schoolsAffected: count
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error broadcasting holiday:', error);
+        res.status(500).json({ message: 'Server error broadcasting holiday', error: error.message });
+    } finally {
+        client.release();
+    }
+};
+
+// Broadcast BULK Official Holidays (Super Admin) - For Specific Year
+exports.broadcastBulkHolidays = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        if (req.user.role !== 'SUPER_ADMIN') {
+            return res.status(403).json({ message: 'Access denied. Super Admin only.' });
+        }
+
+        const { year } = req.body;
+        const targetYear = year || new Date().getFullYear();
+
+        // Generate Holidays on Backend
+        const holidays = generateAnnualCalendar(targetYear);
+
+        await client.query('BEGIN');
+
+        console.log(`[BULK BROADCAST] Broadcasting ${holidays.length} holidays for ${targetYear} to ALL schools...`);
+
+        // Get all active schools
+        const schoolsRes = await client.query(`SELECT id FROM schools WHERE status != 'Deleted'`);
+        const schoolIds = schoolsRes.rows.map(s => s.id);
+
+        if (schoolIds.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ message: 'No active schools found.' });
+        }
+
+        for (const holiday of holidays) {
+            const { holiday_name, holiday_date } = holiday; // Matches utility output
+
+            // A. Insert/Update school_holidays
+            await client.query(`
+                INSERT INTO school_holidays (school_id, holiday_date, holiday_name, is_paid)
+                SELECT id, $1, $2, true
+                FROM schools
+                WHERE status != 'Deleted'
+                ON CONFLICT (school_id, holiday_date) 
+                DO UPDATE SET holiday_name = EXCLUDED.holiday_name
+             `, [holiday_date, holiday_name]);
+
+            // B. Update Events
+            await client.query(`
+                DELETE FROM events 
+                WHERE event_type = 'Holiday' 
+                AND start_date = $1 
+                AND school_id IN (SELECT id FROM schools WHERE status != 'Deleted')
+            `, [holiday_date]);
+
+            await client.query(`
+                INSERT INTO events (school_id, title, event_type, start_date, end_date, description, audience)
+                SELECT id, $2, 'Holiday', $1, $1, 'Official Holiday', 'All'
+                FROM schools
+                WHERE status != 'Deleted'
+            `, [holiday_date, holiday_name]);
+        }
+
+        await client.query('COMMIT');
+
+        res.json({
+            message: `Successfully broadcasted ${holidays.length} official holidays (Year ${targetYear}) to ${schoolIds.length} schools.`,
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error broadcasting bulk holidays:', error);
+        res.status(500).json({ message: 'Server error broadcasting holidays', error: error.message });
+    } finally {
+        client.release();
+    }
+};
+
+
+// Get Holidays for specific school (Super Admin)
+exports.getSchoolHolidaysAdmin = async (req, res) => {
+    try {
+        const { schoolId } = req.params;
+        const { year } = req.query;
+
+        let query = `SELECT * FROM school_holidays WHERE school_id = $1`;
+        const params = [schoolId];
+
+        if (year) {
+            query += ` AND EXTRACT(YEAR FROM holiday_date) = $2`;
+            params.push(year);
+        }
+
+        query += ` ORDER BY holiday_date ASC`;
+
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching school holidays (admin):', error);
+        res.status(500).json({ message: 'Error fetching holidays', error: error.message });
+    }
+};
+
+// Sync Holidays from One School to All Schools (Super Admin)
+exports.syncHolidaysFromSchool = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        if (req.user.role !== 'SUPER_ADMIN') {
+            return res.status(403).json({ message: 'Access denied. Super Admin only.' });
+        }
+
+        const { sourceSchoolId, year, selectedDates } = req.body; // selectedDates is Array of "YYYY-MM-DD"
+
+        if (!sourceSchoolId) {
+            return res.status(400).json({ message: 'Source School ID is required' });
+        }
+
+        await client.query('BEGIN');
+
+        console.log(`[SYNC HOLIDAYS] Syncing from School ${sourceSchoolId} to ALL schools...`);
+
+        // 1. Fetch Source Holidays
+        let query = `SELECT holiday_date, holiday_name FROM school_holidays WHERE school_id = $1`;
+        const params = [sourceSchoolId];
+        let paramIdx = 2; // $1 is school_id
+
+        if (year) {
+            query += ` AND EXTRACT(YEAR FROM holiday_date) = $${paramIdx}`;
+            params.push(year);
+            paramIdx++;
+        }
+
+        // Filter by selected dates if provided in body
+        if (selectedDates && Array.isArray(selectedDates) && selectedDates.length > 0) {
+            query += ` AND TO_CHAR(holiday_date, 'YYYY-MM-DD') = ANY($${paramIdx})`;
+            params.push(selectedDates);
+        }
+
+        const holidaysRes = await client.query(query, params);
+        const holidaysToSync = holidaysRes.rows;
+
+        if (holidaysToSync.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: 'No matching holidays found to sync.' });
+        }
+
+        console.log(`[SYNC HOLIDAYS] Found ${holidaysToSync.length} holidays to sync.`);
+
+        // 2. Sync to All Active Schools (Excluding Source)
+        const targetSchoolsRes = await client.query(`SELECT id FROM schools WHERE id != $1 AND status != 'Deleted'`, [sourceSchoolId]);
+        const targetSchoolIds = targetSchoolsRes.rows.map(s => s.id);
+
+        if (targetSchoolIds.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ message: 'No other active schools found to sync to.' });
+        }
+
+        for (const holiday of holidaysToSync) {
+            const { holiday_date, holiday_name } = holiday;
+
+            // Format date string for SQL
+            const dateStr = formatDateLocal(holiday_date);
+
+            // A. Insert/Update school_holidays for all target schools
+            await client.query(`
+                INSERT INTO school_holidays (school_id, holiday_date, holiday_name, is_paid)
+                SELECT id, $1, $2, true
+                FROM schools
+                WHERE id != $3 AND status != 'Deleted'
+                ON CONFLICT (school_id, holiday_date) 
+                DO UPDATE SET holiday_name = EXCLUDED.holiday_name
+            `, [dateStr, holiday_name, sourceSchoolId]);
+
+            // B. Update Events Table (Delete then Insert)
+            // Delete existing 'Holiday' event on this date for target schools
+            await client.query(`
+                DELETE FROM events 
+                WHERE event_type = 'Holiday' 
+                AND start_date = $1 
+                AND school_id IN (SELECT id FROM schools WHERE id != $2 AND status != 'Deleted')
+            `, [dateStr, sourceSchoolId]);
+
+            // Insert new event
+            await client.query(`
+                INSERT INTO events (school_id, title, event_type, start_date, end_date, description, audience)
+                SELECT id, $2, 'Holiday', $1, $1, 'Official Holiday', 'All'
+                FROM schools
+                WHERE id != $3 AND status != 'Deleted'
+            `, [dateStr, holiday_name, sourceSchoolId]);
+        }
+
+        await client.query('COMMIT');
+        console.log(`[SYNC HOLIDAYS] Successfully synced ${holidaysToSync.length} holidays to ${targetSchoolIds.length} schools.`);
+
+        res.json({
+            message: `Successfully synced ${holidaysToSync.length} holidays to ${targetSchoolIds.length} schools.`,
+            holidaysCount: holidaysToSync.length,
+            schoolsCount: targetSchoolIds.length
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error syncing holidays:', error);
+        res.status(500).json({ message: 'Server error syncing holidays', error: error.message });
+    } finally {
+        client.release();
+    }
+};
+
+// Fix Schema (Temporary Tool)
+exports.fixSchema = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // 1. Remove duplicates
+        await client.query(`
+            DELETE FROM school_holidays a 
+            USING school_holidays b 
+            WHERE a.ctid < b.ctid 
+            AND a.school_id = b.school_id 
+            AND a.holiday_date = b.holiday_date
+        `);
+
+        // 2. Add Constraint
+        try {
+            await client.query(`
+                ALTER TABLE school_holidays 
+                ADD CONSTRAINT unique_school_holiday UNIQUE (school_id, holiday_date)
+            `);
+            await client.query('COMMIT');
+            res.json({ message: 'Schema fixed successfully (Dups removed, Constraint added).' });
+        } catch (err) {
+            await client.query('ROLLBACK');
+            if (err.code === '42710') {
+                res.json({ message: 'Constraint already exists.' });
+            } else {
+                throw err;
+            }
+        }
+    } catch (error) {
+        if (client) await client.query('ROLLBACK'); // Safety
+        console.error('Error fixing schema:', error);
+        res.status(500).json({ message: 'Error fixing schema', error: error.message });
+    } finally {
+        client.release();
+    }
+};
+
+// INTERNAL HELPER: Ensure Holidays Exist for a School/Year (Lazy Load)
+exports.ensureHolidaysForSchool = async (schoolId, year) => {
+    try {
+        // Check if holidays exist
+        const res = await pool.query('SELECT COUNT(*) FROM school_holidays WHERE school_id = $1 AND EXTRACT(YEAR FROM holiday_date) = $2', [schoolId, year]);
+        if (parseInt(res.rows[0].count) > 5) return; // Assume if > 5 holidays exist, it's populated
+
+        console.log(`[AUTO-GEN] Generating holidays for School ${schoolId} Year ${year} (Lazy Load)`);
+
+        // Generate
+        const holidays = generateAnnualCalendar(year);
+        if (holidays.length === 0) return;
+
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            for (const holiday of holidays) {
+                const { holiday_name, holiday_date } = holiday;
+
+                // Insert school_holidays
+                await client.query(`
+                    INSERT INTO school_holidays (school_id, holiday_date, holiday_name, is_paid)
+                    VALUES ($1, $2, $3, true)
+                    ON CONFLICT (school_id, holiday_date) DO NOTHING
+                 `, [schoolId, holiday_date, holiday_name]);
+
+                // Insert events (Check existence first to avoid dupes)
+                const evtCheck = await client.query(`SELECT id FROM events WHERE school_id = $1 AND start_date = $2 AND event_type = 'Holiday'`, [schoolId, holiday_date]);
+                if (evtCheck.rows.length === 0) {
+                    await client.query(`
+                        INSERT INTO events (school_id, title, event_type, start_date, end_date, description, audience)
+                        VALUES ($1, $2, 'Holiday', $3, $3, 'Official Holiday', 'All')
+                     `, [schoolId, holiday_name, holiday_date]);
+                }
+            }
+
+            await client.query('COMMIT');
+            console.log(`[AUTO-GEN] Completed for School ${schoolId} Year ${year}`);
+        } catch (e) {
+            await client.query('ROLLBACK');
+            console.error(`[AUTO-GEN] Failed for School ${schoolId} Year ${year}`, e);
+        } finally {
+            client.release();
+        }
+    } catch (e) {
+        console.error('Error in ensureHolidaysForSchool:', e);
     }
 };

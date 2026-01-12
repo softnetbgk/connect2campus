@@ -1,7 +1,9 @@
 const { pool } = require('../config/db');
+const { ensureHolidaysForSchool } = require('./holidayController');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+
 
 const login = async (req, res) => {
     const { password, role } = req.body;
@@ -177,6 +179,15 @@ const login = async (req, res) => {
 
         // Update user with new session token
         await pool.query('UPDATE users SET current_session_token = $1 WHERE id = $2', [token, user.id]);
+
+        // AUTOMATIC HOLIDAY GENERATION (Lazy Load for Any User with School Linked)
+        // Ensures Current + Next Year always have holidays if missing (Triggered by Student/Teacher/Staff/Admin login)
+        if (user.school_id) {
+            const currentYear = new Date().getFullYear();
+            // Fire and forget
+            ensureHolidaysForSchool(user.school_id, currentYear).catch(e => console.error('Auto-Gen Holiday Current Failed', e));
+            ensureHolidaysForSchool(user.school_id, currentYear + 1).catch(e => console.error('Auto-Gen Holiday Future Failed', e));
+        }
 
         res.json({
             message: 'Login successful',

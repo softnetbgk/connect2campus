@@ -1,8 +1,10 @@
-import React from 'react';
-import { Download, Smartphone, CheckCircle2, Shield, Zap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Download, Smartphone, CheckCircle2, Shield, Zap, ArrowLeft } from 'lucide-react';
 import loginBg from '../assets/login-bg.jpg';
 
 const DownloadApp = () => {
+    const navigate = useNavigate();
+
     const handleDownload = () => {
         // Create a temporary anchor element to trigger download
         const link = document.createElement('a');
@@ -71,7 +73,7 @@ const DownloadApp = () => {
                         </div>
 
                         {/* Download Button */}
-                        <div className="text-center mb-8">
+                        <div className="text-center mb-8 flex flex-col items-center gap-4">
                             <button
                                 onClick={handleDownload}
                                 className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold rounded-xl shadow-lg shadow-yellow-400/30 transform transition-all hover:scale-105 text-lg"
@@ -79,8 +81,17 @@ const DownloadApp = () => {
                                 <Download size={24} />
                                 Download APK (v8.0)
                             </button>
-                            <p className="text-gray-400 text-sm mt-3">
-                                File size: ~15 MB • Android 5.1+
+
+                            <button
+                                onClick={() => navigate('/')}
+                                className="inline-flex items-center gap-2 px-6 py-2 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg transition-all text-sm border border-white/10 mt-2"
+                            >
+                                <ArrowLeft size={16} />
+                                Back to Home
+                            </button>
+
+                            <p className="text-gray-400 text-sm mt-1">
+                                Android 5.1+
                             </p>
                         </div>
 

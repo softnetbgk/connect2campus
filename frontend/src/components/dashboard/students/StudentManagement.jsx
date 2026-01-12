@@ -209,7 +209,17 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
             toast.success('Student permanently deleted');
             fetchStudents();
         } catch (error) {
-            toast.error('Failed to delete student permanently');
+            console.error('Permanent delete error:', error);
+            const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to delete student permanently';
+            const errorDetail = error.response?.data?.detail || '';
+            const errorConstraint = error.response?.data?.constraint || '';
+
+            toast.error(`${errorMsg}${errorDetail ? '\n' + errorDetail : ''}${errorConstraint && errorConstraint !== 'Unknown' ? '\nConstraint: ' + errorConstraint : ''}`, {
+                duration: 6000
+            });
+
+            // Also log to console for debugging
+            console.log('Error details:', error.response?.data);
         } finally {
             setIsSubmitting(false);
         }
@@ -537,13 +547,15 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9 ]/g, '').replace(/^\s+/, ''))}
                             />
-                            <button
-                                onClick={handlePrint}
-                                disabled={students.length === 0 || selectedStudents.length > 0}
-                                className={`bg-slate-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-slate-500/20 hover:bg-slate-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${selectedStudents.length > 0 ? 'opacity-30 blur-[1px]' : ''}`}
-                            >
-                                <Printer size={20} /> Print List
-                            </button>
+                            {viewMode !== 'bin' && (
+                                <button
+                                    onClick={handlePrint}
+                                    disabled={students.length === 0 || selectedStudents.length > 0}
+                                    className={`bg-slate-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-slate-500/20 hover:bg-slate-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${selectedStudents.length > 0 ? 'opacity-30 blur-[1px]' : ''}`}
+                                >
+                                    <Printer size={20} /> Print List
+                                </button>
+                            )}
                         </>
                     )}
                     {selectedStudents.length > 0 && viewMode === 'active' && (
@@ -582,7 +594,7 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
                             <GraduationCap size={20} /> Promote ({selectedStudents.length})
                         </button>
                     )}
-                    {!isPromotionView && (
+                    {!isPromotionView && viewMode !== 'bin' && (
                         <button
                             onClick={handleAdd}
                             disabled={selectedStudents.length > 0}

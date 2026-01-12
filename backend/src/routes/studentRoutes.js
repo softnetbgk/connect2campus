@@ -17,6 +17,7 @@ router.use(authorize('SCHOOL_ADMIN', 'TEACHER', 'STAFF')); // Added STAFF if the
 
 // Bin Routes - Placed at top priority
 router.get('/bin', studentController.getDeletedStudents);
+router.get('/unassigned', studentController.getUnassignedStudents); // Students whose class/section was deleted
 router.put('/:id/restore', studentController.restoreStudent);
 router.delete('/:id/permanent', studentController.permanentDeleteStudent);
 

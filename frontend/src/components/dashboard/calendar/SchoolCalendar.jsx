@@ -97,6 +97,14 @@ const SchoolCalendar = () => {
         }
     };
 
+    const prevMonth = () => {
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+    };
+
+    const nextMonth = () => {
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+    };
+
     // Karnataka Festivals & Holidays are now loaded from Database via 'events'
     const getHolidaysForDate = (dateString) => {
         return [];
@@ -175,9 +183,6 @@ const SchoolCalendar = () => {
         return days;
     };
 
-    const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
-    const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
-
     return (
         <div className="space-y-6 animate-in fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -210,7 +215,7 @@ const SchoolCalendar = () => {
                             onChange={(e) => setCurrentDate(new Date(parseInt(e.target.value), currentDate.getMonth()))}
                             className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-indigo-500/20 outline-none bg-white"
                         >
-                            {Array.from({ length: new Date().getFullYear() - 2020 + 1 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                            {Array.from({ length: 11 }, (_, i) => 2020 + i).map(year => (
                                 <option key={year} value={year}>{year}</option>
                             ))}
                         </select>
@@ -235,17 +240,21 @@ const SchoolCalendar = () => {
                 </div>
             </div>
 
-            {/* Upcoming Events List */}
+            {/* Events for Selected Month */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                     <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                        <CalendarIcon size={20} className="text-indigo-600" /> Upcoming Events
+                        <CalendarIcon size={20} className="text-indigo-600" />
+                        Events for {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                     </h3>
                     <div className="space-y-3">
                         {events
-                            .filter(e => new Date(e.start_date) >= new Date())
+                            .filter(e => {
+                                const d = new Date(e.start_date);
+                                return d.getMonth() === currentDate.getMonth() &&
+                                    d.getFullYear() === currentDate.getFullYear();
+                            })
                             .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
-                            .slice(0, 5)
                             .map(event => (
                                 <div key={event.id} className="flex items-start gap-4 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 group">
                                     <div className="text-center bg-indigo-50 rounded-lg p-2 min-w-[60px]">
@@ -272,9 +281,13 @@ const SchoolCalendar = () => {
                                     )}
                                 </div>
                             ))}
-                        {events.filter(e => new Date(e.start_date) >= new Date()).length === 0 && (
-                            <p className="text-slate-400 text-sm text-center py-4">No upcoming events.</p>
-                        )}
+                        {events.filter(e => {
+                            const d = new Date(e.start_date);
+                            return d.getMonth() === currentDate.getMonth() &&
+                                d.getFullYear() === currentDate.getFullYear();
+                        }).length === 0 && (
+                                <p className="text-slate-400 text-sm text-center py-4">No events for this month.</p>
+                            )}
                     </div>
                 </div>
             </div>

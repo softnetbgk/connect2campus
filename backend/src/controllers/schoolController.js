@@ -1,5 +1,6 @@
 const { pool } = require('../config/db');
 const bcrypt = require('bcrypt');
+const { generateAnnualCalendar } = require('../utils/holidayUtils');
 
 // Create a new school with admin and configuration
 const createSchool = async (req, res) => {
@@ -98,6 +99,28 @@ const createSchool = async (req, res) => {
             }
         }
 
+        // 4. Auto-Generate Holidays for Current AND Next Year (Official Calendar + Sundays)
+        const currentYear = new Date().getFullYear();
+        const yearsToGen = [currentYear, currentYear + 1];
+
+        for (const yr of yearsToGen) {
+            const annualHolidays = generateAnnualCalendar(yr);
+            for (const h of annualHolidays) {
+                // Insert Holiday
+                await client.query(`
+                    INSERT INTO school_holidays (school_id, holiday_date, holiday_name, is_paid)
+                    VALUES ($1, $2, $3, true)
+                    ON CONFLICT (school_id, holiday_date) DO UPDATE SET holiday_name = EXCLUDED.holiday_name
+                 `, [schoolId, h.holiday_date, h.holiday_name]);
+
+                // Add to Events (Calendar)
+                await client.query(`
+                    INSERT INTO events (school_id, title, event_type, start_date, end_date, description, audience)
+                    VALUES ($1, $2, 'Holiday', $3, $3, 'Official Holiday', 'All')
+                 `, [schoolId, h.holiday_name, h.holiday_date]);
+            }
+        }
+
         await client.query('COMMIT');
 
         res.status(201).json({
@@ -126,10 +149,11 @@ const getSchools = async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 s.*,
-                (SELECT COUNT(*) FROM students WHERE school_id = s.id) as student_count,
+                (SELECT COUNT(*) FROM students WHERE school_id = s.id AND (status IS NULL OR status != 'Deleted')) as student_count,
                 (SELECT COUNT(*) FROM teachers WHERE school_id = s.id) as teacher_count,
                 (SELECT COUNT(*) FROM staff WHERE school_id = s.id) as staff_count
             FROM schools s
+            WHERE s.status != 'Deleted' OR s.status IS NULL
             ORDER BY s.created_at DESC
         `);
 
@@ -141,7 +165,34 @@ const getSchools = async (req, res) => {
 
         res.json(schoolsWithStats);
     } catch (error) {
+        console.error('Error fetching schools:', error);
         res.status(500).json({ message: 'Error fetching schools', error: error.message });
+    }
+};
+
+// Get Deleted Schools (Dustbin)
+const getDeletedSchools = async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                s.*,
+                (SELECT COUNT(*) FROM students WHERE school_id = s.id AND (status IS NULL OR status != 'Deleted')) as student_count,
+                (SELECT COUNT(*) FROM teachers WHERE school_id = s.id) as teacher_count,
+                (SELECT COUNT(*) FROM staff WHERE school_id = s.id) as staff_count
+            FROM schools s
+            WHERE s.status = 'Deleted'
+            ORDER BY s.created_at DESC
+        `);
+
+        const schoolsWithStats = result.rows.map(school => ({
+            ...school,
+            total_members: parseInt(school.student_count || 0) + parseInt(school.teacher_count || 0) + parseInt(school.staff_count || 0)
+        }));
+
+        res.json(schoolsWithStats);
+    } catch (error) {
+        console.error('Get Deleted Schools Error:', error);
+        res.status(500).json({ message: 'Error fetching deleted schools', error: error.message });
     }
 };
 
@@ -183,7 +234,7 @@ const fetchSchoolDetails = async (id, res) => {
         const schoolRes = await pool.query(`
             SELECT 
                 s.*,
-                (SELECT COUNT(*) FROM students WHERE school_id = s.id) as student_count,
+                (SELECT COUNT(*) FROM students WHERE school_id = s.id AND status != 'Deleted') as student_count,
                 (SELECT COUNT(*) FROM teachers WHERE school_id = s.id) as teacher_count,
                 (SELECT COUNT(*) FROM staff WHERE school_id = s.id) as staff_count
             FROM schools s
@@ -230,10 +281,10 @@ const fetchSchoolDetails = async (id, res) => {
     }
 };
 
-// Update school details
+// Update school details with class/section deletion support
 const updateSchool = async (req, res) => {
     const { id } = req.params;
-    const { name, address, contactEmail, contactNumber, classes } = req.body;
+    const { name, address, contactEmail, contactNumber, classes, allowDeletions } = req.body;
     console.log(`[UPDATE SCHOOL] ID: ${id}, Body:`, JSON.stringify(req.body, null, 2));
 
     const client = await pool.connect();
@@ -258,11 +309,12 @@ const updateSchool = async (req, res) => {
 
         // 2. Full Sync of Academic Configuration
         if (classes && Array.isArray(classes)) {
-            // A. Get existing IDs to track what to keep
+            // A. Get existing classes and sections
             const existingClassesRes = await client.query('SELECT id, name FROM classes WHERE school_id = $1', [id]);
             const existingClasses = existingClassesRes.rows;
 
             const processedClassIds = [];
+            const processedSectionIds = [];
 
             for (const cls of classes) {
                 console.log(`[UPDATE SCHOOL] Processing Class Name: ${cls.name}`);
@@ -281,64 +333,115 @@ const updateSchool = async (req, res) => {
                     );
                     classId = newClassRes.rows[0].id;
                     console.log(`[UPDATE SCHOOL] New Class ID: ${classId}`);
-                    // Add to existingClasses so we don't try to create it again if duplicate names in payload
                     existingClasses.push({ id: classId, name: cls.name });
                 }
 
-                // 2. Sync Sections (JS Logic)
+                processedClassIds.push(classId);
+
+                // 2. Sync Sections
                 const targetSections = cls.sections || [];
                 const currentSectionsRes = await client.query('SELECT id, name FROM sections WHERE class_id = $1', [classId]);
                 const currentSections = currentSectionsRes.rows;
 
-                // Determine deletions - DISABLED to prevent data loss as per requirements
-                /*
-                if (sectionsToDelete.length > 0) {
-                    console.log(`[UPDATE SCHOOL] Deleting Sections: ${sectionsToDelete.join(', ')}`);
-                    await client.query('DELETE FROM sections WHERE id = ANY($1::int[])', [sectionsToDelete]);
+                // Handle section deletions if allowDeletions is true
+                if (allowDeletions) {
+                    const sectionsToDelete = currentSections.filter(curr => !targetSections.includes(curr.name));
+
+                    for (const section of sectionsToDelete) {
+                        console.log(`[UPDATE SCHOOL] Removing Section: ${section.name} from Class ID: ${classId}`);
+
+                        // Move students in this section to bin with 'Unassigned' status
+                        const affectedStudents = await client.query(
+                            `UPDATE students 
+                             SET status = 'Unassigned', 
+                                 class_name = 'Unassigned - Previously: ' || class_name || ' ' || section_name,
+                                 section_name = 'N/A'
+                             WHERE school_id = $1 AND class_id = $2 AND section_id = $3 AND status != 'Deleted'
+                             RETURNING id, name`,
+                            [id, classId, section.id]
+                        );
+
+                        if (affectedStudents.rows.length > 0) {
+                            console.log(`[UPDATE SCHOOL] Moved ${affectedStudents.rows.length} students to Unassigned bin`);
+                        }
+
+                        // Delete the section
+                        await client.query('DELETE FROM sections WHERE id = $1', [section.id]);
+                    }
                 }
-                */
 
-                // Determine insertions
+                // Add new sections
                 const sectionsToAdd = targetSections.filter(name => !currentSections.some(curr => curr.name === name));
-
                 for (const secName of sectionsToAdd) {
                     console.log(`[UPDATE SCHOOL] Adding Section: ${secName}`);
-                    await client.query('INSERT INTO sections (class_id, name) VALUES ($1, $2)', [classId, secName]);
+                    const newSec = await client.query(
+                        'INSERT INTO sections (class_id, name) VALUES ($1, $2) RETURNING id',
+                        [classId, secName]
+                    );
+                    processedSectionIds.push(newSec.rows[0].id);
                 }
 
-                // 3. Sync Subjects (JS Logic)
+                // Track existing sections
+                currentSections.forEach(sec => {
+                    if (targetSections.includes(sec.name)) {
+                        processedSectionIds.push(sec.id);
+                    }
+                });
+
+                // 3. Sync Subjects
                 const targetSubjects = cls.subjects || [];
                 const currentSubjectsRes = await client.query('SELECT id, name FROM subjects WHERE class_id = $1', [classId]);
                 const currentSubjects = currentSubjectsRes.rows;
 
-                // Determine deletions - DISABLED to prevent data loss
-                /*
-                const subjectsToDelete = currentSubjects
-                    .filter(curr => !targetSubjects.includes(curr.name))
-                    .map(curr => curr.id);
+                // Handle subject deletions if allowDeletions is true
+                if (allowDeletions) {
+                    const subjectsToDelete = currentSubjects.filter(curr => !targetSubjects.includes(curr.name));
 
-                if (subjectsToDelete.length > 0) {
-                    console.log(`[UPDATE SCHOOL] Deleting Subjects: ${subjectsToDelete.join(', ')}`);
-                    await client.query('DELETE FROM subjects WHERE id = ANY($1::int[])', [subjectsToDelete]);
+                    if (subjectsToDelete.length > 0) {
+                        const subjectIds = subjectsToDelete.map(s => s.id);
+                        console.log(`[UPDATE SCHOOL] Deleting Subjects: ${subjectsToDelete.map(s => s.name).join(', ')}`);
+                        await client.query('DELETE FROM subjects WHERE id = ANY($1::int[])', [subjectIds]);
+                    }
                 }
-                */
 
-                // Determine insertions
+                // Add new subjects
                 const subjectsToAdd = targetSubjects.filter(name => !currentSubjects.some(curr => curr.name === name));
-
                 for (const subName of subjectsToAdd) {
                     console.log(`[UPDATE SCHOOL] Adding Subject: ${subName}`);
                     await client.query('INSERT INTO subjects (class_id, name) VALUES ($1, $2)', [classId, subName]);
                 }
             }
 
-            // B. Existing Classes Protection
-            // We intentionally do NOT delete classes that are missing from the input to prevent data loss.
-            // The frontend might send a partial list or the user might have removed it from the UI, but we keep the DB record.
-            // However, for the classes that ARE sent, we fully sync their sections and subjects (allowing expansion/modification).
+            // Handle class deletions if allowDeletions is true
+            if (allowDeletions) {
+                const classesToDelete = existingClasses.filter(ec => !processedClassIds.includes(ec.id));
 
-            // Code block for deleting classes has been REMOVED to satisfy safety requirements.
+                for (const classToDelete of classesToDelete) {
+                    console.log(`[UPDATE SCHOOL] Removing Class: ${classToDelete.name}`);
 
+                    // Move all students in this class to bin with 'Unassigned' status
+                    const affectedStudents = await client.query(
+                        `UPDATE students 
+                         SET status = 'Unassigned', 
+                             class_name = 'Unassigned - Previously: ' || class_name || ' ' || section_name,
+                             section_name = 'N/A'
+                         WHERE school_id = $1 AND class_id = $2 AND status != 'Deleted'
+                         RETURNING id, name`,
+                        [id, classToDelete.id]
+                    );
+
+                    if (affectedStudents.rows.length > 0) {
+                        console.log(`[UPDATE SCHOOL] Moved ${affectedStudents.rows.length} students to Unassigned bin from class ${classToDelete.name}`);
+                    }
+
+                    // Delete sections and subjects first (foreign key constraints)
+                    await client.query('DELETE FROM sections WHERE class_id = $1', [classToDelete.id]);
+                    await client.query('DELETE FROM subjects WHERE class_id = $1', [classToDelete.id]);
+
+                    // Delete the class
+                    await client.query('DELETE FROM classes WHERE id = $1', [classToDelete.id]);
+                }
+            }
         }
 
         await client.query('COMMIT');
@@ -381,4 +484,201 @@ const toggleSchoolStatus = async (req, res) => {
     }
 };
 
-module.exports = { createSchool, getSchools, getSchoolDetails, updateSchool, getMySchool, toggleSchoolStatus };
+// Soft Delete School (Move to Bin)
+const deleteSchool = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const result = await pool.query(
+            "UPDATE schools SET status = 'Deleted' WHERE id = $1 RETURNING *",
+            [id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'School not found' });
+        }
+
+        res.json({ message: 'School moved to bin successfully' });
+    } catch (error) {
+        console.error('Delete School Error:', error);
+        res.status(500).json({ message: 'Failed to delete school', error: error.message });
+    }
+};
+
+// Restore School from Bin
+const restoreSchool = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const result = await pool.query(
+            "UPDATE schools SET status = 'Active' WHERE id = $1 RETURNING *",
+            [id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'School not found' });
+        }
+
+        res.json({ message: 'School restored successfully' });
+    } catch (error) {
+        console.error('Restore School Error:', error);
+        res.status(500).json({ message: 'Failed to restore school', error: error.message });
+    }
+};
+
+
+
+// Permanent Delete School (with all associated data)
+const permanentDeleteSchool = async (req, res) => {
+    const { id } = req.params;
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+        console.log(`[PERMANENT DELETE SCHOOL] Starting deletion for school ID: ${id}`);
+
+        // First, get the school name for logging
+        const schoolCheck = await client.query('SELECT name FROM schools WHERE id = $1', [id]);
+        if (schoolCheck.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: 'School not found' });
+        }
+        const schoolName = schoolCheck.rows[0].name;
+        console.log(`[PERMANENT DELETE SCHOOL] Deleting school: ${schoolName}`);
+
+        // Try to delete the school - if there are FK constraints without CASCADE, this will fail with a specific error
+        try {
+            const result = await client.query('DELETE FROM schools WHERE id = $1 RETURNING *', [id]);
+
+            await client.query('COMMIT');
+            console.log(`[PERMANENT DELETE SCHOOL] ✅ Successfully deleted school: ${schoolName}`);
+
+            res.json({
+                message: 'School permanently deleted successfully',
+                deletedSchool: schoolName
+            });
+        } catch (deleteError) {
+            // If direct delete fails due to FK constraints, do manual cascade
+            console.log('[PERMANENT DELETE SCHOOL] Direct delete failed, performing manual cascade...');
+            console.log('[PERMANENT DELETE SCHOOL] Error was:', deleteError.message);
+
+            // Rollback the failed delete
+            await client.query('ROLLBACK');
+            await client.query('BEGIN');
+
+            // Manual cascade deletion
+            console.log('[PERMANENT DELETE SCHOOL] Step 1: Deleting all related data...');
+
+            // 0. Explicit cleanup of tables with multiple dependencies
+            try { await client.query('DELETE FROM library_transactions WHERE school_id = $1', [id]); } catch (e) { }
+            try { await client.query('DELETE FROM library_books WHERE school_id = $1', [id]); } catch (e) { }
+
+
+            // 1. Student Related Data (Leaves)
+            const studentTables = [
+                'mark_components', 'marks', 'attendance', 'student_attendance',
+                'fee_payments', 'student_fees', 'hostel_payments', 'hostel_mess_bills',
+                'hostel_allocations', 'student_promotions', 'student_certificates',
+                'doubts', 'transport_allocations', 'leave_requests', 'library_transactions'
+            ];
+            for (const t of studentTables) {
+                try {
+                    if (t === 'library_transactions') {
+                        await client.query('DELETE FROM library_transactions WHERE student_id IN (SELECT id FROM students WHERE school_id = $1)', [id]);
+                    } else {
+                        await client.query(`DELETE FROM ${t} WHERE student_id IN (SELECT id FROM students WHERE school_id = $1)`, [id]);
+                    }
+                } catch (e) { }
+            }
+
+            // 2. Students
+            await client.query('DELETE FROM students WHERE school_id = $1', [id]);
+
+            // 3. Class/Academic Structure (Must be before Teachers due to FKs)
+            // Timetables ref Classes & Teachers
+            // Sections ref Teachers
+            // Classes ref Teachers
+            await client.query('DELETE FROM timetables WHERE school_id = $1', [id]);
+            await client.query('DELETE FROM exam_schedules WHERE school_id = $1', [id]);
+            await client.query('DELETE FROM fee_structures WHERE school_id = $1', [id]);
+            await client.query('DELETE FROM subjects WHERE class_id IN (SELECT id FROM classes WHERE school_id = $1)', [id]);
+            await client.query('DELETE FROM sections WHERE class_id IN (SELECT id FROM classes WHERE school_id = $1)', [id]);
+            await client.query('DELETE FROM classes WHERE school_id = $1', [id]);
+
+            // 4. Transport & Hostels (Must be before Staff/Teachers if linked)
+            try { await client.query('DELETE FROM transport_stops WHERE route_id IN (SELECT id FROM transport_routes WHERE school_id = $1)', [id]); } catch (e) { }
+            try { await client.query('DELETE FROM transport_routes WHERE school_id = $1', [id]); } catch (e) { }
+            try { await client.query('DELETE FROM transport_vehicles WHERE school_id = $1', [id]); } catch (e) { } // Frees Staff
+
+            try { await client.query('DELETE FROM hostel_rooms WHERE hostel_id IN (SELECT id FROM hostels WHERE school_id = $1)', [id]); } catch (e) { }
+            try { await client.query('DELETE FROM hostel_buildings WHERE school_id = $1', [id]); } catch (e) { }
+            try { await client.query('DELETE FROM hostels WHERE school_id = $1', [id]); } catch (e) { }
+
+            // 5. Teachers & Staff
+            await client.query('DELETE FROM teacher_attendance WHERE teacher_id IN (SELECT id FROM teachers WHERE school_id = $1)', [id]);
+            await client.query('DELETE FROM salary_payments WHERE teacher_id IN (SELECT id FROM teachers WHERE school_id = $1)', [id]);
+            await client.query('DELETE FROM teachers WHERE school_id = $1', [id]);
+
+            await client.query('DELETE FROM staff_attendance WHERE staff_id IN (SELECT id FROM staff WHERE school_id = $1)', [id]);
+            await client.query('DELETE FROM salary_payments WHERE staff_id IN (SELECT id FROM staff WHERE school_id = $1)', [id]);
+            await client.query('DELETE FROM staff WHERE school_id = $1', [id]);
+
+            // 6. School Misc
+            const miscTables = ['events', 'school_holidays', 'notifications', 'announcements',
+                'expenditures', 'admissions_enquiries', 'exam_types', 'grades',
+                'library_books'];
+            for (const t of miscTables) {
+                try { await client.query(`DELETE FROM ${t} WHERE school_id = $1`, [id]); } catch (e) { }
+            }
+
+            // 7. Users
+            await client.query('DELETE FROM users WHERE school_id = $1', [id]);
+
+            // 8. Schools
+            const finalResult = await client.query('DELETE FROM schools WHERE id = $1 RETURNING *', [id]);
+
+            await client.query('COMMIT');
+            console.log(`[PERMANENT DELETE SCHOOL] ✅ Successfully deleted school via manual cascade: ${schoolName}`);
+
+            res.json({
+                message: 'School and all associated data permanently deleted',
+                deletedSchool: schoolName
+            });
+        }
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('[PERMANENT DELETE SCHOOL] ❌ FATAL ERROR:', error);
+        console.error('[PERMANENT DELETE SCHOOL] Error message:', error.message);
+        console.error('[PERMANENT DELETE SCHOOL] Error detail:', error.detail);
+        console.error('[PERMANENT DELETE SCHOOL] Error hint:', error.hint);
+        console.error('[PERMANENT DELETE SCHOOL] Stack trace:', error.stack);
+
+        res.status(500).json({
+            message: 'Failed to permanently delete school',
+            error: error.message,
+            detail: error.detail || 'No additional details',
+            hint: error.hint || 'Check server logs for more information',
+            constraint: error.constraint || 'Unknown constraint'
+        });
+    } finally {
+        client.release();
+    }
+};
+
+const updateSchoolFeatures = async (req, res) => {
+    const { id } = req.params;
+    const { has_hostel } = req.body;
+    try {
+        await pool.query('UPDATE schools SET has_hostel = $1 WHERE id = $2', [has_hostel, id]);
+        res.json({ message: 'Features updated successfully' });
+    } catch (err) {
+        console.error('Update features error:', err);
+        res.status(500).json({ message: 'Failed to update features' });
+    }
+};
+
+module.exports = {
+    createSchool, getSchools, getSchoolDetails, updateSchool, getMySchool,
+    toggleSchoolStatus, deleteSchool, restoreSchool, getDeletedSchools,
+    permanentDeleteSchool, updateSchoolFeatures
+};
