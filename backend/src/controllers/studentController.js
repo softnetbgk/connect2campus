@@ -308,15 +308,22 @@ exports.getUnassignedStudents = async (req, res) => {
 };
 
 
-// Permanent Delete Student (with Comprehensive Cascade)
-exports.permanentDeleteStudent = async (req, res) => {
-    console.log('[PERMANENT DELETE STUDENT] Function called, params:', req.params);
 
+// Permanent Delete Student (DISABLED - Students cannot be permanently deleted)
+exports.permanentDeleteStudent = async (req, res) => {
+    console.log('[PERMANENT DELETE STUDENT] Attempt blocked - students cannot be permanently deleted');
+
+    return res.status(403).json({
+        message: 'Students cannot be permanently deleted. They are kept in the bin for record-keeping purposes.',
+        error: 'Operation not allowed'
+    });
+
+    /* ORIGINAL CODE DISABLED
     const client = await pool.connect();
     try {
         const { id } = req.params;
         const school_id = req.user.schoolId;
-
+    
         // Create a separate client for the potentially risky operation
         // We'll wrap the SET LOCAL in a try/catch to check if it's supported
         try {
@@ -325,14 +332,14 @@ exports.permanentDeleteStudent = async (req, res) => {
         } catch (e) {
             console.warn('[PERMANENT DELETE STUDENT] Could not set replication role (requires superuser):', e.message);
         }
-
+    
         try {
             // Get user_id before deletion
             const userRes = await client.query('SELECT user_id FROM students WHERE id = $1', [id]);
             const userId = userRes.rows[0]?.user_id;
-
+    
             // ... (previous deletions) ...
-
+    
             // 1. Delete Marks & Components
             console.log('[PERMANENT DELETE STUDENT] Deleting marks...');
             await client.query('DELETE FROM mark_components WHERE mark_id IN (SELECT id FROM marks WHERE student_id = $1)', [id]);
@@ -344,42 +351,42 @@ exports.permanentDeleteStudent = async (req, res) => {
             // Actually, if replica mode is ON, these won't fail due to FKs.
             console.error('[PERMANENT DELETE STUDENT] Marks deletion error:', err.message);
         }
-
+    
         // ... (Repeating structure for other tables, simplified for brevity in this replacement) ...
         // I will just replace the top part and bottom part to keep the middle intact if possible, 
         // but since I'm replacing a large block, I must provide all of it or break it down.
-
+    
         // Let's rewrite the logic inside the try block to be cleaner.
-
+    
         // 1. Marks
         try {
             await client.query('DELETE FROM mark_components WHERE mark_id IN (SELECT id FROM marks WHERE student_id = $1)', [id]);
             await client.query('DELETE FROM marks WHERE student_id = $1', [id]);
         } catch (e) { console.error('Marks error:', e.message); }
-
+    
         // 2. Attendance
         try {
             await client.query('DELETE FROM attendance WHERE student_id = $1', [id]);
             await client.query('DELETE FROM student_attendance WHERE student_id = $1', [id]);
         } catch (e) { console.error('Attendance error:', e.message); }
-
+    
         // 3. Fees
         try {
             await client.query('DELETE FROM fee_payments WHERE student_id = $1', [id]);
             await client.query('DELETE FROM student_fees WHERE student_id = $1', [id]);
         } catch (e) { console.error('Fees error:', e.message); }
-
+    
         // 4. Hostel/Transport
         try {
             await client.query('DELETE FROM hostel_payments WHERE student_id = $1', [id]);
             await client.query('DELETE FROM hostel_mess_bills WHERE student_id = $1', [id]);
             await client.query('DELETE FROM hostel_allocations WHERE student_id = $1', [id]);
         } catch (e) { console.error('Hostel error:', e.message); }
-
+    
         // Optional tables
         try { await client.query('DELETE FROM transport_allocations WHERE student_id = $1', [id]); } catch (e) { }
         try { await client.query('DELETE FROM leave_requests WHERE student_id = $1', [id]); } catch (e) { }
-
+    
         // 5. Academic/Others
         try { await client.query('DELETE FROM student_promotions WHERE student_id = $1', [id]); } catch (e) { }
         try { await client.query('DELETE FROM student_certificates WHERE student_id = $1', [id]); } catch (e) { }
@@ -387,29 +394,29 @@ exports.permanentDeleteStudent = async (req, res) => {
         try { await client.query('DELETE FROM doubt_replies WHERE doubt_id IN (SELECT id FROM doubts WHERE student_id = $1)', [id]); } catch (e) { }
         try { await client.query('DELETE FROM library_transactions WHERE student_id = $1', [id]); } catch (e) { }
         try { await client.query('DELETE FROM notifications WHERE user_id IN (SELECT user_id FROM students WHERE id = $1)', [id]); } catch (e) { }
-
+    
         // Potential tables
         const potentialTables = ['exam_results', 'student_opt_subjects', 'student_documents', 'student_health_records', 'library_issues', 'book_issues'];
         for (const table of potentialTables) {
             try { await client.query(`DELETE FROM ${table} WHERE student_id = $1`, [id]); } catch (e) { }
         }
-
-
+    
+    
         try {
             // 6. Finally, Delete Student
             console.log('[PERMANENT DELETE STUDENT] Deleting student record...');
-
+    
             const result = await client.query(
                 'DELETE FROM students WHERE id = $1 RETURNING *',
                 [id]
             );
-
+    
             if (result.rows.length === 0) {
                 await client.query('ROLLBACK');
                 console.log('[PERMANENT DELETE STUDENT] Student not found');
                 return res.status(404).json({ message: 'Student not found' });
             }
-
+    
             // 7. Delete associated User account if it exists
             if (userId) {
                 try {
@@ -419,7 +426,7 @@ exports.permanentDeleteStudent = async (req, res) => {
                     console.error('[PERMANENT DELETE STUDENT] User deletion error (ignored):', userErr.message);
                 }
             }
-
+    
             await client.query('COMMIT');
             console.log(`[PERMANENT DELETE STUDENT] ✅ Successfully deleted student: ${result.rows[0].name}`);
             res.json({
@@ -457,6 +464,7 @@ exports.permanentDeleteStudent = async (req, res) => {
     } finally {
         client.release();
     }
+    */
 };
 
 // Mark Attendance (Bulk - Optimized for Scale)
@@ -477,11 +485,11 @@ exports.markAttendance = async (req, res) => {
         const statuses = attendanceData.map(r => r.status);
 
         const bulkQuery = `
-            INSERT INTO attendance (school_id, student_id, date, status)
-            SELECT $1, unnest($2::int[]), $3, unnest($4::text[])
-            ON CONFLICT (student_id, date) 
-            DO UPDATE SET status = EXCLUDED.status
-        `;
+        INSERT INTO attendance (school_id, student_id, date, status)
+        SELECT $1, unnest($2::int[]), $3, unnest($4::text[])
+        ON CONFLICT (student_id, date) 
+        DO UPDATE SET status = EXCLUDED.status
+    `;
 
         await client.query(bulkQuery, [school_id, studentIds, date, statuses]);
 
@@ -522,22 +530,22 @@ exports.getAttendanceReport = async (req, res) => {
         const endDate = new Date(year, month, 0).toISOString().split('T')[0]; // Last day of month
 
         let query = `
-            WITH month_holidays AS (
-                SELECT holiday_date, holiday_name
-                FROM school_holidays
-                WHERE school_id = $1 AND holiday_date >= $2 AND holiday_date <= $3
-            )
-            SELECT 
-                s.id as student_id, 
-                s.name, 
-                TO_CHAR(d.date, 'YYYY-MM-DD') as date,
-                COALESCE(a.status, CASE WHEN mh.holiday_date IS NOT NULL THEN 'Holiday' ELSE 'Unmarked' END) as status
-            FROM students s
-            CROSS JOIN generate_series($2::date, $3::date, '1 day'::interval) d(date)
-            LEFT JOIN attendance a ON s.id = a.student_id AND a.date = d.date::date
-            LEFT JOIN month_holidays mh ON mh.holiday_date = d.date::date
-            WHERE s.school_id = $1
-            `;
+        WITH month_holidays AS (
+            SELECT holiday_date, holiday_name
+            FROM school_holidays
+            WHERE school_id = $1 AND holiday_date >= $2 AND holiday_date <= $3
+        )
+        SELECT 
+            s.id as student_id, 
+            s.name, 
+            TO_CHAR(d.date, 'YYYY-MM-DD') as date,
+            COALESCE(a.status, CASE WHEN mh.holiday_date IS NOT NULL THEN 'Holiday' ELSE 'Unmarked' END) as status
+        FROM students s
+        CROSS JOIN generate_series($2::date, $3::date, '1 day'::interval) d(date)
+        LEFT JOIN attendance a ON s.id = a.student_id AND a.date = d.date::date
+        LEFT JOIN month_holidays mh ON mh.holiday_date = d.date::date
+        WHERE s.school_id = $1
+        `;
         const params = [school_id, startDate, endDate];
 
         if (class_id) {
@@ -586,10 +594,10 @@ exports.getMyAttendanceReport = async (req, res) => {
 
         // 1. Fetch Daily Records
         let query = `
-            SELECT status, TO_CHAR(date, 'YYYY-MM-DD') as date_str
-            FROM attendance
-            WHERE student_id = $1
-        `;
+        SELECT status, TO_CHAR(date, 'YYYY-MM-DD') as date_str
+        FROM attendance
+        WHERE student_id = $1
+    `;
         const params = [student_id];
 
         if (month && year) {
@@ -608,15 +616,15 @@ exports.getMyAttendanceReport = async (req, res) => {
 
         // 2. Fetch Aggregated Stats
         let statsQuery = `
-            SELECT 
-                COUNT(*) as total_days,
-                SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present_days,
-                SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END) as absent_days,
-                SUM(CASE WHEN status = 'Late' THEN 1 ELSE 0 END) as late_days,
-                SUM(CASE WHEN status = 'Half Day' THEN 1 ELSE 0 END) as half_days
-            FROM attendance
-            WHERE student_id = $1
-        `;
+        SELECT 
+            COUNT(*) as total_days,
+            SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as present_days,
+            SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END) as absent_days,
+            SUM(CASE WHEN status = 'Late' THEN 1 ELSE 0 END) as late_days,
+            SUM(CASE WHEN status = 'Half Day' THEN 1 ELSE 0 END) as half_days
+        FROM attendance
+        WHERE student_id = $1
+    `;
         // Reuse params structure but verify logic
         const statsParams = [student_id];
         if (month && year) {
@@ -655,22 +663,22 @@ exports.getAttendanceSummary = async (req, res) => {
         const { date } = req.query;
 
         const query = `
-            SELECT 
-                c.name as class_name, 
-                sec.name as section_name, 
-                COUNT(s.id) as total_students,
-                SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) as present_count,
-                SUM(CASE WHEN a.status = 'Absent' THEN 1 ELSE 0 END) as absent_count,
-                SUM(CASE WHEN a.status = 'Late' THEN 1 ELSE 0 END) as late_count,
-                SUM(CASE WHEN a.status IS NULL THEN 1 ELSE 0 END) as not_marked_count
-            FROM students s
-            JOIN classes c ON s.class_id = c.id
-            JOIN sections sec ON s.section_id = sec.id
-            LEFT JOIN attendance a ON s.id = a.student_id AND a.date = $2
-            WHERE s.school_id = $1
-            GROUP BY c.name, sec.name
-            ORDER BY c.name, sec.name
-        `;
+        SELECT 
+            c.name as class_name, 
+            sec.name as section_name, 
+            COUNT(s.id) as total_students,
+            SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) as present_count,
+            SUM(CASE WHEN a.status = 'Absent' THEN 1 ELSE 0 END) as absent_count,
+            SUM(CASE WHEN a.status = 'Late' THEN 1 ELSE 0 END) as late_count,
+            SUM(CASE WHEN a.status IS NULL THEN 1 ELSE 0 END) as not_marked_count
+        FROM students s
+        JOIN classes c ON s.class_id = c.id
+        JOIN sections sec ON s.section_id = sec.id
+        LEFT JOIN attendance a ON s.id = a.student_id AND a.date = $2
+        WHERE s.school_id = $1
+        GROUP BY c.name, sec.name
+        ORDER BY c.name, sec.name
+    `;
 
         const result = await pool.query(query, [school_id, date]);
         res.json(result.rows);
@@ -691,11 +699,11 @@ exports.getDailyAttendance = async (req, res) => {
         }
 
         let query = `
-            SELECT s.id, s.name, s.roll_number, COALESCE(a.status, 'Unmarked') as status
-            FROM students s
-            LEFT JOIN attendance a ON s.id = a.student_id AND a.date = $2
-            WHERE s.school_id = $1 AND s.class_id = $3
-        `;
+        SELECT s.id, s.name, s.roll_number, COALESCE(a.status, 'Unmarked') as status
+        FROM students s
+        LEFT JOIN attendance a ON s.id = a.student_id AND a.date = $2
+        WHERE s.school_id = $1 AND s.class_id = $3
+    `;
 
         const params = [school_id, date, class_id];
 
@@ -729,16 +737,16 @@ exports.reorderRollNumbers = async (req, res) => {
             // Fetch students for specific section, ordered by Name (then by existing roll_number as tiebreaker)
             studentsRef = await client.query(
                 `SELECT id FROM students 
-                 WHERE school_id = $1 AND class_id = $2 AND section_id = $3 AND (status IS NULL OR status != 'Deleted')
-                 ORDER BY name ASC, roll_number ASC`,
+             WHERE school_id = $1 AND class_id = $2 AND section_id = $3 AND (status IS NULL OR status != 'Deleted')
+             ORDER BY name ASC, roll_number ASC`,
                 [school_id, class_id, section_id]
             );
         } else {
             // Fetch students for class without section (section_id IS NULL)
             studentsRef = await client.query(
                 `SELECT id FROM students 
-                 WHERE school_id = $1 AND class_id = $2 AND section_id IS NULL AND (status IS NULL OR status != 'Deleted')
-                 ORDER BY name ASC, roll_number ASC`,
+             WHERE school_id = $1 AND class_id = $2 AND section_id IS NULL AND (status IS NULL OR status != 'Deleted')
+             ORDER BY name ASC, roll_number ASC`,
                 [school_id, class_id]
             );
         }
@@ -773,22 +781,22 @@ exports.getStudentProfile = async (req, res) => {
         if (linkedId) {
             // Prioritize the Linked ID passed from Login (Critical for shared emails/siblings)
             query = `
-                SELECT s.*, c.name as class_name, sec.name as section_name 
-                FROM students s
-                LEFT JOIN classes c ON s.class_id = c.id
-                LEFT JOIN sections sec ON s.section_id = sec.id
-                WHERE s.id = $1 AND s.school_id = $2
-            `;
+            SELECT s.*, c.name as class_name, sec.name as section_name 
+            FROM students s
+            LEFT JOIN classes c ON s.class_id = c.id
+            LEFT JOIN sections sec ON s.section_id = sec.id
+            WHERE s.id = $1 AND s.school_id = $2
+        `;
             params = [linkedId, schoolId];
         } else {
             // Fallback to Email Lookup
             query = `
-                SELECT s.*, c.name as class_name, sec.name as section_name 
-                FROM students s
-                LEFT JOIN classes c ON s.class_id = c.id
-                LEFT JOIN sections sec ON s.section_id = sec.id
-                WHERE s.school_id = $1 AND LOWER(s.email) = LOWER($2)
-            `;
+            SELECT s.*, c.name as class_name, sec.name as section_name 
+            FROM students s
+            LEFT JOIN classes c ON s.class_id = c.id
+            LEFT JOIN sections sec ON s.section_id = sec.id
+            WHERE s.school_id = $1 AND LOWER(s.email) = LOWER($2)
+        `;
             params = [schoolId, email];
         }
 
@@ -801,12 +809,12 @@ exports.getStudentProfile = async (req, res) => {
                 // Assume the part before @ is the admission number (case insensitive)
                 const possibleAdmissionNo = emailParts[0];
                 query = `
-                    SELECT s.*, c.name as class_name, sec.name as section_name 
-                    FROM students s
-                    LEFT JOIN classes c ON s.class_id = c.id
-                    LEFT JOIN sections sec ON s.section_id = sec.id
-                    WHERE s.school_id = $1 AND LOWER(s.admission_no) = LOWER($2)
-                `;
+                SELECT s.*, c.name as class_name, sec.name as section_name 
+                FROM students s
+                LEFT JOIN classes c ON s.class_id = c.id
+                LEFT JOIN sections sec ON s.section_id = sec.id
+                WHERE s.school_id = $1 AND LOWER(s.admission_no) = LOWER($2)
+            `;
                 result = await pool.query(query, [schoolId, possibleAdmissionNo]);
             }
         }
@@ -863,12 +871,12 @@ exports.getMyFees = async (req, res) => {
         // 1. Fetch Paid History
         console.log('[getMyFees] Fetching payments...');
         const payments = await pool.query(`
-            SELECT p.id, p.amount_paid as amount, TO_CHAR(p.payment_date, 'YYYY-MM-DD') as date, p.payment_method, p.receipt_no, fs.title as "feeType"
-            FROM fee_payments p
-            JOIN fee_structures fs ON p.fee_structure_id = fs.id
-            WHERE p.student_id = $1
-            ORDER BY p.payment_date DESC
-        `, [student_id]);
+        SELECT p.id, p.amount_paid as amount, TO_CHAR(p.payment_date, 'YYYY-MM-DD') as date, p.payment_method, p.receipt_no, fs.title as "feeType"
+        FROM fee_payments p
+        JOIN fee_structures fs ON p.fee_structure_id = fs.id
+        WHERE p.student_id = $1
+        ORDER BY p.payment_date DESC
+    `, [student_id]);
         console.log(`[getMyFees] Payments fetched: ${payments.rows.length}`);
 
         // 2. Calculate Totals

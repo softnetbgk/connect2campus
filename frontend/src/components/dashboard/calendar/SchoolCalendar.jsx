@@ -248,46 +248,53 @@ const SchoolCalendar = () => {
                         Events for {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                     </h3>
                     <div className="space-y-3">
-                        {events
-                            .filter(e => {
-                                const d = new Date(e.start_date);
-                                return d.getMonth() === currentDate.getMonth() &&
-                                    d.getFullYear() === currentDate.getFullYear();
-                            })
-                            .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
-                            .map(event => (
-                                <div key={event.id} className="flex items-start gap-4 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 group">
-                                    <div className="text-center bg-indigo-50 rounded-lg p-2 min-w-[60px]">
-                                        <span className="block text-xs font-bold text-indigo-400 uppercase">
-                                            {new Date(event.start_date).toLocaleString('default', { month: 'short' })}
-                                        </span>
-                                        <span className="block text-xl font-bold text-indigo-700">
-                                            {new Date(event.start_date).getDate()}
-                                        </span>
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="font-bold text-slate-800">{event.title}</h4>
-                                        <p className="text-sm text-slate-500 line-clamp-1">{event.description}</p>
-                                        <div className="flex gap-2 mt-2">
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                                                {event.event_type}
-                                            </span>
+                        <div className="space-y-3">
+                            {(() => {
+                                const monthsEvents = events.filter(e => {
+                                    const d = new Date(e.start_date);
+                                    return d.getMonth() === currentDate.getMonth() &&
+                                        d.getFullYear() === currentDate.getFullYear();
+                                });
+
+                                if (monthsEvents.length === 0) {
+                                    return (
+                                        <div className="text-center py-8 text-slate-400 border-2 border-dashed border-slate-100 rounded-lg">
+                                            <CalendarIcon className="mx-auto mb-2 opacity-20" size={32} />
+                                            <p className="text-sm">No events scheduled for {currentDate.toLocaleString('default', { month: 'long' })}</p>
                                         </div>
-                                    </div>
-                                    {isSchoolAdmin && (
-                                        <button onClick={() => handleDeleteEvent(event.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                                            <Trash2 size={16} />
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
-                        {events.filter(e => {
-                            const d = new Date(e.start_date);
-                            return d.getMonth() === currentDate.getMonth() &&
-                                d.getFullYear() === currentDate.getFullYear();
-                        }).length === 0 && (
-                                <p className="text-slate-400 text-sm text-center py-4">No events for this month.</p>
-                            )}
+                                    );
+                                }
+
+                                return monthsEvents
+                                    .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+                                    .map(event => (
+                                        <div key={event.id} className="flex items-start gap-4 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 group">
+                                            <div className="text-center bg-indigo-50 rounded-lg p-2 min-w-[60px]">
+                                                <span className="block text-xs font-bold text-indigo-400 uppercase">
+                                                    {new Date(event.start_date).toLocaleString('default', { month: 'short' })}
+                                                </span>
+                                                <span className="block text-xl font-bold text-indigo-700">
+                                                    {new Date(event.start_date).getDate()}
+                                                </span>
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="font-bold text-slate-800">{event.title}</h4>
+                                                <p className="text-sm text-slate-500 line-clamp-1">{event.description}</p>
+                                                <div className="flex gap-2 mt-2">
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                                                        {event.event_type}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {isSchoolAdmin && (
+                                                <button onClick={() => handleDeleteEvent(event.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ));
+                            })()}
+                        </div>
                     </div>
                 </div>
             </div>

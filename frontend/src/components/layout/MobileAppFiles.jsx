@@ -72,14 +72,6 @@ export const MobileFooter = ({ activeTab, onTabChange, onMenuToggle, tabs }) => 
                     );
                 })}
 
-                {/* Menu Toggle */}
-                <button
-                    onClick={onMenuToggle}
-                    className="flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-400 hover:text-slate-600"
-                >
-                    <Menu size={20} />
-                    <span className="text-[10px] font-medium">Menu</span>
-                </button>
             </div>
         </div>
     );

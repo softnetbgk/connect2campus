@@ -600,6 +600,9 @@ const permanentDeleteSchool = async (req, res) => {
             // Classes ref Teachers
             await client.query('DELETE FROM timetables WHERE school_id = $1', [id]);
             await client.query('DELETE FROM exam_schedules WHERE school_id = $1', [id]);
+
+            // Explicitly delete student_fees linked to these fee_structures to prevent FK errors
+            await client.query('DELETE FROM student_fees WHERE fee_structure_id IN (SELECT id FROM fee_structures WHERE school_id = $1)', [id]);
             await client.query('DELETE FROM fee_structures WHERE school_id = $1', [id]);
             await client.query('DELETE FROM subjects WHERE class_id IN (SELECT id FROM classes WHERE school_id = $1)', [id]);
             await client.query('DELETE FROM sections WHERE class_id IN (SELECT id FROM classes WHERE school_id = $1)', [id]);
