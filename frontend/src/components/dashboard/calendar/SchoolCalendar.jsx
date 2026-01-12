@@ -248,151 +248,151 @@ const SchoolCalendar = () => {
                         Events for {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                     </h3>
                     <div className="space-y-3">
-                        <div className="space-y-3">
-                            {(() => {
-                                const monthsEvents = events.filter(e => {
-                                    const d = new Date(e.start_date);
-                                    return d.getMonth() === currentDate.getMonth() &&
-                                        d.getFullYear() === currentDate.getFullYear();
-                                });
+                        {(() => {
+                            const monthsEvents = events.filter(e => {
+                                const d = new Date(e.start_date);
+                                return d.getMonth() === currentDate.getMonth() &&
+                                    d.getFullYear() === currentDate.getFullYear();
+                            });
 
-                                if (monthsEvents.length === 0) {
-                                    return (
-                                        <div className="text-center py-8 text-slate-400 border-2 border-dashed border-slate-100 rounded-lg">
-                                            <CalendarIcon className="mx-auto mb-2 opacity-20" size={32} />
-                                            <p className="text-sm">No events scheduled for {currentDate.toLocaleString('default', { month: 'long' })}</p>
+                            if (monthsEvents.length === 0) {
+                                return (
+                                    <div className="text-center py-8 text-slate-400 border-2 border-dashed border-slate-100 rounded-lg">
+                                        <CalendarIcon className="mx-auto mb-2 opacity-20" size={32} />
+                                        <p className="text-sm">No events scheduled for {currentDate.toLocaleString('default', { month: 'long' })}</p>
+                                    </div>
+                                );
+                            }
+
+                            return monthsEvents
+                                .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+                                .map(event => (
+                                    <div key={event.id} className="flex items-start gap-4 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 group">
+                                        <div className="text-center bg-indigo-50 rounded-lg p-2 min-w-[60px]">
+                                            <span className="block text-xs font-bold text-indigo-400 uppercase">
+                                                {new Date(event.start_date).toLocaleString('default', { month: 'short' })}
+                                            </span>
+                                            <span className="block text-xl font-bold text-indigo-700">
+                                                {new Date(event.start_date).getDate()}
+                                            </span>
                                         </div>
-                                    );
-                                }
-
-                                return monthsEvents
-                                    .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
-                                    .map(event => (
-                                        <div key={event.id} className="flex items-start gap-4 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 group">
-                                            <div className="text-center bg-indigo-50 rounded-lg p-2 min-w-[60px]">
-                                                <span className="block text-xs font-bold text-indigo-400 uppercase">
-                                                    {new Date(event.start_date).toLocaleString('default', { month: 'short' })}
-                                                </span>
-                                                <span className="block text-xl font-bold text-indigo-700">
-                                                    {new Date(event.start_date).getDate()}
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-slate-800">{event.title}</h4>
+                                            <p className="text-sm text-slate-500 line-clamp-1">{event.description}</p>
+                                            <div className="flex gap-2 mt-2">
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                                                    {event.event_type}
                                                 </span>
                                             </div>
-                                            <div className="flex-1">
-                                                <h4 className="font-bold text-slate-800">{event.title}</h4>
-                                                <p className="text-sm text-slate-500 line-clamp-1">{event.description}</p>
-                                                <div className="flex gap-2 mt-2">
-                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                                                        {event.event_type}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            {isSchoolAdmin && (
-                                                <button onClick={() => handleDeleteEvent(event.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            )}
                                         </div>
-                                    ));
-                            })()}
-                        </div>
+                                        {isSchoolAdmin && (
+                                            <button onClick={() => handleDeleteEvent(event.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
+                                    </div>
+                                ));
+                        })()}
                     </div>
                 </div>
             </div>
 
             {/* Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                            <h3 className="text-lg font-bold text-slate-800">Add Event</h3>
-                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
-                                <X size={24} />
-                            </button>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">Event Title</label>
-                                <input
-                                    type="text"
-                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                                    value={newEvent.title}
-                                    onChange={e => setNewEvent({ ...newEvent, title: e.target.value })}
-                                    placeholder="e.g. Annual Sports Day"
-                                />
+            {
+                showModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+                            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                                <h3 className="text-lg font-bold text-slate-800">Add Event</h3>
+                                <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
+                                    <X size={24} />
+                                </button>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="p-6 space-y-4">
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Start Date</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Event Title</label>
                                     <input
-                                        type="date"
+                                        type="text"
                                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                                        value={newEvent.start_date}
-                                        min={new Date().toISOString().split('T')[0]}
-                                        onChange={e => setNewEvent({ ...newEvent, start_date: e.target.value })}
+                                        value={newEvent.title}
+                                        onChange={e => setNewEvent({ ...newEvent, title: e.target.value })}
+                                        placeholder="e.g. Annual Sports Day"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1">End Date</label>
-                                    <input
-                                        type="date"
-                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                                        value={newEvent.end_date}
-                                        min={new Date().toISOString().split('T')[0]}
-                                        onChange={e => setNewEvent({ ...newEvent, end_date: e.target.value })}
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-1">Start Date</label>
+                                        <input
+                                            type="date"
+                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                                            value={newEvent.start_date}
+                                            min={new Date().toISOString().split('T')[0]}
+                                            onChange={e => setNewEvent({ ...newEvent, start_date: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-1">End Date</label>
+                                        <input
+                                            type="date"
+                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                                            value={newEvent.end_date}
+                                            min={new Date().toISOString().split('T')[0]}
+                                            onChange={e => setNewEvent({ ...newEvent, end_date: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Type</label>
-                                    <select
-                                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                                        value={newEvent.event_type}
-                                        onChange={e => setNewEvent({ ...newEvent, event_type: e.target.value })}
-                                    >
-                                        <option value="Event">Event</option>
-                                        <option value="Holiday">Holiday</option>
-                                        <option value="Exam">Exam</option>
-                                        <option value="Meeting">Meeting</option>
-                                        <option value="Other">Other</option>
-                                    </select>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-1">Type</label>
+                                        <select
+                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                                            value={newEvent.event_type}
+                                            onChange={e => setNewEvent({ ...newEvent, event_type: e.target.value })}
+                                        >
+                                            <option value="Event">Event</option>
+                                            <option value="Holiday">Holiday</option>
+                                            <option value="Exam">Exam</option>
+                                            <option value="Meeting">Meeting</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-1">Audience</label>
+                                        <select
+                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                                            value={newEvent.audience}
+                                            onChange={e => setNewEvent({ ...newEvent, audience: e.target.value })}
+                                        >
+                                            <option value="All">All</option>
+                                            <option value="Students">Students Only</option>
+                                            <option value="Teachers">Teachers Only</option>
+                                            <option value="Staff">Staff Only</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Audience</label>
-                                    <select
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Description</label>
+                                    <textarea
+                                        rows="3"
                                         className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                                        value={newEvent.audience}
-                                        onChange={e => setNewEvent({ ...newEvent, audience: e.target.value })}
-                                    >
-                                        <option value="All">All</option>
-                                        <option value="Students">Students Only</option>
-                                        <option value="Teachers">Teachers Only</option>
-                                        <option value="Staff">Staff Only</option>
-                                    </select>
+                                        value={newEvent.description}
+                                        onChange={e => setNewEvent({ ...newEvent, description: e.target.value })}
+                                        placeholder="Event details..."
+                                    ></textarea>
                                 </div>
+                                <button
+                                    onClick={handleAddEvent}
+                                    disabled={isSubmitting}
+                                    className={`w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-bold ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    {isSubmitting ? 'Creating...' : 'Create Event'}
+                                </button>
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">Description</label>
-                                <textarea
-                                    rows="3"
-                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                                    value={newEvent.description}
-                                    onChange={e => setNewEvent({ ...newEvent, description: e.target.value })}
-                                    placeholder="Event details..."
-                                ></textarea>
-                            </div>
-                            <button
-                                onClick={handleAddEvent}
-                                disabled={isSubmitting}
-                                className={`w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-bold ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            >
-                                {isSubmitting ? 'Creating...' : 'Create Event'}
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 

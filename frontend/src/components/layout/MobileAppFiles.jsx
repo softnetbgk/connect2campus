@@ -22,7 +22,8 @@ export const MobileHeader = ({ title, onMenuClick, schoolName, onBack, userName,
                         <p className="text-sm text-white font-bold tracking-wide leading-tight truncate">{schoolName || 'School Portal'}</p>
                         {userName && (
                             <p className="text-[11px] font-medium text-indigo-100 mt-0.5 leading-tight truncate">
-                                <span className="font-bold">{userName}</span> {subtitle && <span className="opacity-80 text-[10px]">• {subtitle}</span>}
+                                <span className="font-bold">{userName}</span>
+                                <span className="opacity-60 ml-2 text-[9px] border border-white/20 px-1 rounded">v1.2</span>
                             </p>
                         )}
                     </div>
