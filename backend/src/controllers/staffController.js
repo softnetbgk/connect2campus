@@ -333,7 +333,7 @@ exports.getMyAttendance = async (req, res) => {
         const endDate = new Date(year, month, 0).toISOString().split('T')[0];
 
         const query = `
-            SELECT date, status
+            SELECT TO_CHAR(date, 'YYYY-MM-DD') as date, status
             FROM staff_attendance
             WHERE staff_id = $1 AND date >= $2 AND date <= $3
             ORDER BY date DESC

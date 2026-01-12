@@ -500,7 +500,7 @@ exports.getMyAttendanceHistory = async (req, res) => {
         const endDate = new Date(year, month, 0).toISOString().split('T')[0];
 
         const query = `
-            SELECT date, status
+            SELECT TO_CHAR(date, 'YYYY-MM-DD') as date, status
             FROM teacher_attendance 
             WHERE teacher_id = $1 AND school_id = $2 AND date >= $3 AND date <= $4
             ORDER BY date ASC

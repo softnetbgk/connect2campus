@@ -47,6 +47,9 @@ const StudentAttendanceMarking = ({ config }) => {
         }
     }, [filterClass, filterSection, date]);
 
+    const activeClassName = sortedClasses.find(c => c.class_id === parseInt(filterClass))?.class_name || '';
+    const activeSectionName = availableSections.find(s => s.id === parseInt(filterSection))?.name || '';
+
     const fetchAttendanceData = async () => {
         setLoading(true);
         try {
@@ -106,10 +109,12 @@ const StudentAttendanceMarking = ({ config }) => {
                         value={new Date().toISOString().split('T')[0]}
                     />
                 </div>
-                <select className="input max-w-[200px] bg-slate-50 border-slate-200" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
-                    <option value="">Select Class</option>
-                    {sortedClasses.map(c => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
-                </select>
+                {sortedClasses.length > 1 && (
+                    <select className="input max-w-[200px] bg-slate-50 border-slate-200" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
+                        <option value="">Select Class</option>
+                        {sortedClasses.map(c => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
+                    </select>
+                )}
 
                 {availableSections.length > 1 && (
                     <select
@@ -124,12 +129,12 @@ const StudentAttendanceMarking = ({ config }) => {
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                {filterClass && (filterSection || availableSections.length === 0) ? (
+                {filterClass && (filterSection || availableSections.length === 0 || (availableSections.length === 1 && !availableSections[0].id)) ? (
                     <>
                         <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                             <div>
                                 <h3 className="font-bold text-slate-700">Student List</h3>
-                                <p className="text-xs text-slate-500">Mark attendance for {date}</p>
+                                <p className="text-xs text-slate-500 font-medium">{activeClassName} {availableSections.length > 1 && activeSectionName && activeSectionName !== 'Class Teacher' ? `- ${activeSectionName}` : ''} | {date}</p>
                             </div>
                             <div className="flex gap-2">
                                 {isEditable && (
