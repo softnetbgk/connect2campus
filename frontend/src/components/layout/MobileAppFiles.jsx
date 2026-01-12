@@ -27,7 +27,7 @@ export const MobileHeader = ({ title, onMenuClick, schoolName, onBack, userName,
                         {userName && (
                             <p className="text-[11px] font-medium text-indigo-100 mt-0.5 leading-tight truncate">
                                 <span className="font-bold">{userName}</span>
-                                <span className="opacity-60 ml-2 text-[9px] border border-white/20 px-1 rounded">v1.2</span>
+                                <button onClick={() => window.location.reload(true)} className="opacity-80 ml-2 text-[9px] border border-white/30 px-1.5 rounded bg-white/10 hover:bg-white/20 active:scale-95 transition-all">v1.3</button>
                             </p>
                         )}
                     </div>
