@@ -680,8 +680,25 @@ const updateSchoolFeatures = async (req, res) => {
     }
 };
 
+const updateSchoolLogo = async (req, res) => {
+    const schoolId = req.user.schoolId;
+    const { logo } = req.body;
+
+    if (!schoolId) {
+        return res.status(403).json({ message: 'Access denied' });
+    }
+
+    try {
+        await pool.query('UPDATE schools SET logo = $1 WHERE id = $2', [logo, schoolId]);
+        res.json({ message: 'School logo updated successfully', logo });
+    } catch (error) {
+        console.error('Error updating school logo:', error);
+        res.status(500).json({ message: 'Error updating logo', error: error.message });
+    }
+};
+
 module.exports = {
     createSchool, getSchools, getSchoolDetails, updateSchool, getMySchool,
     toggleSchoolStatus, deleteSchool, restoreSchool, getDeletedSchools,
-    permanentDeleteSchool, updateSchoolFeatures
+    permanentDeleteSchool, updateSchoolFeatures, updateSchoolLogo
 };

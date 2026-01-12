@@ -75,7 +75,10 @@ import BiometricManagement from '../components/dashboard/biometric/BiometricMana
 // Live Map Component
 import AdminLiveMap from '../components/dashboard/admin/AdminLiveMap';
 // Holiday Management Component
+// Holiday Management Component
 import HolidayManagement from '../components/dashboard/admin/HolidayManagement';
+// School Settings Component
+import SchoolSettings from '../components/dashboard/admin/SchoolSettings';
 
 const SchoolAdminDashboard = () => {
     const { logout, user } = useAuth();
@@ -419,6 +422,17 @@ const SchoolAdminDashboard = () => {
                     </div>
                 </nav>
 
+                {/* System Settings */}
+                <div className="px-4 pb-4">
+                    <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">System</p>
+                    <NavButton
+                        active={activeTab === 'settings'}
+                        onClick={() => handleTabChange('settings')}
+                        icon={Settings}
+                        label="School Settings"
+                    />
+                </div>
+
                 {/* Footer User Profile */}
                 <div className="p-4 border-t border-white/10 bg-black/20">
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer group border border-white/5 hover:border-white/20">
@@ -522,6 +536,7 @@ const SchoolAdminDashboard = () => {
                         {activeTab === 'transport-routes' && <TransportManagement key="routes" initialTab="routes" />}
                         {activeTab === 'transport-live' && <AdminLiveMap />}
                         {activeTab === 'biometric-access' && <BiometricManagement />}
+                        {activeTab === 'settings' && <SchoolSettings />}
                     </div>
                 </main>
 
@@ -643,7 +658,8 @@ const getTabTitle = (tab) => {
         'leave-management': 'Leave Management',
         'certificates-generator': 'Certificate Generator',
         'transport-management': 'Transport & Live Tracking',
-        'biometric-access': 'Biometric & Access Control'
+        'biometric-access': 'Biometric & Access Control',
+        'settings': 'School Settings'
     };
     return titles[tab] || 'Dashboard';
 }
