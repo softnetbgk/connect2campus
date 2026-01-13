@@ -124,12 +124,15 @@ exports.getStudents = async (req, res) => {
 
         const offset = (page - 1) * limit;
 
+        console.log(`[Get Students] Fetching for class_id=${class_id}, section_id=${section_id || 'NULL'}`);
+
         let query = `
             SELECT s.*, c.name as class_name, sec.name as section_name 
             FROM students s
             LEFT JOIN classes c ON s.class_id = c.id
             LEFT JOIN sections sec ON s.section_id = sec.id
-            WHERE s.school_id = $1 AND (s.status IS NULL OR s.status != 'Deleted')
+            WHERE s.school_id = $1 
+            AND (s.status IS NULL OR s.status != 'Deleted')
         `;
         const params = [school_id];
 
@@ -152,7 +155,8 @@ exports.getStudents = async (req, res) => {
 
         const result = await pool.query(query, params);
 
-        // Get total count for pagination metadata
+        console.log(`[Get Students] Found ${result.rows.length} students`);
+
         // Get total count for pagination metadata
         let countQuery = `SELECT COUNT(*) FROM students WHERE school_id = $1 AND (status IS NULL OR status != 'Deleted')`;
         const countParams = [school_id];

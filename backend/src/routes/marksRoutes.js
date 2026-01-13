@@ -21,4 +21,9 @@ router.get('/marksheet/years', marksController.getStudentResultYears);
 router.get('/marksheet/student', marksController.getStudentMarksheet);
 router.get('/marksheet/all', marksController.getAllMarksheets);
 
+// Toppers List
+router.get('/toppers', marksController.getToppers);
+router.get('/student-all', marksController.getStudentAllMarks);
+
 module.exports = router;
+

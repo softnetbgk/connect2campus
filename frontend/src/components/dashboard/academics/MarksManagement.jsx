@@ -239,13 +239,25 @@ const MarksManagement = ({ config }) => {
             let url = `/marks?class_id=${selectedClass}&exam_type_id=${selectedExam}&year=${selectedYear}`;
             if (selectedSection) url += `&section_id=${selectedSection}`;
 
+            console.log('[Fetch Marks] ========== REQUEST DETAILS ==========');
+            console.log('[Fetch Marks] selectedClass:', selectedClass);
+            console.log('[Fetch Marks] selectedSection:', selectedSection || 'NULL');
+            console.log('[Fetch Marks] selectedExam:', selectedExam);
+            console.log('[Fetch Marks] selectedYear:', selectedYear);
+            console.log('[Fetch Marks] Full URL:', url);
+            console.log('[Fetch Marks] ==========================================');
+
             const res = await api.get(url);
             const existingMarks = {};
+
+            console.log('[Fetch Marks] Received:', res.data?.length || 0, 'marks');
+            console.log('[Fetch Marks] Raw data:', res.data);
 
             // Populate marks object from fetched data
             if (res.data && Array.isArray(res.data)) {
                 res.data.forEach(mark => {
                     const key = `${mark.student_id}-${mark.subject_id}`;
+                    console.log(`[Fetch Marks] Processing mark: student_id=${mark.student_id}, subject_id=${mark.subject_id}, marks=${mark.marks_obtained}`);
                     if (mark.component_scores && Object.keys(mark.component_scores).length > 0) {
                         existingMarks[key] = {
                             total: mark.marks_obtained,
@@ -257,7 +269,10 @@ const MarksManagement = ({ config }) => {
                 });
             }
 
+            console.log('[Fetch Marks] Loaded into state:', Object.keys(existingMarks).length, 'marks');
+            console.log('[Fetch Marks] State keys:', Object.keys(existingMarks));
             setMarks(existingMarks);
+            toast.success(`Loaded ${Object.keys(existingMarks).length} marks`);
         } catch (error) {
             console.error('Error fetching marks:', error);
             toast.error('Failed to load marks');
@@ -463,8 +478,16 @@ const MarksManagement = ({ config }) => {
             const [studentId, subjectId] = key.split('-');
             const markData = marks[key];
 
-            // Skip if no mark entered
-            if (markData === '' || markData === undefined || (typeof markData === 'object' && markData.total === '')) return;
+            // Skip ONLY if completely empty (not 0, which is valid)
+            if (markData === '' || markData === undefined || markData === null) return;
+
+            // For object type (with components), check if total is empty string
+            if (typeof markData === 'object' && markData !== null) {
+                // If it's an object but total is empty string and no components, skip
+                if (markData.total === '' && (!markData.components || Object.keys(markData.components).length === 0)) {
+                    return;
+                }
+            }
 
             let finalMark = 0;
             let componentScores = {};
@@ -475,9 +498,6 @@ const MarksManagement = ({ config }) => {
             } else {
                 finalMark = parseFloat(markData) || 0;
             }
-
-            // Only push if valid mark or at least one component set
-            // Allowing 0 marks? Yes.
 
             marksArray.push({
                 student_id: parseInt(studentId),
@@ -496,15 +516,17 @@ const MarksManagement = ({ config }) => {
         }
 
         console.log('Sending marks to backend:', marksArray);
+        console.log(`Total marks to save: ${marksArray.length}`);
 
         setLoading(true);
         try {
-            await api.post('/marks/save', { marks: marksArray, year: selectedYear });
-            toast.success('Marks saved successfully!');
+            const response = await api.post('/marks/save', { marks: marksArray, year: selectedYear });
+            toast.success(`Successfully saved ${marksArray.length} marks!`);
             fetchMarks(); // Reload marks to show saved data
         } catch (error) {
             toast.error('Failed to save marks');
-            console.error(error);
+            console.error('Save error:', error);
+            console.error('Error response:', error.response?.data);
         } finally {
             setLoading(false);
         }

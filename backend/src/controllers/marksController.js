@@ -152,6 +152,8 @@ exports.getMarks = async (req, res) => {
             return res.status(400).json({ message: 'Class and Exam Type are required' });
         }
 
+        console.log(`[Get Marks] Fetching marks for class_id=${class_id}, section_id=${section_id || 'NULL'}, exam_type_id=${exam_type_id}, year=${year || 'current'}`);
+
         let query = `SELECT m.*, 
                     st.name as student_name,
                     st.admission_no as admission_number,
@@ -167,9 +169,14 @@ exports.getMarks = async (req, res) => {
 
         const params = [school_id, class_id, exam_type_id];
 
+        // Handle section_id properly - if provided, filter by it; if not, get all or NULL sections
         if (section_id) {
             params.push(section_id);
             query += ` AND m.section_id = $${params.length}`;
+        } else {
+            // If no section_id provided, include marks with NULL section_id
+            // This handles classes without sections
+            query += ` AND (m.section_id IS NULL OR m.section_id = 0)`;
         }
 
         if (year) {
@@ -179,7 +186,16 @@ exports.getMarks = async (req, res) => {
 
         query += ` ORDER BY st.roll_number, sub.name`;
 
+        console.log(`[Get Marks] SQL Query:`, query);
+        console.log(`[Get Marks] Params:`, params);
+
         const result = await pool.query(query, params);
+
+        console.log(`[Get Marks] Found ${result.rows.length} marks`);
+
+        // Log unique students found
+        const uniqueStudents = [...new Set(result.rows.map(r => r.student_id))];
+        console.log(`[Get Marks] Unique students: ${uniqueStudents.length} (IDs: ${uniqueStudents.join(', ')})`);
 
         // If no marks found, return empty array
         if (!result.rows || result.rows.length === 0) {
@@ -281,70 +297,101 @@ exports.saveMarks = async (req, res) => {
             return res.status(400).json({ message: 'Marks data is required' });
         }
 
+        console.log(`[Marks Save] Received ${marks.length} marks to save for school ${school_id}`);
+
         const targetYear = year || new Date().getFullYear();
 
         await client.query('BEGIN');
 
-        for (const mark of marks) {
+        let savedCount = 0;
+        let failedCount = 0;
+        const failedMarks = [];
+
+        for (let i = 0; i < marks.length; i++) {
+            const mark = marks[i];
             const rowYear = mark.year || targetYear;
 
             // Allow section_id to be NULL or 0 if not provided
             const sectionVal = mark.section_id || null;
 
-            if (mark.component_id) {
-                // Component-based mark
+            console.log(`[Marks Save] Processing mark ${i + 1}/${marks.length}: student_id=${mark.student_id}, subject_id=${mark.subject_id}, marks=${mark.marks_obtained}`);
 
-                const mainMarkResult = await client.query(
-                    `INSERT INTO marks 
-                     (school_id, student_id, class_id, section_id, subject_id, exam_type_id, marks_obtained, year, updated_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, 0, $7, CURRENT_TIMESTAMP)
-                     ON CONFLICT (school_id, student_id, subject_id, exam_type_id, year)
-                     DO UPDATE SET marks_obtained = marks.marks_obtained, updated_at = CURRENT_TIMESTAMP
-                     RETURNING id`,
-                    [school_id, mark.student_id, mark.class_id, sectionVal,
-                        mark.subject_id, mark.exam_type_id, rowYear]
-                );
+            try {
+                if (mark.component_id) {
+                    // Component-based mark
 
-                const markId = mainMarkResult.rows[0].id;
+                    const mainMarkResult = await client.query(
+                        `INSERT INTO marks 
+                         (school_id, student_id, class_id, section_id, subject_id, exam_type_id, marks_obtained, year, updated_at)
+                         VALUES ($1, $2, $3, $4, $5, $6, 0, $7, CURRENT_TIMESTAMP)
+                         ON CONFLICT (school_id, student_id, subject_id, exam_type_id, year)
+                         DO UPDATE SET marks_obtained = marks.marks_obtained, updated_at = CURRENT_TIMESTAMP
+                         RETURNING id`,
+                        [school_id, mark.student_id, mark.class_id, sectionVal,
+                            mark.subject_id, mark.exam_type_id, rowYear]
+                    );
 
-                await client.query(
-                    `INSERT INTO mark_components (mark_id, component_id, marks_obtained)
-                     VALUES ($1, $2, $3)
-                     ON CONFLICT (mark_id, component_id)
-                     DO UPDATE SET marks_obtained = EXCLUDED.marks_obtained`,
-                    [markId, mark.component_id, mark.marks_obtained]
-                );
+                    const markId = mainMarkResult.rows[0].id;
 
-                const totalResult = await client.query(
-                    `SELECT COALESCE(SUM(marks_obtained), 0) as total 
-                     FROM mark_components 
-                     WHERE mark_id = $1`,
-                    [markId]
-                );
+                    await client.query(
+                        `INSERT INTO mark_components (mark_id, component_id, marks_obtained)
+                         VALUES ($1, $2, $3)
+                         ON CONFLICT (mark_id, component_id)
+                         DO UPDATE SET marks_obtained = EXCLUDED.marks_obtained`,
+                        [markId, mark.component_id, mark.marks_obtained]
+                    );
 
-                await client.query(
-                    `UPDATE marks SET marks_obtained = $1 WHERE id = $2`,
-                    [totalResult.rows[0].total, markId]
-                );
-            } else {
-                // Simple mark OR JSON-based Component Mark
-                await client.query(
-                    `INSERT INTO marks 
-                     (school_id, student_id, class_id, section_id, subject_id, exam_type_id, marks_obtained, remarks, year, component_scores, updated_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
-                     ON CONFLICT (school_id, student_id, subject_id, exam_type_id, year)
-                     DO UPDATE SET 
-                        marks_obtained = EXCLUDED.marks_obtained,
-                        remarks = EXCLUDED.remarks,
-                        component_scores = EXCLUDED.component_scores,
-                        updated_at = CURRENT_TIMESTAMP`,
-                    [school_id, mark.student_id, mark.class_id, sectionVal,
-                        mark.subject_id, mark.exam_type_id, mark.marks_obtained, mark.remarks || null, rowYear, mark.component_scores || {}]
-                );
+                    const totalResult = await client.query(
+                        `SELECT COALESCE(SUM(marks_obtained), 0) as total 
+                         FROM mark_components 
+                         WHERE mark_id = $1`,
+                        [markId]
+                    );
+
+                    await client.query(
+                        `UPDATE marks SET marks_obtained = $1 WHERE id = $2`,
+                        [totalResult.rows[0].total, markId]
+                    );
+                    savedCount++;
+                    console.log(`[Marks Save] ✅ Saved mark ${i + 1}: student_id=${mark.student_id}, subject_id=${mark.subject_id}`);
+                } else {
+                    // Simple mark OR JSON-based Component Mark
+                    await client.query(
+                        `INSERT INTO marks 
+                         (school_id, student_id, class_id, section_id, subject_id, exam_type_id, marks_obtained, remarks, year, component_scores, updated_at)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
+                         ON CONFLICT (school_id, student_id, subject_id, exam_type_id, year)
+                         DO UPDATE SET 
+                            marks_obtained = EXCLUDED.marks_obtained,
+                            remarks = EXCLUDED.remarks,
+                            component_scores = EXCLUDED.component_scores,
+                            updated_at = CURRENT_TIMESTAMP`,
+                        [school_id, mark.student_id, mark.class_id, sectionVal,
+                            mark.subject_id, mark.exam_type_id, mark.marks_obtained, mark.remarks || null, rowYear, mark.component_scores || {}]
+                    );
+                    savedCount++;
+                    console.log(`[Marks Save] ✅ Saved mark ${i + 1}: student_id=${mark.student_id}, subject_id=${mark.subject_id}`);
+                }
+            } catch (markError) {
+                failedCount++;
+                failedMarks.push({
+                    student_id: mark.student_id,
+                    subject_id: mark.subject_id,
+                    error: markError.message
+                });
+                console.error(`[Marks Save] ❌ FAILED mark ${i + 1}: student_id=${mark.student_id}, subject_id=${mark.subject_id}`);
+                console.error(`[Marks Save] Error:`, markError.message);
+                console.error(`[Marks Save] Error detail:`, markError.detail);
+                console.error(`[Marks Save] Error constraint:`, markError.constraint);
             }
         }
 
         await client.query('COMMIT');
+
+        console.log(`[Marks Save] Successfully saved ${savedCount} marks`);
+        if (failedCount > 0) {
+            console.log(`[Marks Save] Failed to save ${failedCount} marks:`, failedMarks);
+        }
 
         // Notification Logic
         const { sendPushNotification } = require('../services/notificationService');
@@ -352,11 +399,23 @@ exports.saveMarks = async (req, res) => {
         for (const studentId of uniqueStudentIds) {
             await sendPushNotification(studentId, 'Exam Results', 'New marks have been updated in your report card.');
         }
-        res.json({ message: 'Marks saved successfully', count: marks.length });
+
+        const response = {
+            message: `Marks saved: ${savedCount} successful${failedCount > 0 ? `, ${failedCount} failed` : ''}`,
+            count: savedCount,
+            savedCount,
+            failedCount
+        };
+
+        if (failedCount > 0) {
+            response.failedMarks = failedMarks;
+        }
+
+        res.json(response);
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Error saving marks:', error);
-        res.status(500).json({ message: 'Server error saving marks' });
+        res.status(500).json({ message: 'Server error saving marks', error: error.message });
     } finally {
         client.release();
     }
@@ -532,3 +591,238 @@ exports.getAllMarksheets = async (req, res) => {
         res.status(500).json({ message: 'Server error fetching marksheets' });
     }
 };
+
+// Get Toppers List for a Class/Section/Exam
+exports.getToppers = async (req, res) => {
+    try {
+        const school_id = req.user.schoolId;
+        const { class_name, section, exam_type, schedule_id, class_id, section_id, exam_type_id } = req.query;
+
+        if ((!class_name && !class_id) || (!exam_type && !exam_type_id) || !schedule_id) {
+            return res.status(400).json({ message: 'Class, Exam Type, and Schedule ID are required' });
+        }
+
+        let finalClassId = class_id;
+        // Get class_id from class_name if ID not provided
+        if (!finalClassId) {
+            const classResult = await pool.query(
+                `SELECT id FROM classes WHERE name = $1 AND school_id = $2`,
+                [class_name, school_id]
+            );
+            if (classResult.rows.length === 0) {
+                return res.status(404).json({ message: 'Class not found' });
+            }
+            finalClassId = classResult.rows[0].id;
+        }
+
+        // Get section_id
+        let finalSectionId = null;
+        if (section_id) {
+            finalSectionId = section_id;
+        } else if (section) {
+            const sectionResult = await pool.query(
+                `SELECT id FROM sections WHERE name = $1 AND class_id = $2 AND school_id = $3`,
+                [section, finalClassId, school_id]
+            );
+            if (sectionResult.rows.length > 0) {
+                finalSectionId = sectionResult.rows[0].id;
+            }
+        }
+
+        // Get exam_type_id
+        let finalExamTypeId = exam_type_id;
+        if (!finalExamTypeId) {
+            const examTypeResult = await pool.query(
+                `SELECT id FROM exam_types WHERE name = $1 AND school_id = $2`,
+                [exam_type, school_id]
+            );
+
+            if (examTypeResult.rows.length === 0) {
+                return res.status(404).json({ message: 'Exam type not found' });
+            }
+            finalExamTypeId = examTypeResult.rows[0].id;
+        }
+
+        // Get all students in the class/section
+        let studentsQuery = `
+            SELECT st.id, st.name, st.admission_no, st.roll_number, sec.name as section
+            FROM students st
+            LEFT JOIN sections sec ON st.section_id = sec.id
+            WHERE st.class_id = $1 AND st.school_id = $2 AND (st.status IS NULL OR st.status != 'Deleted')
+        `;
+        const studentsParams = [finalClassId, school_id];
+
+        if (finalSectionId) {
+            studentsParams.push(finalSectionId);
+            studentsQuery += ` AND st.section_id = $${studentsParams.length}`;
+        }
+
+        studentsQuery += ` ORDER BY st.roll_number`;
+
+        const studentsResult = await pool.query(studentsQuery, studentsParams);
+
+        if (studentsResult.rows.length === 0) {
+            return res.json({ toppers: [], subjects: [] });
+        }
+
+        // Get all subjects for this class
+        const subjectsResult = await pool.query(
+            `SELECT DISTINCT sub.name 
+             FROM marks m
+             JOIN subjects sub ON m.subject_id = sub.id
+             WHERE m.class_id = $1 AND m.exam_type_id = $2 AND m.school_id = $3
+             ORDER BY sub.name`,
+            [finalClassId, finalExamTypeId, school_id]
+        );
+
+        const subjects = subjectsResult.rows.map(row => row.name);
+
+        // Calculate marks for each student
+        const studentsWithMarks = [];
+
+        for (const student of studentsResult.rows) {
+            // Get marks for this student
+            const marksResult = await pool.query(
+                `SELECT m.marks_obtained, sub.name as subject_name
+                 FROM marks m
+                 JOIN subjects sub ON m.subject_id = sub.id
+                 WHERE m.student_id = $1 AND m.exam_type_id = $2 AND m.school_id = $3`,
+                [student.id, finalExamTypeId, school_id]
+            );
+
+            if (marksResult.rows.length === 0) {
+                continue; // Skip students with no marks
+            }
+
+            // Create marks object with subject-wise marks
+            const marks = {};
+            let totalMarks = 0;
+            let totalMaxMarks = 0;
+
+            marksResult.rows.forEach(mark => {
+                marks[mark.subject_name] = parseFloat(mark.marks_obtained || 0);
+                totalMarks += parseFloat(mark.marks_obtained || 0);
+                totalMaxMarks += 100; // Default to 100 since max_marks column missing in this DB version
+            });
+
+            const percentage = totalMaxMarks > 0 ? (totalMarks / totalMaxMarks) * 100 : 0;
+
+            studentsWithMarks.push({
+                student_id: student.id,
+                student_name: student.name,
+                admission_number: student.admission_no,
+                roll_number: student.roll_number,
+                section: student.section,
+                marks: marks,
+                total_marks: totalMarks,
+                total_max_marks: totalMaxMarks,
+                percentage: percentage
+            });
+        }
+
+        // Sort by percentage (descending)
+        studentsWithMarks.sort((a, b) => b.percentage - a.percentage);
+
+        // Assign ranks
+        studentsWithMarks.forEach((student, index) => {
+            student.rank = index + 1;
+        });
+
+        res.json({
+            toppers: studentsWithMarks,
+            subjects: subjects
+        });
+
+    } catch (error) {
+        console.error('Error fetching toppers:', error);
+        res.status(500).json({ message: 'Server error fetching toppers', error: error.message });
+    }
+};
+
+// Get All Marks for a Student (Overall History)
+exports.getStudentAllMarks = async (req, res) => {
+    try {
+        const school_id = req.user.schoolId;
+        const { admission_no } = req.query;
+
+        console.log('[Get Student All Marks] Searching for:', admission_no);
+
+        if (!admission_no) {
+            return res.status(400).json({ message: 'Admission Number is required' });
+        }
+
+        // Find Student
+        const studentRes = await pool.query(
+            `SELECT * FROM students 
+             WHERE admission_no ILIKE $1 AND school_id = $2 AND (status IS NULL OR status != 'Deleted')`,
+            [admission_no.trim(), school_id]
+        );
+
+        if (studentRes.rows.length === 0) {
+            return res.status(404).json({ message: `Student not found with admission number: ${admission_no}` });
+        }
+        const student = studentRes.rows[0];
+
+        // Fetch ALL Marks
+        // Using exam_types max_marks or defaulting to 100
+        const marksQuery = `
+             SELECT m.marks_obtained, sub.name as subject_name, et.name as exam_name, et.max_marks
+             FROM marks m
+             JOIN subjects sub ON m.subject_id = sub.id
+             JOIN exam_types et ON m.exam_type_id = et.id
+             WHERE m.student_id = $1 AND m.school_id = $2
+             ORDER BY et.id, sub.name
+        `;
+
+        const marksRes = await pool.query(marksQuery, [student.id, school_id]);
+
+        // Group by Exam
+        const examsMap = {};
+
+        marksRes.rows.forEach(mark => {
+            const examName = mark.exam_name;
+            if (!examsMap[examName]) {
+                examsMap[examName] = {
+                    exam_name: examName,
+                    total_obtained: 0,
+                    total_max: 0,
+                    subjects: []
+                };
+            }
+
+            const obtained = parseFloat(mark.marks_obtained || 0);
+            // Use exam type max marks if available, else 100
+            const max = parseFloat(mark.max_marks || 100);
+
+            examsMap[examName].subjects.push({
+                subject: mark.subject_name,
+                marks: obtained,
+                max: max
+            });
+
+            examsMap[examName].total_obtained += obtained;
+            examsMap[examName].total_max += max;
+        });
+
+        // Calculate Percentages
+        const exams = Object.values(examsMap).map(exam => ({
+            ...exam,
+            percentage: exam.total_max > 0 ? ((exam.total_obtained / exam.total_max) * 100).toFixed(2) : 0
+        }));
+
+        res.json({
+            student: {
+                name: student.name,
+                admission_no: student.admission_no,
+                roll_number: student.roll_number,
+                class_id: student.class_id
+            },
+            exams: exams
+        });
+
+    } catch (error) {
+        console.error('Error fetching student all marks:', error);
+        res.status(500).json({ message: 'Server error fetching result', error: error.message });
+    }
+};
+

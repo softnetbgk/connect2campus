@@ -57,6 +57,8 @@ import MarksManagement from '../components/dashboard/academics/MarksManagement';
 import ExamSchedule from '../components/dashboard/academics/ExamSchedule';
 import QuestionPaperGenerator from '../components/dashboard/academics/question-paper/QuestionPaperGenerator';
 import GradeManagement from '../components/dashboard/academics/GradeManagement';
+import TopperList from '../components/dashboard/academics/TopperList';
+import StudentOverallResult from '../components/dashboard/academics/StudentOverallResult';
 
 // Hostel Components
 import HostelOverview from '../components/dashboard/hostel/HostelOverview';
@@ -342,6 +344,8 @@ const SchoolAdminDashboard = () => {
                         <NavSubButton active={activeTab === 'exam-schedule'} onClick={() => handleTabChange('exam-schedule')} label="Exam Schedule" />
                         <NavSubButton active={activeTab === 'grading'} onClick={() => handleTabChange('grading')} label="Grade Configuration" />
                         <NavSubButton active={activeTab === 'marks'} onClick={() => handleTabChange('marks')} label="Marks" />
+                        <NavSubButton active={activeTab === 'topper-list'} onClick={() => handleTabChange('topper-list')} label="Topper List" />
+                        <NavSubButton active={activeTab === 'student-overall'} onClick={() => handleTabChange('student-overall')} label="Student Overall Result" />
                         <NavSubButton active={activeTab === 'question-generator'} onClick={() => handleTabChange('question-generator')} label="AI Question Paper" />
                     </NavGroup>
 
@@ -525,6 +529,8 @@ const SchoolAdminDashboard = () => {
 
                         {activeTab === 'timetable' && <TimetableManagement config={academicConfig} />}
                         {activeTab === 'marks' && <MarksManagement config={academicConfig} />}
+                        {activeTab === 'topper-list' && <TopperList config={academicConfig} />}
+                        {activeTab === 'student-overall' && <StudentOverallResult />}
                         {activeTab === 'exam-schedule' && <ExamSchedule />}
                         {activeTab === 'grading' && <GradeManagement />}
                         {activeTab === 'question-generator' && <QuestionPaperGenerator config={academicConfig} />}
@@ -652,6 +658,7 @@ const getTabTitle = (tab) => {
         'salary-management': 'Salary Management',
         'timetable': 'Timetable Management',
         'marks': 'Marks Management',
+        'topper-list': 'Class Toppers',
         'exam-schedule': 'Exam Schedule',
         'grading': 'Grade Configuration',
         'question-generator': 'AI Question Paper Generator',

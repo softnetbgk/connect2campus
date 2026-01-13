@@ -1,5 +1,7 @@
 const { pool } = require('../config/db');
 const { sendPushNotification: sendRealPush } = require('./firebaseService');
+const { sendAttendanceWhatsApp } = require('./whatsappService');
+const { sendAttendanceSMS } = require('./smsService');
 
 // Mock SMS Service for now
 // In production, integrate with Twilio, MSG91, TextLocal, etc.
@@ -113,13 +115,28 @@ const sendAttendanceNotification = async (user, status) => {
 
         if (!message) return;
 
-        // 1. Send SMS (Legacy/Reliable)
+        // Configuration: Choose your messaging channel
+        const USE_SMS = process.env.ENABLE_SMS !== 'false'; // Default: enabled (cheap ₹0.10/msg)
+        const USE_WHATSAPP = process.env.ENABLE_WHATSAPP === 'true'; // Default: disabled (expensive ₹0.50-1.50/msg)
+
         if (user.contact_number) {
-            await sendSMS(user.contact_number, `Dear Parent, your ward ${user.name} has ${message.toLowerCase()}. - School Admin`);
+            // Option 1: SMS (Recommended - Cheap & Reliable)
+            if (USE_SMS) {
+                await sendAttendanceSMS(user, status);
+            }
+
+            // Option 2: WhatsApp (Optional - Expensive but Rich)
+            if (USE_WHATSAPP) {
+                await sendAttendanceWhatsApp(user, status);
+            }
+
+            // Fallback: Old SMS function (if new services not configured)
+            if (!USE_SMS && !USE_WHATSAPP) {
+                await sendSMS(user.contact_number, `Dear Parent, your ward ${user.name} has ${message.toLowerCase()}. - School Admin`);
+            }
         }
 
-        // 2. Send Mobile App Push Notification (Real-time)
-        // Assuming user.id or user.user_id is the link to the app login
+        // Always send Mobile App Push Notification (FREE & Real-time)
         await sendPushNotification(user.id, title, `${user.name} has ${message.toLowerCase()}.`);
 
     } catch (error) {

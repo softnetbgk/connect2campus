@@ -73,7 +73,8 @@ api.interceptors.response.use(
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
                 // Force reload to login if not already there
-                if (!window.location.pathname.includes('/login')) {
+                // Don't redirect if on super-admin-login page
+                if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/super-admin-login')) {
                     window.location.href = '/login?error=' + encodeURIComponent(msg || 'Session Expired');
                 }
                 return Promise.reject(error);
