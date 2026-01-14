@@ -171,7 +171,14 @@ const FeeConfiguration = ({ config }) => {
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4">
                     <select className="input flex-1" value={selectedClass} onChange={e => { setSelectedClass(e.target.value); setSelectedSection(''); }}>
                         <option value="">Select Class</option>
-                        {config?.classes?.map(c => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
+                        {config?.classes
+                            ?.slice()
+                            .sort((a, b) => {
+                                const numA = parseInt(a.class_name.replace(/\D/g, '') || '0', 10);
+                                const numB = parseInt(b.class_name.replace(/\D/g, '') || '0', 10);
+                                return numA === numB ? a.class_name.localeCompare(b.class_name) : numA - numB;
+                            })
+                            .map(c => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
                     </select>
                     <select className="input flex-1" value={selectedSection} onChange={e => setSelectedSection(e.target.value)}>
                         <option value="">All Sections</option>

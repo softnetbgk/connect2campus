@@ -123,7 +123,14 @@ const TransportFees = ({ config }) => {
                     <div className="flex-1">
                         <select className="input w-full" value={selectedClass} onChange={e => { setSelectedClass(e.target.value); setSelectedSection(''); }}>
                             <option value="">Select Class</option>
-                            {config?.classes?.map(c => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
+                            {config?.classes
+                                ?.slice()
+                                .sort((a, b) => {
+                                    const numA = parseInt(a.class_name.replace(/\D/g, '') || '0', 10);
+                                    const numB = parseInt(b.class_name.replace(/\D/g, '') || '0', 10);
+                                    return numA === numB ? a.class_name.localeCompare(b.class_name) : numA - numB;
+                                })
+                                .map(c => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
                         </select>
                     </div>
                     <div className="flex-1">

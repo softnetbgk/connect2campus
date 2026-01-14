@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Save, Building, Upload, Image as ImageIcon, Trash2, Calendar } from 'lucide-react';
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
-import AcademicYearSettings from '../settings/AcademicYearSettings';
+import ClassManagement from './ClassManagement';
 
 const SchoolSettings = () => {
-    const [activeTab, setActiveTab] = useState('branding'); // 'branding' or 'academic-year'
+    const [activeTab, setActiveTab] = useState('branding'); // 'branding', 'academic-year', 'classes'
     const [logoUrl, setLogoUrl] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -13,51 +13,7 @@ const SchoolSettings = () => {
         loadSchoolInfo();
     }, []);
 
-    const loadSchoolInfo = async () => {
-        try {
-            const res = await api.get('/schools/my-school');
-            setLogoUrl(res.data.logo || '');
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const handleFileChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            if (file.size > 5 * 1024 * 1024) { // 5MB limit
-                toast.error('Image size should be less than 5MB');
-                return;
-            }
-
-            // Convert to Base64
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setLogoUrl(reader.result);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const handleRemoveLogo = () => {
-        setLogoUrl('');
-    };
-
-    const handleSave = async () => {
-        setLoading(true);
-        try {
-            // Send the Base64 string directly
-            await api.put('/schools/my-school/logo', { logo: logoUrl });
-            toast.success('School Logo Updated!');
-            // Reload to reflect across the app
-            window.location.reload();
-        } catch (error) {
-            toast.error('Failed to update logo');
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // ... (keep existing functions)
 
     return (
         <div className="space-y-6">
@@ -67,8 +23,8 @@ const SchoolSettings = () => {
                     <button
                         onClick={() => setActiveTab('branding')}
                         className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-bold transition-all ${activeTab === 'branding'
-                                ? 'bg-indigo-600 text-white shadow-md'
-                                : 'text-slate-600 hover:bg-slate-50'
+                            ? 'bg-indigo-600 text-white shadow-md'
+                            : 'text-slate-600 hover:bg-slate-50'
                             }`}
                     >
                         <Building size={20} />
@@ -77,12 +33,22 @@ const SchoolSettings = () => {
                     <button
                         onClick={() => setActiveTab('academic-year')}
                         className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-bold transition-all ${activeTab === 'academic-year'
-                                ? 'bg-indigo-600 text-white shadow-md'
-                                : 'text-slate-600 hover:bg-slate-50'
+                            ? 'bg-indigo-600 text-white shadow-md'
+                            : 'text-slate-600 hover:bg-slate-50'
                             }`}
                     >
                         <Calendar size={20} />
                         Academic Year
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('classes')}
+                        className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-bold transition-all ${activeTab === 'classes'
+                            ? 'bg-indigo-600 text-white shadow-md'
+                            : 'text-slate-600 hover:bg-slate-50'
+                            }`}
+                    >
+                        <Layers size={20} />
+                        Classes & Sections
                     </button>
                 </div>
             </div>
@@ -90,6 +56,7 @@ const SchoolSettings = () => {
             {/* Tab Content */}
             {activeTab === 'branding' && (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-2xl mx-auto">
+                    {/* ... (keep existing branding content) ... */}
                     <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-800">
                         <Building className="text-indigo-600" /> School Branding
                     </h2>
@@ -153,6 +120,11 @@ const SchoolSettings = () => {
             {/* Academic Year Tab */}
             {activeTab === 'academic-year' && (
                 <AcademicYearSettings />
+            )}
+
+            {/* Classes Tab */}
+            {activeTab === 'classes' && (
+                <ClassManagement />
             )}
         </div>
     );

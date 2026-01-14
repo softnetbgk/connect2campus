@@ -1475,7 +1475,14 @@ const ExamSchedule = () => {
                                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                                 >
                                     <option value="">Select Class</option>
-                                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    {classes
+                                        .slice()
+                                        .sort((a, b) => {
+                                            const numA = parseInt(a.name.replace(/\D/g, '') || '0', 10);
+                                            const numB = parseInt(b.name.replace(/\D/g, '') || '0', 10);
+                                            return numA === numB ? a.name.localeCompare(b.name) : numA - numB;
+                                        })
+                                        .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
                             </div>
                             <div>
@@ -1573,7 +1580,14 @@ const ClassMultiSelector = ({ classes, onAdd, onRemove, selected }) => {
                     className="w-1/3 px-2 py-1 text-sm border rounded"
                 >
                     <option value="">-- Select Class --</option>
-                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    {classes
+                        .slice()
+                        .sort((a, b) => {
+                            const numA = parseInt(a.name.replace(/\D/g, '') || '0', 10);
+                            const numB = parseInt(b.name.replace(/\D/g, '') || '0', 10);
+                            return numA === numB ? a.name.localeCompare(b.name) : numA - numB;
+                        })
+                        .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 <select
                     value={selSection}

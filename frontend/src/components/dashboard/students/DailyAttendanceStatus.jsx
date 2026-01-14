@@ -150,7 +150,10 @@ const DailyAttendanceStatus = ({ config }) => {
                     <input type="date" className="input max-w-[150px] bg-slate-50 border-slate-200" value={date} onChange={e => setDate(e.target.value)} />
                     <select className="input max-w-[200px] bg-slate-50 border-slate-200" value={filterClass} onChange={e => setFilterClass(e.target.value)}>
                         <option value="">Select Class</option>
-                        {config.classes?.map(c => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
+                        {config.classes
+                            ?.slice()
+                            .sort((a, b) => a.class_name.localeCompare(b.class_name, undefined, { numeric: true }))
+                            .map(c => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
                     </select>
                     <select
                         className="input max-w-[200px] disabled:bg-slate-100 disabled:text-slate-400 bg-slate-50 border-slate-200"

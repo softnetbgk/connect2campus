@@ -255,12 +255,21 @@ const TopperList = ({ config }) => {
                             className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                         >
                             <option value="">Select Class</option>
-                            {classes.map((cls, index) => {
-                                const name = cls.name || cls.class_name || `Class ${index + 1}`;
-                                return (
-                                    <option key={cls.id || index} value={cls.id}>{name}</option>
-                                );
-                            })}
+                            {classes
+                                .slice()
+                                .sort((a, b) => {
+                                    const nameA = a.name || a.class_name || '';
+                                    const nameB = b.name || b.class_name || '';
+                                    const numA = parseInt(nameA.replace(/\D/g, '') || '0', 10);
+                                    const numB = parseInt(nameB.replace(/\D/g, '') || '0', 10);
+                                    return numA === numB ? nameA.localeCompare(nameB) : numA - numB;
+                                })
+                                .map((cls, index) => {
+                                    const name = cls.name || cls.class_name || `Class ${index + 1}`;
+                                    return (
+                                        <option key={cls.id || index} value={cls.id}>{name}</option>
+                                    );
+                                })}
                         </select>
                     </div>
 
