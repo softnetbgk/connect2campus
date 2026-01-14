@@ -17,7 +17,7 @@ exports.getExamSchedule = async (req, res) => {
             JOIN classes c ON es.class_id = c.id
             LEFT JOIN sections s ON es.section_id = s.id
             JOIN exam_types et ON es.exam_type_id = et.id
-            WHERE es.school_id = $1 
+            WHERE es.school_id = $1 AND es.deleted_at IS NULL
         `;
 
         const params = [school_id];
@@ -53,7 +53,7 @@ exports.getExamSchedule = async (req, res) => {
     }
 };
 
-// Save Exam Schedule
+// Save Exam Schedule (Soft Delete Aware)
 exports.saveExamSchedule = async (req, res) => {
     const client = await pool.connect();
     try {
@@ -66,51 +66,133 @@ exports.saveExamSchedule = async (req, res) => {
 
         await client.query('BEGIN');
 
+        // Get the current academic year to tag these schedules (if column exists)
+        // Note: Automatic tagging is mainly for NEW records, handled by triggers or explicitly here if needed. 
+        // We assume the schema already handles it or we'll update it later.
+
         if (delete_existing) {
+            // We need to handle this per "Block" (Class + Section + Exam Type)
             const keys = new Set(schedules.map(s => `${s.class_id}-${s.section_id || 'NULL'}-${s.exam_type_id}`));
+
             for (const key of keys) {
                 const [cid, sid, eid] = key.split('-');
                 const sectionId = sid === 'NULL' ? null : sid;
 
-                let deleteQuery = `DELETE FROM exam_schedules WHERE school_id = $1 AND class_id = $2 AND exam_type_id = $4`;
-                const params = [school_id, cid, sectionId, eid];
+                // 1. Fetch ALL existing schedules for this block (including soft deleted)
+                let fetchQuery = `
+                    SELECT id, subject_id 
+                    FROM exam_schedules 
+                    WHERE school_id = $1 AND class_id = $2 AND exam_type_id = $4
+                `;
+                const fetchParams = [school_id, cid, sectionId, eid];
 
                 if (sectionId) {
-                    deleteQuery += ` AND section_id = $3`;
+                    fetchQuery += ` AND section_id = $3`;
                 } else {
-                    deleteQuery += ` AND section_id IS NULL`;
+                    fetchQuery += ` AND section_id IS NULL`;
                 }
 
-                await client.query(deleteQuery, params);
-            }
-        }
+                const existing = await client.query(fetchQuery, fetchParams);
+                const existingMap = new Map(); // subject_id -> schedule_id
+                existing.rows.forEach(row => existingMap.set(row.subject_id, row.id));
 
-        for (const schedule of schedules) {
-            await client.query(
-                `INSERT INTO exam_schedules 
-                 (school_id, exam_type_id, class_id, section_id, subject_id, exam_date, start_time, end_time, components, max_marks, min_marks)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-                [
-                    school_id,
-                    schedule.exam_type_id,
-                    schedule.class_id,
-                    schedule.section_id || null,
-                    schedule.subject_id,
-                    schedule.exam_date,
-                    schedule.start_time,
-                    schedule.end_time,
-                    JSON.stringify(schedule.components || []),
-                    schedule.max_marks || 100,
-                    schedule.min_marks || 35
-                ]
-            );
+                // 2. Identify incoming subjects for this block
+                const incomingSubjects = new Set();
+                const schedulesForBlock = schedules.filter(s =>
+                    String(s.class_id) === cid &&
+                    String(s.section_id || 'NULL') === sid &&
+                    String(s.exam_type_id) === eid
+                );
+
+                for (const schedule of schedulesForBlock) {
+                    incomingSubjects.add(Number(schedule.subject_id));
+
+                    // UPSERT LOGIC
+                    if (existingMap.has(Number(schedule.subject_id))) {
+                        // UPDATE existing record (Reactive it if it was deleted)
+                        const existingId = existingMap.get(Number(schedule.subject_id));
+                        await client.query(
+                            `UPDATE exam_schedules SET 
+                                exam_date = $1, start_time = $2, end_time = $3, 
+                                components = $4, max_marks = $5, min_marks = $6,
+                                deleted_at = NULL
+                             WHERE id = $7`,
+                            [
+                                schedule.exam_date,
+                                schedule.start_time,
+                                schedule.end_time,
+                                JSON.stringify(schedule.components || []),
+                                schedule.max_marks || 100,
+                                schedule.min_marks || 35,
+                                existingId
+                            ]
+                        );
+                    } else {
+                        // INSERT new record
+                        const insertQ = `
+                            INSERT INTO exam_schedules 
+                            (school_id, exam_type_id, class_id, section_id, subject_id, exam_date, start_time, end_time, components, max_marks, min_marks)
+                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                        `;
+                        await client.query(insertQ, [
+                            school_id,
+                            schedule.exam_type_id,
+                            schedule.class_id,
+                            schedule.section_id || null, // Ensure null if undefined
+                            schedule.subject_id,
+                            schedule.exam_date,
+                            schedule.start_time,
+                            schedule.end_time,
+                            JSON.stringify(schedule.components || []),
+                            schedule.max_marks || 100,
+                            schedule.min_marks || 35
+                        ]);
+                    }
+                }
+
+                // 3. SOFT DELETE records that are NOT in the incoming list
+                for (const [subjectId, scheduleId] of existingMap.entries()) {
+                    if (!incomingSubjects.has(subjectId)) {
+                        // Soft delete this schedule
+                        await client.query(
+                            `UPDATE exam_schedules SET deleted_at = NOW() WHERE id = $1`,
+                            [scheduleId]
+                        );
+                    }
+                }
+            }
+        } else {
+            // If strictly appending (not replacing), simply insert. 
+            // In this app, the UI usually sends the whole list, so delete_existing is mostly true.
+            // But just in case:
+            for (const schedule of schedules) {
+                await client.query(
+                    `INSERT INTO exam_schedules 
+                     (school_id, exam_type_id, class_id, section_id, subject_id, exam_date, start_time, end_time, components, max_marks, min_marks)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+                    [
+                        school_id,
+                        schedule.exam_type_id,
+                        schedule.class_id,
+                        schedule.section_id || null,
+                        schedule.subject_id,
+                        schedule.exam_date,
+                        schedule.start_time,
+                        schedule.end_time,
+                        JSON.stringify(schedule.components || []),
+                        schedule.max_marks || 100,
+                        schedule.min_marks || 35
+                    ]
+                );
+            }
         }
 
         await client.query('COMMIT');
 
-        // Notification Logic (Simplified)
+        // Notification Logic
         try {
             const { sendPushNotification } = require('../services/notificationService');
+            // Notify unique students affected
             const combos = new Set(schedules.map(s => `${s.class_id}-${s.section_id || 'NULL'}`));
             for (const combo of combos) {
                 const [cid, sid] = combo.split('-');
@@ -120,9 +202,12 @@ exports.saveExamSchedule = async (req, res) => {
                     stuQuery += ' AND section_id = $3';
                     params.push(sid);
                 }
+                // Only notify active students
+                stuQuery += " AND status = 'Active'";
+
                 const studentsRes = await pool.query(stuQuery, params);
                 for (const stu of studentsRes.rows) {
-                    await sendPushNotification(stu.id, 'Exam Schedule', 'The exam schedule for your class has been updated.');
+                    await sendPushNotification(stu.id, 'Exam Schedule Update', 'The exam schedule for your class has been updated.');
                 }
             }
         } catch (notifyError) {

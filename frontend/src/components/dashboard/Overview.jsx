@@ -13,8 +13,11 @@ const Overview = ({ config }) => {
         classDistribution: []
     });
 
+    const [academicYear, setAcademicYear] = useState(null);
     const [pendingLeaves, setPendingLeaves] = useState([]);
     const navigate = useNavigate();
+
+
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -67,8 +70,18 @@ const Overview = ({ config }) => {
             }
         };
 
+        const fetchAcademicYear = async () => {
+            try {
+                const res = await api.get('/academic-years/current');
+                setAcademicYear(res.data);
+            } catch (error) {
+                console.error('Error loading academic year:', error);
+            }
+        };
+
         fetchStats();
         fetchPendingLeaves();
+        fetchAcademicYear();
     }, []);
 
     return (
@@ -83,6 +96,32 @@ const Overview = ({ config }) => {
                 </div>
                 <p className="text-slate-500 mt-1">A quick snapshot of your school's demographics.</p>
             </div>
+
+            {/* Academic Year Banner */}
+            {academicYear && (
+                <div className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl shadow-lg p-4 text-white">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Calendar className="w-5 h-5" />
+                            <div>
+                                <div className="text-xs font-medium opacity-90">Academic Year</div>
+                                <div className="text-lg font-black">{academicYear.year_label}</div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-6">
+                            <div className="text-center">
+                                <div className="text-2xl font-black">{academicYear.stats?.daysCompleted || 0}</div>
+                                <div className="text-xs opacity-90">Days Passed</div>
+                            </div>
+                            <div className="h-10 w-px bg-white/30"></div>
+                            <div className="text-center">
+                                <div className="text-2xl font-black">{academicYear.stats?.daysRemaining || 0}</div>
+                                <div className="text-xs opacity-90">Days Left</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* key Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

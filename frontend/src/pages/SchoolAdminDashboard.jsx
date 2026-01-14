@@ -672,6 +672,7 @@ const getTabTitle = (tab) => {
         'certificates-generator': 'Certificate Generator',
         'transport-management': 'Transport & Live Tracking',
         'biometric-access': 'Biometric & Access Control',
+        'academic-year-settings': 'Academic Year Management',
         'settings': 'School Settings'
     };
     return titles[tab] || 'Dashboard';

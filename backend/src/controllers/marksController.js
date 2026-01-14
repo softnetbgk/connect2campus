@@ -393,11 +393,15 @@ exports.saveMarks = async (req, res) => {
             console.log(`[Marks Save] Failed to save ${failedCount} marks:`, failedMarks);
         }
 
-        // Notification Logic
-        const { sendPushNotification } = require('../services/notificationService');
-        const uniqueStudentIds = [...new Set(marks.map(m => m.student_id))];
-        for (const studentId of uniqueStudentIds) {
-            await sendPushNotification(studentId, 'Exam Results', 'New marks have been updated in your report card.');
+        // Notification Logic (wrapped in try-catch to prevent failures from affecting save)
+        try {
+            const { sendPushNotification } = require('../services/notificationService');
+            const uniqueStudentIds = [...new Set(marks.map(m => m.student_id))];
+            for (const studentId of uniqueStudentIds) {
+                await sendPushNotification(studentId, 'Exam Results', 'New marks have been updated in your report card.');
+            }
+        } catch (notifyError) {
+            console.error('[Marks Save] Notification error (non-critical):', notifyError.message);
         }
 
         const response = {
@@ -681,12 +685,21 @@ exports.getToppers = async (req, res) => {
         const studentsWithMarks = [];
 
         for (const student of studentsResult.rows) {
-            // Get marks for this student
+            // Get marks for this student with max_marks from exam_schedules
             const marksResult = await pool.query(
-                `SELECT m.marks_obtained, sub.name as subject_name
+                `SELECT DISTINCT ON (m.id)
+                        m.marks_obtained, sub.name as subject_name, 
+                        COALESCE(es.max_marks, et.max_marks, 100) as max_marks
                  FROM marks m
                  JOIN subjects sub ON m.subject_id = sub.id
-                 WHERE m.student_id = $1 AND m.exam_type_id = $2 AND m.school_id = $3`,
+                 LEFT JOIN exam_schedules es ON es.subject_id = m.subject_id 
+                    AND es.exam_type_id = m.exam_type_id 
+                    AND es.class_id = m.class_id 
+                    AND es.school_id = m.school_id
+                    AND (es.section_id = m.section_id OR es.section_id IS NULL)
+                 LEFT JOIN exam_types et ON et.id = m.exam_type_id
+                 WHERE m.student_id = $1 AND m.exam_type_id = $2 AND m.school_id = $3
+                 ORDER BY m.id`,
                 [student.id, finalExamTypeId, school_id]
             );
 
@@ -702,7 +715,7 @@ exports.getToppers = async (req, res) => {
             marksResult.rows.forEach(mark => {
                 marks[mark.subject_name] = parseFloat(mark.marks_obtained || 0);
                 totalMarks += parseFloat(mark.marks_obtained || 0);
-                totalMaxMarks += 100; // Default to 100 since max_marks column missing in this DB version
+                totalMaxMarks += parseFloat(mark.max_marks || 100); // Use actual max_marks from schedule
             });
 
             const percentage = totalMaxMarks > 0 ? (totalMarks / totalMaxMarks) * 100 : 0;
@@ -763,15 +776,22 @@ exports.getStudentAllMarks = async (req, res) => {
         }
         const student = studentRes.rows[0];
 
-        // Fetch ALL Marks
-        // Using exam_types max_marks or defaulting to 100
+        // Fetch ALL Marks with actual max_marks from exam_schedules
+        // Using DISTINCT ON to avoid duplicates when multiple schedule entries exist
         const marksQuery = `
-             SELECT m.marks_obtained, sub.name as subject_name, et.name as exam_name, et.max_marks
+             SELECT DISTINCT ON (m.id) 
+                    m.marks_obtained, sub.name as subject_name, et.name as exam_name, 
+                    COALESCE(es.max_marks, et.max_marks, 100) as max_marks
              FROM marks m
              JOIN subjects sub ON m.subject_id = sub.id
              JOIN exam_types et ON m.exam_type_id = et.id
+             LEFT JOIN exam_schedules es ON es.subject_id = m.subject_id 
+                AND es.exam_type_id = m.exam_type_id 
+                AND es.school_id = m.school_id
+                AND (es.class_id = m.class_id OR es.class_id IS NULL)
+                AND (es.section_id = m.section_id OR es.section_id IS NULL)
              WHERE m.student_id = $1 AND m.school_id = $2
-             ORDER BY et.id, sub.name
+             ORDER BY m.id, et.id, sub.name
         `;
 
         const marksRes = await pool.query(marksQuery, [student.id, school_id]);

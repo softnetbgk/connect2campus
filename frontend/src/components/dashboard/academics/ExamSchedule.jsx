@@ -351,6 +351,8 @@ const ExamSchedule = () => {
                 exam_date: item.exam_date,
                 start_time: item.start_time,
                 end_time: item.end_time,
+                max_marks: item.max_marks || 100,
+                min_marks: item.min_marks || 35,
                 components: item.components || []
             }));
 
