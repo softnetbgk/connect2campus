@@ -93,6 +93,8 @@ const TeacherAttendanceReports = () => {
                                         let text = '';
                                         let content = '';
 
+                                        const isSunday = new Date(year, month - 1, d).getDay() === 0;
+
                                         if (status === 'Present') {
                                             bg = 'bg-emerald-100/70';
                                             text = 'text-emerald-700';
@@ -109,6 +111,10 @@ const TeacherAttendanceReports = () => {
                                             bg = 'bg-blue-100/70';
                                             text = 'text-blue-700';
                                             content = 'LV';
+                                        } else if (isSunday) {
+                                            bg = 'bg-red-50';
+                                            text = 'text-red-600';
+                                            content = 'S';
                                         } else if (status === 'Holiday') {
                                             bg = 'bg-slate-100/70';
                                             text = 'text-slate-700';

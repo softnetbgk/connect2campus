@@ -1,9 +1,320 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Plus, Edit2, Trash2, X, ChevronDown, ChevronRight, Save } from 'lucide-react';
+import { Layers, Plus, Edit2, Trash2, X, ChevronDown, ChevronRight, Save, BookOpen } from 'lucide-react';
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
 
-const ClassManagement = () => {
+const SectionManager = ({ classId }) => {
+    const [sections, setSections] = useState([]);
+    const [secLoading, setSecLoading] = useState(true);
+    const [sectionName, setSectionName] = useState('');
+    const [editingSection, setEditingSection] = useState(null);
+
+    useEffect(() => {
+        fetchSections();
+    }, [classId]);
+
+    const fetchSections = async () => {
+        try {
+            const res = await api.get(`/classes/${classId}/sections`);
+            setSections(res.data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setSecLoading(false);
+        }
+    };
+
+    const handleAddSection = async (e) => {
+        e.preventDefault();
+        if (!sectionName.trim()) return;
+
+        try {
+            await api.post(`/classes/${classId}/sections`, { name: sectionName });
+            toast.success('Section added');
+            setSectionName('');
+            fetchSections();
+        } catch (error) {
+            toast.error('Failed to add section');
+        }
+    };
+
+    const handleUpdateSection = async () => {
+        if (!editingSection || !editingSection.name.trim()) return;
+
+        try {
+            await api.put(`/classes/${classId}/sections/${editingSection.id}`, { name: editingSection.name });
+            toast.success('Section updated');
+            setEditingSection(null);
+            fetchSections();
+        } catch (error) {
+            toast.error('Failed to update section');
+        }
+    };
+
+    const handleDeleteSection = async (secId) => {
+        if (!window.confirm('Delete this section?')) return;
+        try {
+            await api.delete(`/classes/${classId}/sections/${secId}`);
+            toast.success('Section deleted');
+            fetchSections();
+        } catch (error) {
+            toast.error('Failed to delete section');
+        }
+    };
+
+    if (secLoading) return <div className="p-4 text-xs text-slate-400">Loading sections...</div>;
+
+    return (
+        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-2 h-full">
+            <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-2">
+                <Layers size={14} /> Manage Sections
+            </h4>
+
+            <div className="space-y-2 mb-4 max-h-60 overflow-y-auto">
+                {sections.map(sec => (
+                    <div key={sec.id} className="bg-white border border-slate-200 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-between shadow-sm">
+                        {editingSection?.id === sec.id ? (
+                            <div className="flex items-center gap-2 w-full">
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    value={editingSection.name}
+                                    onChange={(e) => setEditingSection({ ...editingSection, name: e.target.value })}
+                                    className="border border-indigo-300 rounded px-2 py-1 text-sm flex-1 outline-none"
+                                />
+                                <button onClick={handleUpdateSection} className="text-green-600 hover:text-green-800"><Save size={14} /></button>
+                                <button onClick={() => setEditingSection(null)} className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
+                            </div>
+                        ) : (
+                            <>
+                                <span>{sec.name}</span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setEditingSection(sec)}
+                                        className="text-slate-400 hover:text-indigo-600 transition-colors"
+                                    >
+                                        <Edit2 size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteSection(sec.id)}
+                                        className="text-slate-400 hover:text-red-500 transition-colors"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                ))}
+                {sections.length === 0 && <span className="text-xs text-slate-400 italic py-1">No sections added yet</span>}
+            </div>
+
+            <form onSubmit={handleAddSection} className="flex gap-2">
+                <input
+                    type="text"
+                    value={sectionName}
+                    onChange={(e) => setSectionName(e.target.value)}
+                    placeholder="New Section"
+                    className="px-3 py-2 border border-slate-300 rounded-lg text-sm flex-1 outline-none focus:border-indigo-500"
+                />
+                <button
+                    type="submit"
+                    disabled={!sectionName.trim()}
+                    className="bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm font-bold disabled:opacity-50 hover:bg-indigo-700"
+                >
+                    <Plus size={16} />
+                </button>
+            </form>
+        </div>
+    );
+};
+
+const SubjectManager = ({ classId }) => {
+    const [subjects, setSubjects] = useState([]);
+    const [subLoading, setSubLoading] = useState(true);
+    const [editingSubject, setEditingSubject] = useState(null);
+
+    // Form inputs
+    const [subName, setSubName] = useState('');
+    const [subCode, setSubCode] = useState('');
+    const [subType, setSubType] = useState('Theory');
+
+    useEffect(() => {
+        fetchSubjects();
+    }, [classId]);
+
+    const fetchSubjects = async () => {
+        try {
+            const res = await api.get(`/classes/${classId}/subjects`);
+            setSubjects(res.data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setSubLoading(false);
+        }
+    };
+
+    const handleAddSubject = async (e) => {
+        e.preventDefault();
+        if (!subName.trim()) return;
+
+        try {
+            await api.post(`/classes/${classId}/subjects`, {
+                name: subName,
+                code: subCode,
+                type: subType
+            });
+            toast.success('Subject added');
+            setSubName('');
+            setSubCode('');
+            setSubType('Theory');
+            fetchSubjects();
+        } catch (error) {
+            toast.error('Failed to add subject');
+        }
+    };
+
+    const handleUpdateSubject = async () => {
+        if (!editingSubject || !editingSubject.name.trim()) return;
+
+        try {
+            await api.put(`/classes/${classId}/subjects/${editingSubject.id}`, {
+                name: editingSubject.name,
+                code: editingSubject.code,
+                type: editingSubject.type
+            });
+            toast.success('Subject updated');
+            setEditingSubject(null);
+            fetchSubjects();
+        } catch (error) {
+            toast.error('Failed to update subject');
+        }
+    };
+
+    const handleDeleteSubject = async (subId) => {
+        if (!window.confirm('Delete this subject?')) return;
+        try {
+            await api.delete(`/classes/${classId}/subjects/${subId}`);
+            toast.success('Subject deleted');
+            fetchSubjects();
+        } catch (error) {
+            toast.error('Failed to delete subject');
+        }
+    };
+
+    if (subLoading) return <div className="p-4 text-xs text-slate-400">Loading subjects...</div>;
+
+    return (
+        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-2 h-full">
+            <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-2">
+                <BookOpen size={14} /> Manage Subjects
+            </h4>
+
+            <div className="space-y-2 mb-4 max-h-60 overflow-y-auto">
+                {subjects.map(sub => (
+                    <div key={sub.id} className="bg-white border border-slate-200 px-3 py-2 rounded-lg text-sm font-medium flex flex-col gap-2 shadow-sm">
+                        {editingSubject?.id === sub.id ? (
+                            <div className="space-y-2 w-full">
+                                <div className="flex gap-2">
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        value={editingSubject.name}
+                                        onChange={(e) => setEditingSubject({ ...editingSubject, name: e.target.value })}
+                                        className="border border-indigo-300 rounded px-2 py-1 text-sm flex-1 outline-none"
+                                        placeholder="Name"
+                                    />
+                                    <select
+                                        value={editingSubject.type}
+                                        onChange={(e) => setEditingSubject({ ...editingSubject, type: e.target.value })}
+                                        className="border border-indigo-300 rounded px-2 py-1 text-xs outline-none"
+                                    >
+                                        <option value="Theory">Theory</option>
+                                        <option value="Practical">Practical</option>
+                                    </select>
+                                </div>
+                                <div className="flex gap-2 items-center">
+                                    <input
+                                        type="text"
+                                        value={editingSubject.code || ''}
+                                        onChange={(e) => setEditingSubject({ ...editingSubject, code: e.target.value })}
+                                        className="border border-indigo-300 rounded px-2 py-1 text-xs flex-1 outline-none"
+                                        placeholder="Code (opt)"
+                                    />
+                                    <button onClick={handleUpdateSubject} className="text-green-600 hover:text-green-800"><Save size={16} /></button>
+                                    <button onClick={() => setEditingSubject(null)} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex justify-between items-center w-full">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-slate-800">{sub.name}</span>
+                                        {sub.code && <span className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">{sub.code}</span>}
+                                    </div>
+                                    <span className="text-[10px] uppercase font-bold text-slate-400">{sub.type}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setEditingSubject(sub)}
+                                        className="text-slate-400 hover:text-indigo-600 transition-colors"
+                                    >
+                                        <Edit2 size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteSubject(sub.id)}
+                                        className="text-slate-400 hover:text-red-500 transition-colors"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ))}
+                {subjects.length === 0 && <span className="text-xs text-slate-400 italic py-1">No subjects added yet</span>}
+            </div>
+
+            <form onSubmit={handleAddSubject} className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                    <input
+                        type="text"
+                        value={subName}
+                        onChange={(e) => setSubName(e.target.value)}
+                        placeholder="Subject Name"
+                        className="px-3 py-2 border border-slate-300 rounded-lg text-sm flex-1 outline-none focus:border-indigo-500"
+                    />
+                    <select
+                        value={subType}
+                        onChange={(e) => setSubType(e.target.value)}
+                        className="px-2 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:border-indigo-500 bg-white"
+                    >
+                        <option value="Theory">Theory</option>
+                        <option value="Practical">Practical</option>
+                    </select>
+                </div>
+                <div className="flex gap-2">
+                    <input
+                        type="text"
+                        value={subCode}
+                        onChange={(e) => setSubCode(e.target.value)}
+                        placeholder="Code (opt)"
+                        className="px-3 py-2 border border-slate-300 rounded-lg text-sm flex-1 outline-none focus:border-indigo-500"
+                    />
+                    <button
+                        type="submit"
+                        disabled={!subName.trim()}
+                        className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 hover:bg-indigo-700"
+                    >
+                        <Plus size={16} />
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+};
+
+const ClassManagement = ({ schoolId }) => {
     const [classes, setClasses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [expandedClass, setExpandedClass] = useState(null);
@@ -12,19 +323,18 @@ const ClassManagement = () => {
 
     // Form States
     const [newClassName, setNewClassName] = useState('');
-    const [newSectionName, setNewSectionName] = useState('');
 
     useEffect(() => {
         fetchClasses();
-    }, []);
+    }, [schoolId]);
 
     const fetchClasses = async () => {
         setLoading(true);
         try {
-            // This endpoint gets classes. We might need to fetch sections separately or eager load.
-            // Current backend: getAllClasses returns classes. getSections returns sections for a class.
-            const res = await api.get('/classes');
-            setClasses(res.data); // data is array of classes
+            // Pass schoolId query param if prop is provided (Super Admin mode)
+            const url = schoolId ? `/classes?schoolId=${schoolId}` : '/classes';
+            const res = await api.get(url);
+            setClasses(res.data);
         } catch (error) {
             console.error(error);
             toast.error('Failed to load classes');
@@ -38,7 +348,10 @@ const ClassManagement = () => {
         if (!newClassName.trim()) return;
 
         try {
-            await api.post('/classes', { name: newClassName });
+            await api.post('/classes', {
+                name: newClassName,
+                schoolId: schoolId // Pass schoolId if in Super Admin mode
+            });
             toast.success('Class added successfully');
             setNewClassName('');
             setShowAddModal(false);
@@ -73,93 +386,6 @@ const ClassManagement = () => {
         }
     };
 
-    // Sub-component for managing sections of a specific class
-    const SectionManager = ({ classId }) => {
-        const [sections, setSections] = useState([]);
-        const [secLoading, setSecLoading] = useState(true);
-        const [sectionName, setSectionName] = useState('');
-
-        useEffect(() => {
-            fetchSections();
-        }, [classId]);
-
-        const fetchSections = async () => {
-            try {
-                const res = await api.get(`/classes/${classId}/sections`);
-                setSections(res.data);
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setSecLoading(false);
-            }
-        };
-
-        const handleAddSection = async (e) => {
-            e.preventDefault();
-            if (!sectionName.trim()) return;
-
-            try {
-                await api.post(`/classes/${classId}/sections`, { name: sectionName });
-                toast.success('Section added');
-                setSectionName('');
-                fetchSections();
-            } catch (error) {
-                toast.error('Failed to add section');
-            }
-        };
-
-        const handleDeleteSection = async (secId) => {
-            if (!window.confirm('Delete this section?')) return;
-            try {
-                await api.delete(`/classes/${classId}/sections/${secId}`);
-                toast.success('Section deleted');
-                fetchSections();
-            } catch (error) {
-                toast.error('Failed to delete section');
-            }
-        };
-
-        if (secLoading) return <div className="p-4 text-xs text-slate-400">Loading sections...</div>;
-
-        return (
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mt-2 animate-in slide-in-from-top-2">
-                <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">Manage Sections</h4>
-
-                <div className="flex flex-wrap gap-2 mb-4">
-                    {sections.map(sec => (
-                        <div key={sec.id} className="bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm">
-                            {sec.name}
-                            <button
-                                onClick={() => handleDeleteSection(sec.id)}
-                                className="text-slate-400 hover:text-red-500 transition-colors"
-                            >
-                                <X size={14} />
-                            </button>
-                        </div>
-                    ))}
-                    {sections.length === 0 && <span className="text-xs text-slate-400 italic py-1">No sections added yet</span>}
-                </div>
-
-                <form onSubmit={handleAddSection} className="flex gap-2">
-                    <input
-                        type="text"
-                        value={sectionName}
-                        onChange={(e) => setSectionName(e.target.value)}
-                        placeholder="New Section (e.g. A, B, Ruby)"
-                        className="px-3 py-2 border border-slate-300 rounded-lg text-sm flex-1 outline-none focus:border-indigo-500"
-                    />
-                    <button
-                        type="submit"
-                        disabled={!sectionName.trim()}
-                        className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 hover:bg-indigo-700"
-                    >
-                        Add
-                    </button>
-                </form>
-            </div>
-        );
-    };
-
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -171,7 +397,7 @@ const ClassManagement = () => {
                         </div>
                         <div>
                             <h2 className="text-2xl font-black">Class Management</h2>
-                            <p className="text-indigo-100 text-sm">Create and organize classes and sections</p>
+                            <p className="text-indigo-100 text-sm">Create and organize classes, sections, and subjects</p>
                         </div>
                     </div>
                     <button
@@ -195,17 +421,16 @@ const ClassManagement = () => {
                     })
                     .map(cls => (
                         <div key={cls.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-all hover:shadow-md">
-                            <div className="p-4 flex items-center justify-between">
+                            <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50" onClick={() => setExpandedClass(expandedClass === cls.id ? null : cls.id)}>
                                 <div className="flex items-center gap-4">
                                     <button
-                                        onClick={() => setExpandedClass(expandedClass === cls.id ? null : cls.id)}
                                         className="text-slate-400 hover:text-indigo-600 transition-colors"
                                     >
                                         {expandedClass === cls.id ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                                     </button>
 
                                     {editingClass?.id === cls.id ? (
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                             <input
                                                 autoFocus
                                                 type="text"
@@ -221,7 +446,7 @@ const ClassManagement = () => {
                                     )}
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                     <button
                                         onClick={() => setEditingClass(cls)}
                                         className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
@@ -239,8 +464,11 @@ const ClassManagement = () => {
 
                             {/* Expandable Section Area */}
                             {expandedClass === cls.id && (
-                                <div className="px-4 pb-4">
-                                    <SectionManager classId={cls.id} />
+                                <div className="px-4 pb-4 border-t border-slate-100 bg-slate-50/50">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <SectionManager classId={cls.id} />
+                                        <SubjectManager classId={cls.id} />
+                                    </div>
                                 </div>
                             )}
                         </div>

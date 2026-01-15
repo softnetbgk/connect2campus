@@ -11,6 +11,7 @@ import NotificationBell from '../components/NotificationBell';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 import SchoolCalendar from '../components/dashboard/calendar/SchoolCalendar';
 import ViewAnnouncements from '../components/dashboard/calendar/ViewAnnouncements';
+import RecentAnnouncements from '../components/dashboard/calendar/RecentAnnouncements';
 import StaffMyAttendance from '../components/dashboard/staff/StaffMyAttendance';
 import TeacherTransportMap from '../components/dashboard/teachers/TeacherTransportMap';
 import StaffSalarySlips from '../components/dashboard/staff/StaffSalarySlips';
@@ -261,7 +262,7 @@ const StaffDashboard = () => {
                     <NavButton active={activeTab === 'salary'} onClick={() => handleTabChange('salary')} icon={FileText} label="Salary Slips" />
 
                     <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">General</p>
-                    <NavButton active={activeTab === 'announcements'} onClick={() => handleTabChange('announcements')} icon={Bell} label="Notice Board" />
+                    <NavButton id="btn-announcements" active={activeTab === 'announcements'} onClick={() => handleTabChange('announcements')} icon={Bell} label="Notice Board" />
                     <NavButton active={activeTab === 'calendar'} onClick={() => handleTabChange('calendar')} icon={Calendar} label="School Calendar" />
                 </nav>
 
@@ -476,9 +477,11 @@ const StaffOverview = ({ isDriver, schoolName, profile, user }) => {
                 <div className="text-3xl font-bold text-slate-800">
                     {loading ? <span className="text-sm text-slate-400">...</span> : lastSalary ? `₹${lastSalary.amount}` : '-'}
                 </div>
-                <div className="text-xs text-slate-500 mt-2 font-bold">
-                    {loading ? '' : lastSalary ? `${new Date(0, lastSalary.month - 1).toLocaleString('default', { month: 'short' })} ${lastSalary.year} • ${lastSalary.status}` : 'No records'}
-                </div>
+                {loading ? '' : lastSalary ? `${new Date(0, lastSalary.month - 1).toLocaleString('default', { month: 'short' })} ${lastSalary.year} • ${lastSalary.status}` : 'No records'}
+            </div>
+            {/* Recent Announcements Widget */}
+            <div className="h-full">
+                <RecentAnnouncements limit={3} onMoreClick={() => document.getElementById('btn-announcements')?.click()} />
             </div>
         </div>
     );
@@ -555,8 +558,9 @@ const DriverTrackingView = ({ vehicles, selectedVehicle, setSelectedVehicle, sta
 
 
 // Helper Component
-const NavButton = ({ active, onClick, icon: Icon, label }) => (
+const NavButton = ({ active, onClick, icon: Icon, label, id }) => (
     <button
+        id={id}
         onClick={onClick}
         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group ${active
             ? 'bg-white text-blue-600 shadow-lg translate-x-1'

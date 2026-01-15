@@ -14,11 +14,16 @@ router.delete('/:id', classController.deleteClass);
 // Section Routes
 router.get('/:classId/sections', classController.getSections);
 router.post('/:classId/sections', classController.createSection);
+router.put('/:classId/sections/:sectionId', classController.updateSection);
 router.delete('/:classId/sections/:sectionId', classController.deleteSection);
 
-// Subject Routes (Read-only here, usually managed via Subject routes if they exist)
+// Subject Routes
 router.get('/:classId/subjects', classController.getSubjects);
-// Alias for consistency with some frontend calls that might try to get by section (though subjects are by class)
+router.post('/:classId/subjects', classController.createSubject);
+router.put('/:classId/subjects/:subjectId', classController.updateSubject);
+router.delete('/:classId/subjects/:subjectId', classController.deleteSubject);
+
+// Alias for consistency (legacy support if needed)
 router.get('/:classId/sections/:sectionId/subjects', classController.getSubjects);
 
 module.exports = router;

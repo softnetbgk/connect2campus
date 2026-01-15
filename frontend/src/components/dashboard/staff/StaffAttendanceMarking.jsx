@@ -7,6 +7,7 @@ const StaffAttendanceMarking = () => {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [staff, setStaff] = useState([]);
     const [attendance, setAttendance] = useState({});
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => { fetchAttendance(); }, [date]);
 
@@ -21,11 +22,14 @@ const StaffAttendanceMarking = () => {
     };
 
     const handleSave = async () => {
+        if (saving) return; // Prevent double click
+        setSaving(true);
         try {
             const payload = Object.entries(attendance).map(([id, status]) => ({ staff_id: parseInt(id), status }));
             await api.post('/staff/attendance', { date, attendanceData: payload });
             toast.success('Attendance saved');
         } catch (e) { toast.error('Failed to save'); }
+        finally { setSaving(false); }
     };
 
     const isEditable = date === new Date().toISOString().split('T')[0];
@@ -46,9 +50,16 @@ const StaffAttendanceMarking = () => {
                                     staff.forEach(s => newAttendance[s.id] = 'Present');
                                     setAttendance(newAttendance);
                                 }}
+                                disabled={saving}
                             >Mark All Present</button>
-                            <button onClick={handleSave} className="flex-1 md:flex-none bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95">
-                                <Check size={18} /> <span className="hidden sm:inline">Save Attendance</span><span className="sm:hidden">Save</span>
+                            <button
+                                onClick={handleSave}
+                                disabled={saving}
+                                className={`flex-1 md:flex-none bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none`}
+                            >
+                                <Check size={18} className={saving ? 'animate-pulse' : ''} />
+                                <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save Attendance'}</span>
+                                <span className="sm:hidden">{saving ? 'Saving...' : 'Save'}</span>
                             </button>
                         </>
                     )}

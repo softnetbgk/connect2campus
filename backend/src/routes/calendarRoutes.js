@@ -12,6 +12,8 @@ router.delete('/events/:id', authorize('SCHOOL_ADMIN'), calendarController.delet
 
 // Announcements
 router.get('/announcements', calendarController.getAnnouncements);
+router.get('/announcements/options', calendarController.getAnnouncementOptions);
+router.get('/announcements/count', authorize('SCHOOL_ADMIN'), calendarController.getAudienceCount);
 router.post('/announcements', authorize('SCHOOL_ADMIN'), calendarController.addAnnouncement);
 router.delete('/announcements/:id', authorize('SCHOOL_ADMIN'), calendarController.deleteAnnouncement);
 

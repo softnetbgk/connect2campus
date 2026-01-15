@@ -703,7 +703,7 @@ exports.getDailyAttendance = async (req, res) => {
         }
 
         let query = `
-        SELECT s.id, s.name, s.roll_number, COALESCE(a.status, 'Unmarked') as status
+        SELECT s.id, s.name, s.roll_number, s.contact_number, COALESCE(a.status, 'Unmarked') as status
         FROM students s
         LEFT JOIN attendance a ON s.id = a.student_id AND a.date = $2
         WHERE s.school_id = $1 AND s.class_id = $3

@@ -3,7 +3,12 @@ import { Bell, Clock, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../../api/axios';
 
+import { useAuth } from '../../../context/AuthContext';
+
 const ViewAnnouncements = () => {
+    const { user } = useAuth();
+    const isAdmin = ['SCHOOL_ADMIN', 'SUPER_ADMIN'].includes(user?.role);
+
     const [announcements, setAnnouncements] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -13,8 +18,24 @@ const ViewAnnouncements = () => {
 
     const fetchAnnouncements = async () => {
         try {
-            const res = await api.get('/calendar/announcements');
-            setAnnouncements(res.data);
+            // Add cache buster to ensure fresh data
+            const res = await api.get(`/calendar/announcements?t=${Date.now()}`);
+
+            // SECONDARY SHIELD: Double-filter on frontend for absolute safety
+            if (!isAdmin) {
+                const userRole = user?.role?.toUpperCase();
+                const filtered = res.data.filter(item => {
+                    const target = item.target_role;
+                    if (target === 'All') return true;
+                    if (userRole === 'STUDENT' && (target === 'Student' || target === 'Class')) return true;
+                    if (userRole === 'TEACHER' && target === 'Teacher') return true;
+                    if (['STAFF', 'DRIVER', 'ACCOUNTANT', 'LIBRARIAN'].includes(userRole) && target === 'Staff') return true;
+                    return false;
+                });
+                setAnnouncements(filtered);
+            } else {
+                setAnnouncements(res.data);
+            }
         } catch (error) {
             console.error(error);
             toast.error('Failed to load announcements');
@@ -45,6 +66,21 @@ const ViewAnnouncements = () => {
                 </div>
             </div>
 
+            {/* Session Info Badge */}
+            <div className="flex justify-end mb-2">
+                <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border shadow-sm ${isAdmin ? 'bg-amber-100 border-amber-200 text-amber-800' : 'bg-slate-100 border-slate-200 text-slate-600'
+                    }`}>
+                    Logged in as: {user?.role} {isAdmin && ' (Full Access)'}
+                </span>
+            </div>
+
+            {isAdmin && (
+                <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg flex items-center gap-3 text-amber-800 text-sm mb-4">
+                    <AlertCircle size={18} />
+                    <strong>Admin View:</strong> You can see all announcements, regardless of the target audience.
+                </div>
+            )}
+
             {announcements.length === 0 ? (
                 <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center">
                     <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
@@ -60,6 +96,17 @@ const ViewAnnouncements = () => {
                             key={item.id}
                             className={`relative overflow-hidden rounded-xl border p-6 transition-all hover:shadow-md ${getPriorityColor(item.priority)}`}
                         >
+                            {/* Target Badge - Visible to All */}
+                            <div className="absolute top-0 right-0 p-3 flex gap-2">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.target_role === 'All' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-slate-50 text-slate-500 border-slate-200'
+                                    }`}>
+                                    {item.target_role === 'Class' && item.class_name ? `To ${item.class_name}` :
+                                        item.target_role === 'Student' ? 'To Students' :
+                                            item.target_role === 'Teacher' ? 'To Teachers' :
+                                                item.target_role === 'Staff' ? 'To Staffs' :
+                                                    `Universal Notice`}
+                                </span>
+                            </div>
                             {item.priority === 'Urgent' && (
                                 <div className="absolute top-0 right-0 p-2 opacity-10">
                                     <AlertCircle size={80} />

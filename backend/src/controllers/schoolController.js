@@ -697,8 +697,41 @@ const updateSchoolLogo = async (req, res) => {
     }
 };
 
+const getDashboardStats = async (req, res) => {
+    const school_id = req.user.schoolId;
+    try {
+        // 1. Get Core Counts
+        const countsRes = await pool.query(`
+            SELECT 
+                (SELECT COUNT(*) FROM students WHERE school_id = $1 AND (status IS NULL OR status != 'Deleted')) as total_students,
+                (SELECT COUNT(*) FROM students WHERE school_id = $1 AND (status IS NULL OR status != 'Deleted') AND gender = 'Male') as male_students,
+                (SELECT COUNT(*) FROM students WHERE school_id = $1 AND (status IS NULL OR status != 'Deleted') AND gender = 'Female') as female_students,
+                (SELECT COUNT(*) FROM teachers WHERE school_id = $1) as total_teachers,
+                (SELECT COUNT(*) FROM staff WHERE school_id = $1) as total_staff
+        `, [school_id]);
+
+        // 2. Get Class Distribution
+        const distRes = await pool.query(`
+            SELECT c.name, COUNT(s.id) as count
+            FROM classes c
+            LEFT JOIN students s ON c.id = s.class_id AND (s.status IS NULL OR s.status != 'Deleted')
+            WHERE c.school_id = $1
+            GROUP BY c.id, c.name
+            ORDER BY c.name ASC
+        `, [school_id]);
+
+        res.json({
+            ...countsRes.rows[0],
+            classDistribution: distRes.rows
+        });
+    } catch (error) {
+        console.error('Dashboard Stats Error:', error);
+        res.status(500).json({ message: 'Error loading stats' });
+    }
+};
+
 module.exports = {
     createSchool, getSchools, getSchoolDetails, updateSchool, getMySchool,
     toggleSchoolStatus, deleteSchool, restoreSchool, getDeletedSchools,
-    permanentDeleteSchool, updateSchoolFeatures, updateSchoolLogo
+    permanentDeleteSchool, updateSchoolFeatures, updateSchoolLogo, getDashboardStats
 };

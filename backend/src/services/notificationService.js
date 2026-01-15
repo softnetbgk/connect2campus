@@ -39,7 +39,15 @@ const sendPushNotification = async (recipientId, title, body, roleHint = null) =
         // Default to Student if we assume numeric ID is a student (common case in this system)
         if (!finalRole) finalRole = 'Student';
 
-        if (finalRole === 'Student') {
+        // NEW: If the role is specifically 'DIRECT' or the ID is already clearly a User ID, use it!
+        if (finalRole === 'DIRECT' || finalRole === 'All' || finalRole === 'Class') {
+            const res = await client.query('SELECT id FROM users WHERE id = $1', [recipientId]);
+            if (res.rows.length > 0) {
+                dbUserId = res.rows[0].id;
+            }
+        }
+
+        if (!dbUserId && finalRole === 'Student') {
             // Check both standard ID (numeric) and Admission Number
             const res = await client.query(`
                 SELECT u.id 

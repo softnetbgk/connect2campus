@@ -19,13 +19,15 @@ export const NotificationProvider = ({ children }) => {
         try {
             const res = await api.get('/notifications');
 
-            // Handle response data safely
+            // Handle response safely
             const data = Array.isArray(res.data) ? res.data : [];
-            const sorted = data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            setNotifications(sorted);
 
-            const unread = sorted.filter(n => !n.is_read).length;
-            setUnreadCount(unread);
+            // Only keep UNREAD notifications in the list (No History mode)
+            const unreadItems = data.filter(n => !n.is_read);
+            const sorted = unreadItems.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            setNotifications(sorted);
+            setUnreadCount(sorted.length);
 
             // Toast for new notification
             if (showToast && sorted.length > 0) {
@@ -51,8 +53,8 @@ export const NotificationProvider = ({ children }) => {
         try {
             await api.put(`/notifications/${id}/read`);
 
-            // Update local state optimistic
-            setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+            // Clean Inbox Mode: Remove from list immediately
+            setNotifications(prev => prev.filter(n => n.id !== id));
             setUnreadCount(prev => Math.max(0, prev - 1));
 
         } catch (error) {
@@ -63,7 +65,8 @@ export const NotificationProvider = ({ children }) => {
     const markAllAsRead = async () => {
         try {
             await api.put(`/notifications/mark-all-read`);
-            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            // Clean Inbox Mode: Empty the list immediately
+            setNotifications([]);
             setUnreadCount(0);
         } catch (error) {
             console.error('Failed to mark all read:', error);
@@ -77,7 +80,7 @@ export const NotificationProvider = ({ children }) => {
 
             const interval = setInterval(() => {
                 fetchNotifications(true); // Poll fetch
-            }, 15000); // Check every 15 seconds
+            }, 10000); // Check every 10 seconds
 
             return () => clearInterval(interval);
         }

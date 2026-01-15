@@ -22,39 +22,16 @@ const Overview = ({ config }) => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                // Fetch all data in parallel
-                // Requesting large limit for students to get accurate distribution stats
-                const [studentsRes, teachersRes, staffRes] = await Promise.all([
-                    api.get('/students?limit=10000'),
-                    api.get('/teachers'),
-                    api.get('/staff')
-                ]);
-
-                // Handle Student Response (which might be paginated)
-                const studentsData = studentsRes.data;
-                const studentsList = Array.isArray(studentsData) ? studentsData : (studentsData.data || []);
-                const totalStudents = studentsData.pagination?.total || studentsList.length;
-
-                const teachers = teachersRes.data || [];
-                const staff = staffRes.data || [];
-
-                const male = studentsList.filter(s => s.gender === 'Male').length;
-                const female = studentsList.filter(s => s.gender === 'Female').length;
-
-                // Group by Class
-                const classDist = {};
-                studentsList.forEach(s => {
-                    const cls = s.class_name || 'Unassigned';
-                    classDist[cls] = (classDist[cls] || 0) + 1;
-                });
+                const res = await api.get('/schools/dashboard-stats');
+                const data = res.data;
 
                 setStats({
-                    total: totalStudents,
-                    male,
-                    female,
-                    teachers: teachers.length,
-                    staff: staff.length,
-                    classDistribution: Object.entries(classDist).map(([name, count]) => ({ name, count }))
+                    total: parseInt(data.total_students || 0),
+                    male: parseInt(data.male_students || 0),
+                    female: parseInt(data.female_students || 0),
+                    teachers: parseInt(data.total_teachers || 0),
+                    staff: parseInt(data.total_staff || 0),
+                    classDistribution: data.classDistribution || []
                 });
             } catch (error) {
                 console.error('Error loading overview stats:', error);
@@ -88,13 +65,11 @@ const Overview = ({ config }) => {
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header */}
             <div>
-                <h2 className="text-2xl font-bold text-slate-800 tracking-tight">School Overview</h2>
-                <div className="overflow-hidden w-full mt-2 mb-4 p-2">
+                <div className="overflow-hidden w-full mb-4 p-2">
                     <p className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 animate-marquee-fast drop-shadow-sm uppercase tracking-wider font-serif italic">
                         {config?.name || 'My School'}
                     </p>
                 </div>
-                <p className="text-slate-500 mt-1">A quick snapshot of your school's demographics.</p>
             </div>
 
             {/* Academic Year Banner */}

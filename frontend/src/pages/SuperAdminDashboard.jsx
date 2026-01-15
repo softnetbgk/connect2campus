@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
+import ClassManagement from '../components/dashboard/admin/ClassManagement';
 
 // Predefined Options
 const PREDEFINED_CLASSES = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`);
@@ -22,6 +23,7 @@ const SuperAdminDashboard = () => {
     const [editSchoolId, setEditSchoolId] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('active'); // 'active' or 'deleted'
+    const [manageClassesSchoolId, setManageClassesSchoolId] = useState(null);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -586,6 +588,13 @@ const SuperAdminDashboard = () => {
                                                     title="Delete School"
                                                 >
                                                     <Trash2 size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => setManageClassesSchoolId(school.id)}
+                                                    className="p-2 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg transition-colors"
+                                                    title="Manage Classes & Subjects"
+                                                >
+                                                    <Layers size={16} />
                                                 </button>
                                             </>
                                         ) : (
@@ -1306,6 +1315,26 @@ const SuperAdminDashboard = () => {
                 onClose={() => setShowLogoutModal(false)}
                 onConfirm={handleConfirmLogout}
             />
+            {/* Manage Classes Modal */}
+            {manageClassesSchoolId && (
+                <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+                        <div className="px-8 py-6 border-b border-slate-200 bg-white sticky top-0 z-10 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-2xl font-bold text-slate-800 mb-1">Manage Classes</h2>
+                                <p className="text-sm text-slate-500">Configure classes, sections, and subjects for this school.</p>
+                            </div>
+                            <button onClick={() => setManageClassesSchoolId(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
+                            <ClassManagement schoolId={manageClassesSchoolId} />
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };

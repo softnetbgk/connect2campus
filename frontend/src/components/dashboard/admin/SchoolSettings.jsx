@@ -1,19 +1,89 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Building, Upload, Image as ImageIcon, Trash2, Calendar } from 'lucide-react';
+import { Save, Building, Upload, Image as ImageIcon, Trash2, Calendar, Layers } from 'lucide-react';
 import api from '../../../api/axios';
 import toast from 'react-hot-toast';
 import ClassManagement from './ClassManagement';
+import AcademicYearSettings from '../settings/AcademicYearSettings';
+
+import { useAuth } from '../../../context/AuthContext';
 
 const SchoolSettings = () => {
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState('branding'); // 'branding', 'academic-year', 'classes'
     const [logoUrl, setLogoUrl] = useState('');
+    const [logoFile, setLogoFile] = useState(null);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         loadSchoolInfo();
     }, []);
 
-    // ... (keep existing functions)
+    const loadSchoolInfo = async () => {
+        try {
+            setLoading(true);
+            const response = await api.get('/schools/my-school');
+            if (response.data) {
+                // Assuming response.data contains school info directly or wrapped
+                const school = response.data.data || response.data; // Handle potential wrapping
+                setLogoUrl(school.logo || '');
+            }
+        } catch (error) {
+            console.error('Error loading school info:', error);
+            // toast.error('Failed to load school settings'); 
+            // Suppress error if 404/empty to avoid annoying user on first load? 
+            // But 'my-school' should exist if logged in.
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('File size must be less than 5MB');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setLogoUrl(reader.result);
+            };
+            reader.readAsDataURL(file);
+            setLogoFile(file);
+        }
+    };
+
+    const handleRemoveLogo = () => {
+        setLogoUrl('');
+        setLogoFile(null);
+    };
+
+    const handleSave = async () => {
+        try {
+            setLoading(true);
+
+            if (logoFile) {
+                const formData = new FormData();
+                formData.append('logo', logoFile);
+                await api.put('/schools/my-school/logo', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                toast.success('Settings saved successfully');
+                setLogoFile(null);
+                // Reload info to get any processed URL if needed
+                loadSchoolInfo();
+            } else {
+                toast.success('Settings saved successfully');
+            }
+
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            toast.error(error.response?.data?.message || 'Failed to save settings');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -40,23 +110,24 @@ const SchoolSettings = () => {
                         <Calendar size={20} />
                         Academic Year
                     </button>
-                    <button
-                        onClick={() => setActiveTab('classes')}
-                        className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-bold transition-all ${activeTab === 'classes'
-                            ? 'bg-indigo-600 text-white shadow-md'
-                            : 'text-slate-600 hover:bg-slate-50'
-                            }`}
-                    >
-                        <Layers size={20} />
-                        Classes & Sections
-                    </button>
+                    {user?.role === 'SUPER_ADMIN' && (
+                        <button
+                            onClick={() => setActiveTab('classes')}
+                            className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-bold transition-all ${activeTab === 'classes'
+                                ? 'bg-indigo-600 text-white shadow-md'
+                                : 'text-slate-600 hover:bg-slate-50'
+                                }`}
+                        >
+                            <Layers size={20} />
+                            Classes & Sections
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* Tab Content */}
             {activeTab === 'branding' && (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-2xl mx-auto">
-                    {/* ... (keep existing branding content) ... */}
                     <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-800">
                         <Building className="text-indigo-600" /> School Branding
                     </h2>
@@ -123,7 +194,7 @@ const SchoolSettings = () => {
             )}
 
             {/* Classes Tab */}
-            {activeTab === 'classes' && (
+            {activeTab === 'classes' && user?.role === 'SUPER_ADMIN' && (
                 <ClassManagement />
             )}
         </div>

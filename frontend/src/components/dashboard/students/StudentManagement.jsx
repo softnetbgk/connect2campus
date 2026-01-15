@@ -490,22 +490,7 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
             <div className="flex flex-col md:flex-row justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex flex-col gap-4">
                     {/* View Toggle */}
-                    {!isPromotionView && defaultViewMode !== 'bin' && (
-                        <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
-                            <button
-                                onClick={() => setViewMode('active')}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'active' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                                Active Students
-                            </button>
-                            <button
-                                onClick={() => setViewMode('bin')}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${viewMode === 'bin' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                                <Trash2 size={16} /> Recycle Bin
-                            </button>
-                        </div>
-                    )}
+                    {/* View Toggle Removed as per request */}
 
                     {(viewMode === 'active' || isPromotionView) && (
                         <div className="flex flex-wrap items-center gap-3">
@@ -536,7 +521,7 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
                         </div>
                     )}
                 </div>
-                <div className="flex gap-3 items-center">
+                <div className="flex flex-wrap gap-3 items-center justify-end w-full md:w-auto">
                     {!isPromotionView && (
                         <>
                             <input
@@ -547,15 +532,13 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9 ]/g, '').replace(/^\s+/, ''))}
                             />
-                            {viewMode !== 'bin' && (
-                                <button
-                                    onClick={handlePrint}
-                                    disabled={students.length === 0 || selectedStudents.length > 0}
-                                    className={`bg-slate-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-slate-500/20 hover:bg-slate-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${selectedStudents.length > 0 ? 'opacity-30 blur-[1px]' : ''}`}
-                                >
-                                    <Printer size={20} /> Print List
-                                </button>
-                            )}
+                            <button
+                                onClick={handlePrint}
+                                disabled={students.length === 0 || selectedStudents.length > 0}
+                                className={`bg-slate-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-slate-500/20 hover:bg-slate-700 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${selectedStudents.length > 0 ? 'opacity-30 blur-[1px]' : ''}`}
+                            >
+                                <Printer size={20} /> Print List
+                            </button>
                         </>
                     )}
                     {selectedStudents.length > 0 && viewMode === 'active' && (
@@ -594,7 +577,7 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
                             <GraduationCap size={20} /> Promote ({selectedStudents.length})
                         </button>
                     )}
-                    {!isPromotionView && viewMode !== 'bin' && (
+                    {!isPromotionView && (
                         <button
                             onClick={handleAdd}
                             disabled={selectedStudents.length > 0}

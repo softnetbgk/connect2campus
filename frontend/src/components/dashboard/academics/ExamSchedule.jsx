@@ -858,14 +858,6 @@ const ExamSchedule = () => {
                                 <p className="text-sm text-slate-500">Select subjects and set their exam date and timing</p>
                                 {selectedExam && (
                                     <div className="mt-2 bg-blue-50 p-2 rounded text-xs text-blue-700 font-bold border border-blue-100 flex gap-4">
-                                        <span>
-                                            Exam Type Period: {(() => {
-                                                const et = examTypes.find(e => e.id === parseInt(selectedExam));
-                                                if (!et) return '';
-                                                const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                                                return `${m[et.start_month - 1]} - ${m[et.end_month - 1]}`;
-                                            })()}
-                                        </span>
                                         <span className="text-indigo-600">
                                             Scheduled Period: {(() => {
                                                 const dates = Object.values(subjectConfigs)

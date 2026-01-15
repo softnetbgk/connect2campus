@@ -121,6 +121,7 @@ const DailyAttendanceStatus = ({ config }) => {
                             <th style="width: 50px;">Roll</th>
                             <th>Student Name</th>
                             <th>Status</th>
+                            <th>Parent Contact</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -129,6 +130,7 @@ const DailyAttendanceStatus = ({ config }) => {
                                 <td>${student.roll_number || '-'}</td>
                                 <td>${student.name}</td>
                                 <td class="status-${student.status?.toLowerCase()}">${student.status}</td>
+                                <td>${student.status === 'Absent' ? (student.contact_number || '-') : ''}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -221,6 +223,7 @@ const DailyAttendanceStatus = ({ config }) => {
                                             <tr>
                                                 <th className="px-5 py-3 w-24">Roll No</th>
                                                 <th className="px-5 py-3">Student Name</th>
+                                                <th className="px-5 py-3 text-right">Parent Contact</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-50">
@@ -228,6 +231,7 @@ const DailyAttendanceStatus = ({ config }) => {
                                                 <tr key={s.id} className="hover:bg-slate-50 transition-colors">
                                                     <td className="px-5 py-3 font-mono text-slate-400 font-medium text-xs">#{s.roll_number || 'N/A'}</td>
                                                     <td className="px-5 py-3 font-medium text-slate-700">{s.name}</td>
+                                                    <td className="px-5 py-3 text-right text-slate-400 text-xs font-mono">{s.contact_number || '-'}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -256,6 +260,7 @@ const DailyAttendanceStatus = ({ config }) => {
                                             <tr>
                                                 <th className="px-5 py-3 w-24">Roll No</th>
                                                 <th className="px-5 py-3">Student Name</th>
+                                                <th className="px-5 py-3 text-right">Parent Contact</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-50">
@@ -263,6 +268,7 @@ const DailyAttendanceStatus = ({ config }) => {
                                                 <tr key={s.id} className="hover:bg-rose-50/30 transition-colors">
                                                     <td className="px-5 py-3 font-mono text-slate-400 font-medium text-xs">#{s.roll_number || 'N/A'}</td>
                                                     <td className="px-5 py-3 font-medium text-slate-700">{s.name}</td>
+                                                    <td className="px-5 py-3 text-right text-slate-400 text-xs font-mono">{s.contact_number || '-'}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -288,7 +294,10 @@ const DailyAttendanceStatus = ({ config }) => {
                                     <div key={s.id} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl bg-slate-50/50 hover:bg-white hover:shadow-sm transition-all">
                                         <div className="flex items-center gap-3">
                                             <span className="font-mono text-xs text-slate-400 bg-white px-1.5 py-0.5 border border-slate-200 rounded-md">#{s.roll_number || 'N/A'}</span>
-                                            <span className="text-sm font-bold text-slate-700">{s.name}</span>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-slate-700">{s.name}</span>
+                                                <span className="text-[10px] text-slate-400 font-mono">{s.contact_number || '-'}</span>
+                                            </div>
                                         </div>
                                         <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${s.status === 'Late' ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600'}`}>
                                             {s.status}

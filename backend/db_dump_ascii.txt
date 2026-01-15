@@ -1,0 +1,21 @@
+[dotenv@17.2.3] injecting env (6) from .env -- tip: ???? add access controls to secrets: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ??????  write to custom object with { processEnv: myObject }
+--- LATEST 20 ANNOUNCEMENTS (RAW) ---
+ID: 48 | Title: 55 | Target: Class | Class: 11 | Subj: null | Role: null | Date: Thu Jan 15 2026 09:08:18 GMT+0530 (India Standard Time)
+ID: 47 | Title: 45 | Target: Student | Class: null | Subj: null | Role: null | Date: Thu Jan 15 2026 08:42:57 GMT+0530 (India Standard Time)
+ID: 37 | Title: 89 | Target: Teacher | Class: null | Subj: null | Role: null | Date: Thu Jan 15 2026 08:28:34 GMT+0530 (India Standard Time)
+ID: 36 | Title: 58 | Target: Student | Class: null | Subj: null | Role: null | Date: Thu Jan 15 2026 08:19:40 GMT+0530 (India Standard Time)
+ID: 35 | Title: hi | Target: Teacher | Class: null | Subj: null | Role: null | Date: Thu Jan 15 2026 08:17:06 GMT+0530 (India Standard Time)
+ID: 33 | Title: fg | Target: Student | Class: null | Subj: null | Role: null | Date: Thu Jan 15 2026 08:01:04 GMT+0530 (India Standard Time)
+ID: 31 | Title: 45 | Target: Student | Class: null | Subj: null | Role: null | Date: Thu Jan 15 2026 07:58:06 GMT+0530 (India Standard Time)
+ID: 22 | Title: 54 | Target: Student | Class: null | Subj: null | Role: null | Date: Thu Jan 15 2026 07:51:12 GMT+0530 (India Standard Time)
+ID: 20 | Title: 25 | Target: Student | Class: null | Subj: null | Role: null | Date: Thu Jan 15 2026 07:27:53 GMT+0530 (India Standard Time)
+ID: 19 | Title: 250 | Target: Student | Class: null | Subj: null | Role: null | Date: Thu Jan 15 2026 07:04:35 GMT+0530 (India Standard Time)
+ID: 18 | Title: 250 | Target: Student | Class: null | Subj: null | Role: null | Date: Thu Jan 15 2026 07:04:35 GMT+0530 (India Standard Time)
+ID: 17 | Title: 25 | Target: Student | Class: null | Subj: null | Role: null | Date: Thu Jan 15 2026 06:55:21 GMT+0530 (India Standard Time)
+ID: 15 | Title: hi | Target: Class | Class: 11 | Subj: null | Role: null | Date: Thu Jan 15 2026 06:32:57 GMT+0530 (India Standard Time)
+ID: 12 | Title: parents meeting | Target: Class | Class: 11 | Subj: null | Role: null | Date: Thu Jan 15 2026 05:41:45 GMT+0530 (India Standard Time)
+ID: 11 | Title: g | Target: Student | Class: null | Subj: null | Role: null | Date: Wed Jan 14 2026 16:04:05 GMT+0530 (India Standard Time)
+ID: 8 | Title: heelo | Target: Teacher | Class: null | Subj: null | Role: null | Date: Wed Jan 14 2026 15:40:23 GMT+0530 (India Standard Time)
+ID: 7 | Title: now only | Target: Student | Class: null | Subj: null | Role: null | Date: Wed Jan 14 2026 15:40:01 GMT+0530 (India Standard Time)
+ID: 5 | Title: Teacher note | Target: All | Class: null | Subj: null | Role: null | Date: Wed Dec 31 2025 00:01:24 GMT+0530 (India Standard Time)

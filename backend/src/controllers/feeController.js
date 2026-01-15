@@ -391,10 +391,11 @@ exports.recordPayment = async (req, res) => {
         // Notification - Isolated so it doesn't fail the request if it errors
         try {
             const { sendPushNotification } = require('../services/notificationService');
-            const studentRes = await pool.query('SELECT name FROM students WHERE id = $1', [student_id]);
+            const studentRes = await client.query('SELECT name FROM students WHERE id = $1', [student_id]);
             if (studentRes.rows.length > 0) {
                 const studentName = studentRes.rows[0].name;
-                await sendPushNotification(student_id, 'Fee Receipt', `Received payment of ₹${amount} for ${studentName}. Receipt: ${receiptNo}`);
+                // Explicitly use 'Student' as roleHint so it reaches the student's dashboard
+                await sendPushNotification(student_id, 'Fee Receipt', `Received payment of ₹${amount} for ${studentName}. Receipt: ${receiptNo}`, 'Student');
             }
         } catch (notifError) {
             console.error('Notification failed (Payment Success):', notifError);

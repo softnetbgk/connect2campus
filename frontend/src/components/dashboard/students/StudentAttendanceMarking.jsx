@@ -11,6 +11,7 @@ const StudentAttendanceMarking = ({ config }) => {
     const [students, setStudents] = useState([]);
     const [attendance, setAttendance] = useState({}); // { studentId: 'Present' | 'Absent' | 'Late' }
     const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     // Sort classes numerically
     const sortedClasses = React.useMemo(() => {
@@ -82,6 +83,8 @@ const StudentAttendanceMarking = ({ config }) => {
     };
 
     const handleSave = async () => {
+        if (saving) return;
+        setSaving(true);
         try {
             const attendanceData = Object.entries(attendance).map(([student_id, status]) => ({
                 student_id: parseInt(student_id),
@@ -92,6 +95,8 @@ const StudentAttendanceMarking = ({ config }) => {
             toast.success('Attendance saved successfully');
         } catch (error) {
             toast.error('Failed to save attendance');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -146,8 +151,18 @@ const StudentAttendanceMarking = ({ config }) => {
                                                 setAttendance(newAttendance);
                                             }}
                                         >Mark All Present</button>
-                                        <button onClick={handleSave} className="text-xs font-bold text-white bg-indigo-600 px-4 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm flex items-center gap-1">
-                                            <Check size={14} /> Save
+                                        <button
+                                            onClick={handleSave}
+                                            disabled={saving}
+                                            className={`text-xs font-bold text-white px-4 py-1.5 rounded-lg transition-colors shadow-sm flex items-center gap-1 ${saving ? 'bg-indigo-400 cursor-wait' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                                        >
+                                            {saving ? (
+                                                <>Saving...</>
+                                            ) : (
+                                                <>
+                                                    <Check size={14} /> Save
+                                                </>
+                                            )}
                                         </button>
                                     </>
                                 )}

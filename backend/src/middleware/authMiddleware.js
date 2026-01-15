@@ -34,30 +34,18 @@ const authenticateToken = (req, res, next) => {
                 return res.status(401).json({ message: 'Session expired or invalidated.' });
             }
 
-            // Check if school is active (for non-Super Admins)
             if (user.role !== 'SUPER_ADMIN' && userData.school_id && userData.is_active === false) {
                 return res.status(403).json({ message: 'School Service Disabled. Contact Super Admin.' });
+            }
+
+            // Always update schoolId from DB to ensure we have the latest assignment
+            if (userData.school_id) {
+                user.schoolId = userData.school_id;
             }
 
         } catch (dbErr) {
             console.error('Session verification failed:', dbErr);
             return res.status(500).json({ message: 'Session verification failed' });
-        }
-
-        // Robustness: If schoolId is missing (legacy token) and not Super Admin, fetch it
-        // Note: We already fetched DB above, but user might not have school_id.
-        // We can optimize by fetching * from users above?
-        // Let's keep it simple and just do the check.
-
-        if (!user.schoolId && user.role !== 'SUPER_ADMIN') {
-            try {
-                const res = await pool.query('SELECT school_id FROM users WHERE id = $1', [user.id]);
-                if (res.rows.length > 0) {
-                    user.schoolId = res.rows[0].school_id;
-                }
-            } catch (dbErr) {
-                console.error('Auth Middleware DB Error:', dbErr);
-            }
         }
 
         req.user = user;

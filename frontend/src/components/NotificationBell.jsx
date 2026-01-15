@@ -17,13 +17,20 @@ const NotificationBell = () => {
         <div className="relative">
             <button
                 onClick={toggleDropdown}
-                className="relative p-2 text-gray-600 hover:text-indigo-600 transition-colors rounded-full hover:bg-indigo-50"
+                className={`relative p-2 transition-all rounded-full ${unreadCount > 0
+                        ? 'text-red-600 bg-red-50 hover:bg-red-100 ring-2 ring-red-500/30'
+                        : 'text-gray-600 hover:text-indigo-600 hover:bg-indigo-50'
+                    }`}
             >
-                <Bell size={24} />
+                <Bell size={24} className={unreadCount > 0 ? 'animate-bounce-short' : ''} />
                 {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white ring-2 ring-white animate-pulse">
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
+                    <>
+                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white ring-2 ring-white z-10 shadow-lg">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                        {/* Red Alert "Radar" Pulse */}
+                        <span className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-20"></span>
+                    </>
                 )}
             </button>
 

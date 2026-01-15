@@ -22,6 +22,7 @@ import StudentCertificates from '../components/dashboard/students/StudentCertifi
 import StudentLeaves from '../components/dashboard/students/StudentLeaves';
 import ViewAnnouncements from '../components/dashboard/calendar/ViewAnnouncements';
 import AdminLiveMap from '../components/dashboard/admin/AdminLiveMap';
+import RecentAnnouncements from '../components/dashboard/calendar/RecentAnnouncements';
 import { MobileHeader, MobileFooter } from '../components/layout/MobileAppFiles';
 
 const StudentDashboard = () => {
@@ -301,7 +302,7 @@ const StudentDashboard = () => {
                     />
 
                     <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">General</p>
-                    <NavButton active={activeTab === 'announcements'} onClick={() => handleTabChange('announcements')} icon={Bell} label="Notice Board" />
+                    <NavButton id="btn-announcements" active={activeTab === 'announcements'} onClick={() => handleTabChange('announcements')} icon={Bell} label="Notice Board" />
                     <NavButton active={activeTab === 'calendar'} onClick={() => handleTabChange('calendar')} icon={Calendar} label="School Calendar" />
                 </nav>
 
@@ -483,13 +484,19 @@ const StudentOverview = ({ schoolName, stats, student, user }) => (
             <div className="text-xl font-bold text-slate-800">{stats?.bus?.route || 'N/A'}</div>
             <div className="text-xs text-emerald-600 mt-2 font-bold">{stats?.bus?.status || 'Active'}</div>
         </div>
+
+        {/* Recent Announcements Widget */}
+        <div className="md:col-span-2 lg:col-span-2 h-80">
+            <RecentAnnouncements limit={5} onMoreClick={() => document.getElementById('btn-announcements')?.click()} />
+        </div>
     </div>
 );
 
 
 // Helper Component
-const NavButton = ({ active, onClick, icon: Icon, label, badge }) => (
+const NavButton = ({ active, onClick, icon: Icon, label, badge, id }) => (
     <button
+        id={id}
         onClick={onClick}
         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group ${active
             ? 'bg-white text-blue-600 shadow-lg translate-x-1'

@@ -111,6 +111,29 @@ const StaffDailyStatus = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Late / Leave Section */}
+            {data.filter(s => s.status === 'Late' || s.status === 'Leave').length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+                    <div className="p-4 border-b border-slate-100 bg-amber-50/50 flex justify-between items-center">
+                        <h3 className="text-sm font-bold text-amber-800 uppercase">Late / Leave</h3>
+                        <span className="bg-white text-amber-700 px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-amber-100 shadow-sm">{stats.other}</span>
+                    </div>
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {data.filter(s => s.status === 'Late' || s.status === 'Leave').map(s => (
+                            <div key={s.id} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl bg-slate-50/50 hover:bg-white hover:shadow-sm transition-all">
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-bold text-slate-700">{s.name}</span>
+                                    <span className="text-[10px] text-slate-400 font-mono">{s.phone}</span>
+                                </div>
+                                <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${s.status === 'Late' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    {s.status}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

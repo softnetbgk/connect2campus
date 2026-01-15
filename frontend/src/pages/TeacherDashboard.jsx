@@ -19,6 +19,7 @@ import TeacherLeaveApplication from '../components/dashboard/teachers/TeacherLea
 import SchoolCalendar from '../components/dashboard/calendar/SchoolCalendar';
 import TeacherLibraryStatus from '../components/dashboard/teachers/TeacherLibraryStatus';
 import ViewAnnouncements from '../components/dashboard/calendar/ViewAnnouncements';
+import RecentAnnouncements from '../components/dashboard/calendar/RecentAnnouncements';
 import AdminLiveMap from '../components/dashboard/admin/AdminLiveMap';
 import { MobileHeader, MobileFooter } from '../components/layout/MobileAppFiles';
 import { Capacitor } from '@capacitor/core';
@@ -170,7 +171,7 @@ const TeacherDashboard = () => {
                     <NavButton active={activeTab === 'fleet-map'} onClick={() => handleTabChange('fleet-map')} icon={Navigation} label="Live Fleet Map" />
 
                     <p className="px-4 text-xs font-bold text-blue-200 uppercase tracking-wider mb-2 mt-6">General</p>
-                    <NavButton active={activeTab === 'announcements'} onClick={() => handleTabChange('announcements')} icon={Bell} label="Notice Board" />
+                    <NavButton id="btn-announcements" active={activeTab === 'announcements'} onClick={() => handleTabChange('announcements')} icon={Bell} label="Notice Board" />
                     <NavButton active={activeTab === 'calendar'} onClick={() => handleTabChange('calendar')} icon={Calendar} label="School Calendar" />
                 </nav>
 
@@ -382,6 +383,11 @@ const TeacherOverview = ({ profile, schoolName, user }) => {
                 </div>
                 <div className="text-xs text-slate-400 mt-2">Primary Subject</div>
             </div>
+
+            {/* Recent Announcements Widget */}
+            <div className="col-span-full">
+                <RecentAnnouncements limit={3} onMoreClick={() => document.getElementById('btn-announcements')?.click()} />
+            </div>
         </div>
     );
 };
@@ -389,8 +395,9 @@ const TeacherOverview = ({ profile, schoolName, user }) => {
 
 
 // Helper Component
-const NavButton = ({ active, onClick, icon: Icon, label }) => (
+const NavButton = ({ active, onClick, icon: Icon, label, id }) => (
     <button
+        id={id}
         onClick={onClick}
         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group ${active
             ? 'bg-white text-blue-600 shadow-lg translate-x-1'

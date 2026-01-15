@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect to Campus - Product Brochure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            background: #f3f4f6;
+        }
+
+        h1,
+        h2,
+        h3 {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* PAGE SETUP */
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 0;
+            margin: 0 auto 20px auto;
+            background: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* PRINT STYLES */
+        @media print {
+            body {
+                background: white;
+                margin: 0;
+                padding: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .page {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                box-shadow: none;
+                page-break-after: always;
+            }
+        }
+
+        /* GRAPHICS */
+        .circle-bg {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.1;
+            z-index: 0;
+        }
+
+        .content-layer {
+            position: relative;
+            z-index: 10;
+        }
+
+        .feature-icon {
+            background: linear-gradient(135deg, #4f46e5 0%, #312e81 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Print Instructions -->
+    <div
+        class="no-print fixed top-0 left-0 w-full bg-slate-900 text-white p-4 text-center z-50 flex flex-col md:flex-row items-center justify-center gap-4 shadow-xl">
+        <p>📄 <strong>Ready!</strong> Press <code class="bg-slate-700 px-2 py-1 rounded">Ctrl + P</code>. Select
+            <strong>"Save as PDF"</strong>. <span class="text-yellow-400">Ensure "Background Graphics" is
+                CHECKED.</span></p>
+        <button onclick="window.print()"
+            class="bg-indigo-500 hover:bg-indigo-600 px-6 py-2 rounded-full font-bold transition-colors">Print
+            Now</button>
+    </div>
+
+    <!-- PAGE 1: COVER PAGE -->
+    <div class="page flex flex-col justify-between">
+        <!-- Abstract Background -->
+        <div class="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-600 rounded-bl-full opacity-10"></div>
+        <div class="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-600 rounded-tr-full opacity-10"></div>
+
+        <div class="p-16 pt-24 content-layer flex-1 flex flex-col justify-center">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="h-1 w-20 bg-indigo-600"></div>
+                <span class="uppercase tracking-[0.3em] text-slate-500 font-bold text-sm">Education Technology</span>
+            </div>
+
+            <h1 class="text-7xl font-black text-slate-900 leading-tight mb-8">
+                Connect<br>
+                <span class="text-indigo-600">to</span><br>
+                Campus
+            </h1>
+
+            <p class="text-2xl text-slate-600 font-light max-w-lg leading-relaxed mb-12">
+                A unified platform to completely digitize your institution.
+                Manage <span class="font-semibold text-indigo-700">Admissions, Fees, Exams,</span> and <span
+                    class="font-semibold text-indigo-700">Result</span> efficiently.
+            </p>
+
+            <!-- Highlights -->
+            <div class="grid grid-cols-2 gap-4 max-w-md">
+                <div class="flex items-center gap-3 p-4 bg-slate-50 border-l-4 border-indigo-600 rounded">
+                    <span class="text-2xl">⚡</span>
+                    <span class="font-bold text-slate-700">Blazing Fast</span>
+                </div>
+                <div class="flex items-center gap-3 p-4 bg-slate-50 border-l-4 border-indigo-600 rounded">
+                    <span class="text-2xl">🔒</span>
+                    <span class="font-bold text-slate-700">100% Secure</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Branding -->
+        <div class="bg-slate-900 text-white p-16 content-layer">
+            <div class="flex justify-between items-end">
+                <div>
+                    <h2 class="text-3xl font-bold mb-2">Softnet Solutions</h2>
+                    <p class="text-slate-400">Navangar, Bagalkot - 587101</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm uppercase tracking-widest text-indigo-400 mb-1">Contact Sales</p>
+                    <div class="text-3xl font-bold">86186 02743</div>
+                    <div class="text-3xl font-bold">80951 08913</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 2: ACADEMIC & ADMIN -->
+    <div class="page p-16">
+        <div class="flex items-center justify-between mb-12 border-b-2 border-slate-100 pb-4">
+            <h2 class="text-4xl font-black text-slate-900">Core Modules</h2>
+            <div class="text-indigo-600 font-bold bg-indigo-50 px-4 py-1 rounded-full text-sm">ACADEMIC & ADMIN</div>
+        </div>
+
+        <div class="space-y-10">
+            <!-- Student Module -->
+            <div class="flex gap-6">
+                <div
+                    class="w-16 h-16 bg-blue-50 rounded-xl flex items-center justify-center text-3xl shrink-0 text-blue-600">
+                    👨‍🎓</div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">Student 360° Profile</h3>
+                    <p class="text-slate-600 mt-2 text-sm leading-6">
+                        Complete lifecycle management from Admission to Alumni.
+                    </p>
+                    <ul class="grid grid-cols-2 gap-x-4 gap-y-1 mt-3 text-sm text-slate-500 font-medium">
+                        <li class="flex items-center gap-2">✔ Admission Register (RTE Support)</li>
+                        <li class="flex items-center gap-2">✔ Document Manager (Aadhar, TC)</li>
+                        <li class="flex items-center gap-2">✔ Sibling Mapping</li>
+                        <li class="flex items-center gap-2">✔ One-click Promotion</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Fee Module -->
+            <div class="flex gap-6">
+                <div
+                    class="w-16 h-16 bg-green-50 rounded-xl flex items-center justify-center text-3xl shrink-0 text-green-600">
+                    💸</div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">Advanced Fee Management</h3>
+                    <p class="text-slate-600 mt-2 text-sm leading-6">
+                        Eliminate leakage and automate calculations. Supports complex fee structures.
+                    </p>
+                    <ul class="grid grid-cols-2 gap-x-4 gap-y-1 mt-3 text-sm text-slate-500 font-medium">
+                        <li class="flex items-center gap-2">✔ Custom Fee Heads (Tuition, Lab)</li>
+                        <li class="flex items-center gap-2">✔ Instant Receipt Printing (Thermal/A4)</li>
+                        <li class="flex items-center gap-2">✔ Route-wise Transport Fees</li>
+                        <li class="flex items-center gap-2">✔ Pending Dues Reports</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Exam Module -->
+            <div class="flex gap-6">
+                <div
+                    class="w-16 h-16 bg-purple-50 rounded-xl flex items-center justify-center text-3xl shrink-0 text-purple-600">
+                    📊</div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">Examination & Results</h3>
+                    <p class="text-slate-600 mt-2 text-sm leading-6">
+                        Configurable exam engine supporting State, CBSE, and ICSE patterns.
+                    </p>
+                    <ul class="grid grid-cols-2 gap-x-4 gap-y-1 mt-3 text-sm text-slate-500 font-medium">
+                        <li class="flex items-center gap-2">✔ Exam Scheduler & Hall Tickets</li>
+                        <li class="flex items-center gap-2">✔ Subject-wise Marks Entry</li>
+                        <li class="flex items-center gap-2">✔ Automated Topper Lists</li>
+                        <li class="flex items-center gap-2">✔ Custom Report Card Templates</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Staff Module -->
+            <div class="flex gap-6">
+                <div
+                    class="w-16 h-16 bg-orange-50 rounded-xl flex items-center justify-center text-3xl shrink-0 text-orange-600">
+                    👥</div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">HR & Payroll</h3>
+                    <p class="text-slate-600 mt-2 text-sm leading-6">
+                        Manage your most valuable asset - your teachers.
+                    </p>
+                    <ul class="grid grid-cols-2 gap-x-4 gap-y-1 mt-3 text-sm text-slate-500 font-medium">
+                        <li class="flex items-center gap-2">✔ Staff Detailed Profile (Qualification)</li>
+                        <li class="flex items-center gap-2">✔ Daily Attendance Tracking</li>
+                        <li class="flex items-center gap-2">✔ Leave Management</li>
+                        <li class="flex items-center gap-2">✔ Auto-Salary Generation & Slips</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Decoration -->
+        <div class="absolute bottom-0 right-0 w-32 h-32 bg-slate-100 rounded-tl-full"></div>
+    </div>
+
+    <!-- PAGE 3: UTILITIES & TRANSPORT -->
+    <div class="page p-16">
+        <div class="flex items-center justify-between mb-12 border-b-2 border-slate-100 pb-4">
+            <h2 class="text-4xl font-black text-slate-900">Utility Modules</h2>
+            <div class="text-indigo-600 font-bold bg-indigo-50 px-4 py-1 rounded-full text-sm">OPERATIONS</div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-10">
+            <!-- Transport -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+                <div class="flex items-center gap-4 mb-4">
+                    <span class="text-4xl">🚌</span>
+                    <h3 class="text-2xl font-bold text-slate-800">Transport Manager</h3>
+                </div>
+                <p class="text-slate-600 mb-6">Complete fleet management solution. Map students to vehicles and specific
+                    stops. Manage driver details, insurance expiry alerts, and fuel logs.</p>
+                <div class="flex gap-2">
+                    <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold">Route
+                        Mapping</span>
+                    <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold">Driver
+                        Info</span>
+                    <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold">Vehicle
+                        Maintainance</span>
+                </div>
+            </div>
+
+            <!-- Certificates -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+                <div class="flex items-center gap-4 mb-4">
+                    <span class="text-4xl">📜</span>
+                    <h3 class="text-2xl font-bold text-slate-800">Smart Certificates</h3>
+                </div>
+                <p class="text-slate-600 mb-6">No more typing errors. Generate official certificates automatically
+                    pulling data from the Student Profile.</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex items-center gap-2 text-sm text-slate-700 font-bold">
+                        <span class="w-2 h-2 bg-indigo-600 rounded-full"></span> Transfer Certificate (TC)
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-slate-700 font-bold">
+                        <span class="w-2 h-2 bg-indigo-600 rounded-full"></span> Bonafide / Study Cert
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-slate-700 font-bold">
+                        <span class="w-2 h-2 bg-indigo-600 rounded-full"></span> Character Certificate
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-slate-700 font-bold">
+                        <span class="w-2 h-2 bg-indigo-600 rounded-full"></span> Fee Paid Certificate
+                    </div>
+                </div>
+            </div>
+
+            <!-- Communication -->
+            <div class="bg-indigo-900 rounded-2xl p-8 text-white relative overflow-hidden">
+                <div class="relative z-10">
+                    <div class="flex items-center gap-4 mb-4">
+                        <span class="text-4xl">🗨️</span>
+                        <h3 class="text-2xl font-bold">Digital Communication</h3>
+                    </div>
+                    <p class="text-indigo-200 mb-6">Bridge the gap between parents and teachers.</p>
+                    <ul class="space-y-3">
+                        <li class="flex items-center gap-3">
+                            <span class="bg-white/20 p-1 rounded">📱</span> WhatsApp-style Push Notifications
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <span class="bg-white/20 p-1 rounded">📢</span> Digital Notice Board (Circulars)
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <span class="bg-white/20 p-1 rounded">📅</span> Event & Holiday Calendar
+                        </li>
+                    </ul>
+                </div>
+                <div class="absolute right-0 bottom-0 w-32 h-32 bg-white opacity-5 rounded-tl-full"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 4: MOBILE APP & SPECS -->
+    <div class="page flex flex-col justify-between">
+        <div class="p-16 flex-1">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-4xl font-black text-slate-900">Mobile App</h2>
+                <div class="text-white font-bold bg-green-500 px-4 py-1 rounded-full text-sm">ANDROID READY</div>
+            </div>
+
+            <div class="flex gap-12 mb-12">
+                <div class="flex-1 space-y-6">
+                    <p class="text-lg text-slate-600 leading-relaxed">
+                        A dedicated app for parents that puts the school in their pocket. Clean, fast, and secure.
+                    </p>
+
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-4">
+                            <div class="bg-slate-100 p-2 rounded text-slate-900 font-bold">01</div>
+                            <div>
+                                <h4 class="font-bold text-slate-800">Persistent Login</h4>
+                                <p class="text-sm text-slate-500">Log in once, stay connected forever.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="bg-slate-100 p-2 rounded text-slate-900 font-bold">02</div>
+                            <div>
+                                <h4 class="font-bold text-slate-800">Auto-Updates</h4>
+                                <p class="text-sm text-slate-500">New features arrive instantly without re-installing.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="bg-slate-100 p-2 rounded text-slate-900 font-bold">03</div>
+                            <div>
+                                <h4 class="font-bold text-slate-800">Privacy First</h4>
+                                <p class="text-sm text-slate-500">Secure data handling with top-tier encryption.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mockup -->
+                <div class="w-1/3">
+                    <div class="border-8 border-slate-800 rounded-[2rem] p-2 bg-slate-800 shadow-xl transform rotate-3">
+                        <div
+                            class="bg-white rounded-2xl h-64 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-xl">
+                            App Screen
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-slate-200 mb-12">
+
+            <!-- Tech Specs Table -->
+            <h3 class="font-bold text-slate-900 mb-6 uppercase tracking-wider text-sm">Technical Specifications</h3>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div class="p-4 bg-slate-50 rounded border border-slate-100">
+                    <span class="block text-slate-400 text-xs uppercase mb-1">Architecture</span>
+                    <span class="font-bold text-slate-800">Cloud-Native (AWS)</span>
+                </div>
+                <div class="p-4 bg-slate-50 rounded border border-slate-100">
+                    <span class="block text-slate-400 text-xs uppercase mb-1">Backup</span>
+                    <span class="font-bold text-slate-800">Daily Automated Backups</span>
+                </div>
+                <div class="p-4 bg-slate-50 rounded border border-slate-100">
+                    <span class="block text-slate-400 text-xs uppercase mb-1">Security</span>
+                    <span class="font-bold text-slate-800">SSL Encryption (HTTPS)</span>
+                </div>
+                <div class="p-4 bg-slate-50 rounded border border-slate-100">
+                    <span class="block text-slate-400 text-xs uppercase mb-1">Accessibility</span>
+                    <span class="font-bold text-slate-800">Web, Desktop, Mobile</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTACT FOOTER -->
+        <div class="bg-slate-900 text-white p-16">
+            <h2 class="text-3xl font-bold mb-6">Transform Your Campus Today</h2>
+            <div class="flex justify-between items-start">
+                <div class="border-l-4 border-indigo-500 pl-6">
+                    <p class="text-lg font-bold mb-2">Softnet Solutions</p>
+                    <p class="text-slate-400 leading-relaxed w-64">
+                        Navangar<br>
+                        Bagalkot - 587101<br>
+                        Karnataka, India
+                    </p>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm text-indigo-400 uppercase font-bold mb-2">Call to Schedule Demo</div>
+                    <div class="text-4xl font-black mb-2">86186 02743</div>
+                    <div class="text-4xl font-black text-slate-400">80951 08913</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
