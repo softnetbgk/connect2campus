@@ -1,5 +1,5 @@
 const { pool } = require('../config/db');
-const { sendAttendanceNotification } = require('../services/notificationService');
+const { sendAttendanceNotification, sendPushNotification } = require('../services/notificationService');
 
 // Add a new student
 // Add a new student
@@ -219,7 +219,13 @@ exports.updateStudent = async (req, res) => {
             return res.status(404).json({ message: 'Student not found' });
         }
 
-        res.json(result.rows[0]);
+        const updatedStudent = result.rows[0];
+
+        // Trigger Notification
+        sendPushNotification(updatedStudent.id, "Profile Updated", "Your student profile has been updated by the administration.", "Student")
+            .catch(err => console.error('Notification failed:', err));
+
+        res.json(updatedStudent);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error updating student' });

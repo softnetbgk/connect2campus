@@ -39,39 +39,55 @@ const sendPushNotification = async (recipientId, title, body, roleHint = null) =
         // Default to Student if we assume numeric ID is a student (common case in this system)
         if (!finalRole) finalRole = 'Student';
 
-        // NEW: If the role is specifically 'DIRECT' or the ID is already clearly a User ID, use it!
-        if (finalRole === 'DIRECT' || finalRole === 'All' || finalRole === 'Class') {
-            const res = await client.query('SELECT id FROM users WHERE id = $1', [recipientId]);
-            if (res.rows.length > 0) {
-                dbUserId = res.rows[0].id;
+        // 0. Try direct User ID lookup first (Highest Priority)
+        // If recipientId is already a number, it might be a users.id
+        if (recipientId && !isNaN(recipientId)) {
+            const directRes = await client.query('SELECT id, role FROM users WHERE id = $1', [recipientId]);
+            if (directRes.rows.length > 0) {
+                const u = directRes.rows[0];
+                // Use it if role matches, or if we are in a broad targeting mode
+                if (!finalRole ||
+                    finalRole === 'DIRECT' ||
+                    finalRole === 'All' ||
+                    finalRole === 'Class' ||
+                    u.role.toUpperCase() === finalRole.toUpperCase() ||
+                    (finalRole === 'Staff' && ['STAFF', 'DRIVER', 'ACCOUNTANT', 'LIBRARIAN', 'TRANSPORT_MANAGER'].includes(u.role.toUpperCase()))
+                ) {
+                    dbUserId = u.id;
+                    console.log(`[PUSH RESOLVE] Direct User ID match found: ${dbUserId}`);
+                }
             }
         }
 
+        // 1. Resolve via Role Tables if not already resolved
         if (!dbUserId && finalRole === 'Student') {
-            // Check both standard ID (numeric) and Admission Number
+            // Check both standard student ID (numeric) and Admission Number
             const res = await client.query(`
                 SELECT u.id 
                 FROM users u 
                 JOIN students s ON (LOWER(u.email) = LOWER(s.email) OR u.email = LOWER(s.admission_no) || '@student.school.com')
                 WHERE (s.id::text = $1 OR s.admission_no ILIKE $1)
+                AND u.role = 'STUDENT'
              `, [recipientId.toString()]);
             if (res.rows.length > 0) dbUserId = res.rows[0].id;
 
-        } else if (finalRole === 'Teacher') {
+        } else if (!dbUserId && finalRole === 'Teacher') {
             const res = await client.query(`
                 SELECT u.id 
                 FROM users u 
                 JOIN teachers t ON (LOWER(u.email) = LOWER(t.email) OR u.email = t.employee_id || '@teacher.school.com')
                 WHERE (t.id::text = $1 OR t.employee_id = $1)
+                AND u.role = 'TEACHER'
              `, [recipientId.toString()]);
             if (res.rows.length > 0) dbUserId = res.rows[0].id;
 
-        } else if (finalRole === 'Staff') {
+        } else if (!dbUserId && finalRole === 'Staff') {
             const res = await client.query(`
                 SELECT u.id 
                 FROM users u 
                 JOIN staff s ON (LOWER(u.email) = LOWER(s.email) OR u.email = s.employee_id || '@staff.school.com')
                 WHERE (s.id::text = $1 OR s.employee_id = $1)
+                AND u.role IN ('STAFF', 'DRIVER', 'ACCOUNTANT', 'LIBRARIAN', 'TRANSPORT_MANAGER')
              `, [recipientId.toString()]);
             if (res.rows.length > 0) dbUserId = res.rows[0].id;
         }

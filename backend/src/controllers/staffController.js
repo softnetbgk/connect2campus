@@ -1,5 +1,6 @@
 const { pool } = require('../config/db');
 const bcrypt = require('bcrypt');
+const { sendPushNotification } = require('../services/notificationService');
 
 // Add Staff
 exports.addStaff = async (req, res) => {
@@ -177,7 +178,14 @@ exports.updateStaff = async (req, res) => {
         }
 
         await client.query('COMMIT');
-        res.json(result.rows[0]);
+
+        const updatedStaff = result.rows[0];
+
+        // Trigger Notification
+        sendPushNotification(updatedStaff.id, "Profile Updated", "Your staff profile has been updated by the administration.", "Staff")
+            .catch(err => console.error('Notification failed:', err));
+
+        res.json(updatedStaff);
     } catch (error) {
         await client.query('ROLLBACK');
         console.error(error);
@@ -221,6 +229,12 @@ exports.markAttendance = async (req, res) => {
                 DO UPDATE SET status = EXCLUDED.status`,
                 [school_id, record.staff_id, date, record.status]
             );
+
+            // Trigger Notification (Async)
+            if (['Absent', 'Present', 'Late'].includes(record.status)) {
+                sendPushNotification(record.staff_id, 'Attendance Updated', `Your attendance for ${new Date(date).toLocaleDateString()} has been marked as ${record.status}.`, 'Staff')
+                    .catch(err => console.error('Staff Attendance Notification Error:', err));
+            }
         }
 
         await client.query('COMMIT');

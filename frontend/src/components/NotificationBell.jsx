@@ -17,19 +17,24 @@ const NotificationBell = () => {
         <div className="relative">
             <button
                 onClick={toggleDropdown}
-                className={`relative p-2 transition-all rounded-full ${unreadCount > 0
-                        ? 'text-red-600 bg-red-50 hover:bg-red-100 ring-2 ring-red-500/30'
-                        : 'text-gray-600 hover:text-indigo-600 hover:bg-indigo-50'
+                className={`relative p-2 transition-all rounded-full group ${unreadCount > 0
+                    ? 'text-red-600 bg-red-50 hover:bg-red-100 ring-4 ring-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.3)]'
+                    : 'text-gray-600 hover:text-indigo-600 hover:bg-indigo-50'
                     }`}
             >
-                <Bell size={24} className={unreadCount > 0 ? 'animate-bounce-short' : ''} />
+                <Bell size={24} className={`${unreadCount > 0 ? 'animate-bell-shake' : ''}`} />
                 {unreadCount > 0 && (
                     <>
-                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white ring-2 ring-white z-10 shadow-lg">
+                        {/* Rotating Outer Ring */}
+                        <div className="absolute -top-1 -right-1 h-6 w-6 rounded-full border-2 border-red-500 border-t-transparent animate-spin z-20"></div>
+
+                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white ring-2 ring-white z-30 shadow-lg active:scale-95 transition-transform">
                             {unreadCount > 9 ? '9+' : unreadCount}
                         </span>
-                        {/* Red Alert "Radar" Pulse */}
-                        <span className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-20"></span>
+
+                        {/* Multi-layered Pulsing Radar */}
+                        <span className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-40 scale-125"></span>
+                        <span className="absolute inset-0 rounded-full bg-red-400 animate-pulse opacity-20 scale-150"></span>
                     </>
                 )}
             </button>

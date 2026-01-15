@@ -205,25 +205,40 @@ async function broadcastAnnouncement(item, school_id) {
             const res = await pool.query('SELECT id FROM users WHERE school_id = $1', [school_id]);
             targetUsers = res.rows;
         } else if (item.target_role === 'Student') {
-            const res = await pool.query('SELECT u.id, s.name FROM students s JOIN users u ON LOWER(s.email) = LOWER(u.email) WHERE s.school_id = $1', [school_id]);
+            const res = await pool.query(`
+                SELECT u.id 
+                FROM students s 
+                JOIN users u ON (LOWER(s.email) = LOWER(u.email) OR u.email = LOWER(s.admission_no) || '@student.school.com') 
+                WHERE s.school_id = $1 AND u.role = 'STUDENT'
+            `, [school_id]);
             targetUsers = res.rows;
         } else if (item.target_role === 'Teacher') {
-            const res = await pool.query('SELECT u.id, t.name FROM teachers t JOIN users u ON LOWER(t.email) = LOWER(u.email) WHERE t.school_id = $1', [school_id]);
+            const res = await pool.query(`
+                SELECT u.id 
+                FROM teachers t 
+                JOIN users u ON (LOWER(t.email) = LOWER(u.email) OR u.email = LOWER(t.employee_id) || '@teacher.school.com') 
+                WHERE t.school_id = $1 AND u.role = 'TEACHER'
+            `, [school_id]);
             targetUsers = res.rows;
         } else if (item.target_role === 'Staff') {
-            const res = await pool.query('SELECT u.id, s.name FROM staff s JOIN users u ON LOWER(s.email) = LOWER(u.email) WHERE s.school_id = $1', [school_id]);
+            const res = await pool.query(`
+                SELECT u.id 
+                FROM staff s 
+                JOIN users u ON (LOWER(s.email) = LOWER(u.email) OR u.email = LOWER(s.employee_id) || '@staff.school.com') 
+                WHERE s.school_id = $1 AND u.role IN ('STAFF', 'DRIVER', 'ACCOUNTANT', 'LIBRARIAN', 'TRANSPORT_MANAGER')
+            `, [school_id]);
             targetUsers = res.rows;
         } else if (item.target_role === 'Class') {
-            let q = 'SELECT u.id, s.name FROM students s JOIN users u ON LOWER(s.email) = LOWER(u.email) WHERE s.school_id = $1 AND s.class_id = $2';
+            let q = `
+                SELECT u.id 
+                FROM students s 
+                JOIN users u ON (LOWER(s.email) = LOWER(u.email) OR u.email = LOWER(s.admission_no) || '@student.school.com') 
+                WHERE s.school_id = $1 AND s.class_id = $2 AND u.role = 'STUDENT'
+            `;
             const params = [school_id, item.class_id];
             if (item.section_id) {
                 q += ' AND s.section_id = $3';
                 params.push(item.section_id);
-            } else {
-                // If broadcasting to Whole Class, ONLY reach those without a section OR everyone?
-                // Standard behavior: Whole Class (NULL section) reaches Everyone in that class.
-                // But we add a safety check to ensure it doesn't leak if the admin intended a section.
-                q += ' AND (s.section_id IS NULL OR 1=1)'; // 1=1 keeps current "Whole Class = Everyone" logic
             }
             const res = await pool.query(q, params);
             targetUsers = res.rows;

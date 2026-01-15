@@ -1,5 +1,6 @@
 const { pool } = require('../config/db');
 const bcrypt = require('bcrypt');
+const { sendPushNotification } = require('../services/notificationService');
 
 // Add Teacher
 exports.addTeacher = async (req, res) => {
@@ -296,7 +297,14 @@ exports.updateTeacher = async (req, res) => {
         }
 
         await client.query('COMMIT');
-        res.json(result.rows[0]);
+
+        const updatedTeacher = result.rows[0];
+
+        // Trigger Notification
+        sendPushNotification(updatedTeacher.id, "Profile Updated", "Your teacher profile has been updated by the administration.", "Teacher")
+            .catch(err => console.error('Notification failed:', err));
+
+        res.json(updatedTeacher);
     } catch (error) {
         await client.query('ROLLBACK');
         console.error(error);
@@ -340,6 +348,12 @@ exports.markAttendance = async (req, res) => {
                 DO UPDATE SET status = EXCLUDED.status`,
                 [school_id, record.teacher_id, date, record.status]
             );
+
+            // Trigger Notification (Async)
+            if (['Absent', 'Present', 'Late'].includes(record.status)) {
+                sendPushNotification(record.teacher_id, 'Attendance Updated', `Your attendance for ${new Date(date).toLocaleDateString()} has been marked as ${record.status}.`, 'Teacher')
+                    .catch(err => console.error('Teacher Attendance Notification Error:', err));
+            }
         }
 
         await client.query('COMMIT');
