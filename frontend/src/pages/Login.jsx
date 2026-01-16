@@ -273,7 +273,7 @@ const Login = () => {
                             <div className="flex flex-col md:flex-row gap-4 justify-center mb-6">
                                 <div className="bg-white p-3 rounded-xl shadow-inner border border-slate-100">
                                     <QRCode
-                                        value={`${window.location.origin}/SchoolApp.apk`}
+                                        value={`${import.meta.env.VITE_APP_URL || window.location.origin}/SchoolApp.apk`}
                                         size={130}
                                         level="H"
                                     />
@@ -281,17 +281,17 @@ const Login = () => {
                                 </div>
                                 <div className="bg-white p-3 rounded-xl shadow-inner border border-slate-100">
                                     <QRCode
-                                        value={`${window.location.origin}?is_mobile_app=true`}
+                                        value={`${import.meta.env.VITE_APP_URL || window.location.origin}?is_mobile_app=true`}
                                         size={130}
                                         level="H"
                                     />
-                                    <p className="text-[10px] text-slate-800 mt-2 font-mono font-bold">iOS App</p>
+                                    <p className="text-[10px] text-slate-800 mt-2 font-mono font-bold">iOS App (Web)</p>
                                 </div>
                             </div>
 
                             <div className="space-y-3">
                                 <a
-                                    href="/SchoolApp.apk"
+                                    href={`${import.meta.env.VITE_APP_URL || ''}/SchoolApp.apk`}
                                     download="ConnectToCampus.apk"
                                     className="w-full inline-flex justify-center items-center gap-3 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors text-sm shadow-lg shadow-green-500/20"
                                 >

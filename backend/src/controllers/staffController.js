@@ -347,10 +347,19 @@ exports.getMyAttendance = async (req, res) => {
         const endDate = new Date(year, month, 0).toISOString().split('T')[0];
 
         const query = `
-            SELECT TO_CHAR(date, 'YYYY-MM-DD') as date, status
-            FROM staff_attendance
-            WHERE staff_id = $1 AND date >= $2 AND date <= $3
-            ORDER BY date DESC
+            WITH month_holidays AS (
+                SELECT holiday_date, holiday_name
+                FROM school_holidays
+                WHERE school_id = (SELECT school_id FROM staff WHERE id = $1) 
+                AND holiday_date >= $2 AND holiday_date <= $3
+            )
+            SELECT 
+                TO_CHAR(d.date, 'YYYY-MM-DD') as date,
+                COALESCE(a.status, CASE WHEN mh.holiday_date IS NOT NULL THEN 'Holiday' ELSE 'Unmarked' END) as status
+            FROM generate_series($2::date, $3::date, '1 day'::interval) d(date)
+            LEFT JOIN staff_attendance a ON a.staff_id = $1 AND a.date = d.date::date
+            LEFT JOIN month_holidays mh ON mh.holiday_date = d.date::date
+            ORDER BY d.date DESC
         `;
         const result = await pool.query(query, [staff_id, startDate, endDate]);
 

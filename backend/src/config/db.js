@@ -1,13 +1,23 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
+const getConnectionString = () => {
+    if (process.env.NODE_ENV === 'test') {
+        return process.env.TEST_DATABASE_URL;
+    }
+    if (process.env.NODE_ENV === 'production') {
+        return process.env.PROD_DATABASE_URL;
+    }
+    return process.env.DATABASE_URL;
+};
+
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
-    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
-    max: 20, // Increased pool size to handling more concurrent requests
+    connectionString: getConnectionString() || `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
+    ssl: { rejectUnauthorized: false }, // Force SSL for Supabase
+    max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000, // Increased timeout to 10s
-    keepAlive: true, // Keep connection alive to prevent dropouts
+    connectionTimeoutMillis: 10000,
+    keepAlive: true,
 });
 
 pool.on('error', (err) => {

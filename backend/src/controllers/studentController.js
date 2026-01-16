@@ -603,21 +603,34 @@ exports.getMyAttendanceReport = async (req, res) => {
         const { month, year } = req.query;
 
         // 1. Fetch Daily Records
-        let query = `
-        SELECT status, TO_CHAR(date, 'YYYY-MM-DD') as date_str
-        FROM attendance
-        WHERE student_id = $1
-    `;
-        const params = [student_id];
-
+        let result;
         if (month && year) {
-            query += ` AND EXTRACT(MONTH FROM date) = $2 AND EXTRACT(YEAR FROM date) = $3`;
-            params.push(month, year);
+            const startDate = `${year}-${month}-01`;
+            const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+            const query = `
+                WITH month_holidays AS (
+                    SELECT holiday_date, holiday_name
+                    FROM school_holidays
+                    WHERE school_id = $4 AND holiday_date >= $2 AND holiday_date <= $3
+                )
+                SELECT 
+                    TO_CHAR(d.date, 'YYYY-MM-DD') as date_str,
+                    COALESCE(a.status, CASE WHEN mh.holiday_date IS NOT NULL THEN 'Holiday' ELSE 'Unmarked' END) as status
+                FROM generate_series($2::date, $3::date, '1 day'::interval) d(date)
+                LEFT JOIN attendance a ON a.student_id = $1 AND a.date = d.date::date
+                LEFT JOIN month_holidays mh ON mh.holiday_date = d.date::date
+                ORDER BY d.date ASC
+            `;
+            result = await pool.query(query, [student_id, startDate, endDate, schoolId]);
+        } else {
+            const query = `
+                SELECT status, TO_CHAR(date, 'YYYY-MM-DD') as date_str
+                FROM attendance
+                WHERE student_id = $1
+                ORDER BY date ASC
+            `;
+            result = await pool.query(query, [student_id]);
         }
-
-        query += ` ORDER BY date ASC`;
-
-        const result = await pool.query(query, params);
 
         const report = result.rows.reduce((acc, row) => {
             acc[row.date_str] = row.status;

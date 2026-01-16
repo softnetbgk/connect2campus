@@ -74,7 +74,7 @@ const markDeviceAttendance = async (req, res) => {
         );
         if (studentRes.rows.length > 0) {
             user = studentRes.rows[0];
-            table = 'student_attendance';
+            table = 'attendance';
             userType = 'student';
         }
 
@@ -187,7 +187,7 @@ const handleExternalDeviceLog = async (req, res) => {
         );
         if (studentRes.rows.length > 0) {
             user = studentRes.rows[0];
-            table = 'student_attendance';
+            table = 'attendance';
             userType = 'student';
         }
 

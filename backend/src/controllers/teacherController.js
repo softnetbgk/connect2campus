@@ -514,10 +514,18 @@ exports.getMyAttendanceHistory = async (req, res) => {
         const endDate = new Date(year, month, 0).toISOString().split('T')[0];
 
         const query = `
-            SELECT TO_CHAR(date, 'YYYY-MM-DD') as date, status
-            FROM teacher_attendance 
-            WHERE teacher_id = $1 AND school_id = $2 AND date >= $3 AND date <= $4
-            ORDER BY date ASC
+            WITH month_holidays AS (
+                SELECT holiday_date, holiday_name
+                FROM school_holidays
+                WHERE school_id = $2 AND holiday_date >= $3 AND holiday_date <= $4
+            )
+            SELECT 
+                TO_CHAR(d.date, 'YYYY-MM-DD') as date,
+                COALESCE(a.status, CASE WHEN mh.holiday_date IS NOT NULL THEN 'Holiday' ELSE 'Unmarked' END) as status
+            FROM generate_series($3::date, $4::date, '1 day'::interval) d(date)
+            LEFT JOIN teacher_attendance a ON a.teacher_id = $1 AND a.date = d.date::date
+            LEFT JOIN month_holidays mh ON mh.holiday_date = d.date::date
+            ORDER BY d.date ASC
         `;
         const result = await pool.query(query, [teacher_id, school_id, startDate, endDate]);
 

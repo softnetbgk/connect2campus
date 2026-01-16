@@ -8,8 +8,9 @@ const DownloadApp = () => {
     const handleDownload = () => {
         // Create a temporary anchor element to trigger download
         const link = document.createElement('a');
-        link.href = '/SchoolApp.apk';
-        link.download = 'ConnectToCampus-v8.0.apk';
+        const baseUrl = import.meta.env.VITE_APP_URL ? import.meta.env.VITE_APP_URL.replace(/\/$/, '') : '';
+        link.href = `${baseUrl}/SchoolApp.apk`;
+        link.download = 'ConnectToCampus-v9.0.apk';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -49,7 +50,7 @@ const DownloadApp = () => {
                                 Complete School Management System
                             </p>
                             <div className="inline-block mt-4 px-4 py-2 bg-green-500/20 border border-green-500/50 rounded-full">
-                                <p className="text-green-300 text-sm font-bold">Version 8.0 - Latest</p>
+                                <p className="text-green-300 text-sm font-bold">Version 9.0 - Newly Built</p>
                             </div>
                         </div>
 
@@ -79,7 +80,7 @@ const DownloadApp = () => {
                                 className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold rounded-xl shadow-lg shadow-yellow-400/30 transform transition-all hover:scale-105 text-lg"
                             >
                                 <Download size={24} />
-                                Download APK (v8.0)
+                                Download APK (v9.0)
                             </button>
 
                             <button
@@ -132,7 +133,7 @@ const DownloadApp = () => {
 
                     {/* Footer */}
                     <div className="text-center mt-6">
-                        <p className="text-white/30 text-xs font-cursive tracking-widest">Connect to Campus v8.0</p>
+                        <p className="text-white/30 text-xs font-cursive tracking-widest">Connect to Campus v9.0</p>
                     </div>
                 </div>
             </div>

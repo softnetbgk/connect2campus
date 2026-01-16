@@ -181,7 +181,7 @@ const checkAndSendAbsentNotifications = async () => {
             SELECT s.id, s.name, s.contact_number, s.school_id 
             FROM students s
             WHERE s.id NOT IN (
-                SELECT student_id FROM student_attendance WHERE date = $1
+                SELECT student_id FROM attendance WHERE date = $1
             )
         `, [today]);
 
@@ -191,7 +191,7 @@ const checkAndSendAbsentNotifications = async () => {
         for (const student of absentStudents.rows) {
             // A. Insert 'Absent' record to avoid sending SMS twice if script re-runs
             await client.query(`
-                INSERT INTO student_attendance (student_id, date, status, school_id) 
+                INSERT INTO attendance (student_id, date, status, school_id) 
                 VALUES ($1, $2, 'Absent', $3)
             `, [student.id, today, student.school_id]);
 
