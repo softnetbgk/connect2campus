@@ -177,10 +177,10 @@ const Login = () => {
                                     required
                                     autoComplete="off"
                                     className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 focus:border-yellow-400 transition-all font-sans text-sm"
-                                    placeholder={role === 'SCHOOL_ADMIN' ? 'admin@school.com or 123456' :
+                                    placeholder={role === 'SCHOOL_ADMIN' ? 'Enter Email or School ID' :
                                         role === 'STUDENT' ? 'Enter Admission Number' :
                                             ['TEACHER', 'STAFF'].includes(role) ? 'Enter Employee ID' :
-                                                'admin@school.com'}
+                                                'Enter Email Address'}
                                     value={email}
                                     onChange={(e) => {
                                         cancelVerification();
@@ -201,7 +201,7 @@ const Login = () => {
                                         required
                                         autoComplete="off"
                                         className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 focus:border-yellow-400 transition-all font-sans text-sm pr-10"
-                                        placeholder="••••••••"
+                                        placeholder="Enter Password"
                                         value={password}
                                         onChange={(e) => {
                                             cancelVerification();

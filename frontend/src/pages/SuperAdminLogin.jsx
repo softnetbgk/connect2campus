@@ -62,7 +62,7 @@ const SuperAdminLogin = () => {
                             required
                             autoComplete="off"
                             className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all font-semibold text-sm text-white placeholder:text-slate-500"
-                            placeholder="superadmin@system.com"
+                            placeholder="admin@system.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                         />
@@ -79,7 +79,7 @@ const SuperAdminLogin = () => {
                             required
                             autoComplete="off"
                             className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all font-semibold text-sm text-white placeholder:text-slate-500"
-                            placeholder="••••••••••••"
+                            placeholder="Enter Password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                         />

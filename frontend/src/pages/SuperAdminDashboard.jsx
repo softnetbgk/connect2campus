@@ -743,7 +743,7 @@ const SuperAdminDashboard = () => {
                                             <input
                                                 required
                                                 type="email"
-                                                placeholder="admin@school.com"
+                                                placeholder="Enter admin email"
                                                 autoComplete="off"
                                                 className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white placeholder-slate-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
                                                 value={formData.contactEmail}

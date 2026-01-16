@@ -12,8 +12,8 @@ const SetupAdmin = () => {
         try {
             setStatus('Creating...');
             const res = await api.post('/auth/setup-admin', {
-                email: 'superadmin@example.com',
-                password: password || 'admin123'
+                email: 'admin@system.com',
+                password: password
             });
             toast.success(res.data.message);
             setStatus('Success! Redirecting...');
@@ -38,7 +38,7 @@ const SetupAdmin = () => {
                     <label className="block text-sm font-bold mb-1">Super Admin Email</label>
                     <input
                         type="text"
-                        value="superadmin@example.com"
+                        value="admin@system.com"
                         disabled
                         className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-gray-400 cursor-not-allowed"
                     />
@@ -48,7 +48,7 @@ const SetupAdmin = () => {
                     <label className="block text-sm font-bold mb-1">Set Password</label>
                     <input
                         type="text"
-                        placeholder="Default: admin123"
+                        placeholder="Enter secure password"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         className="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:border-[#00C9FC] outline-none"
