@@ -5,8 +5,8 @@
     "framework": "vite",
     "rewrites": [
         {
-            "source": "/SchoolApp_Updated.apk",
-            "destination": "/SchoolApp_Updated.apk"
+            "source": "/SchoolApp.apk",
+            "destination": "/SchoolApp.apk"
         },
         {
             "source": "/(.*)",
@@ -15,7 +15,7 @@
     ],
     "headers": [
         {
-            "source": "/SchoolApp_Updated.apk",
+            "source": "/SchoolApp.apk",
             "headers": [
                 {
                     "key": "Content-Type",
@@ -23,7 +23,7 @@
                 },
                 {
                     "key": "Content-Disposition",
-                    "value": "attachment; filename=SchoolApp_Updated.apk"
+                    "value": "attachment; filename=SchoolApp.apk"
                 }
             ]
         }
