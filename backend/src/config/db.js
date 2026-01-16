@@ -8,7 +8,7 @@ const getConnectionString = () => {
         return process.env.PROD_DATABASE_URL;
     }
 
-    process.env.DB_ENV_LABEL = 'DEVELOP (SUPABASE TEST)';
+    process.env.DB_ENV_LABEL = 'DEVELOP (SUPABASE OLD/ORIGINAL)';
     return process.env.DATABASE_URL; // Now points to myproject_test_db
 };
 
