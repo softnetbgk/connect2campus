@@ -1,7 +1,6 @@
 {
   "projects": {
-    "firebase use --add": "connect-to-campus-64222",
-    "Connect2campus": "connecttocampus-c98e4"
+    "default": "connect-to-campus-b56ac"
   },
   "targets": {},
   "etags": {}

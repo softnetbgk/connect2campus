@@ -1,10 +1,16 @@
 node_modules/
 .env
+**/.env
 .agent/
 *.log
 .DS_Store
 dist/
-
 build/
 .vscode/
 *.exe
+
+# Firebase / Google Credentials (DO NOT COMMIT)
+serviceAccountKey.json
+**/serviceAccountKey.json
+google-services.json
+**/google-services.json
