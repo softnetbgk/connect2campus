@@ -31,18 +31,37 @@ const startServer = async () => {
         console.log('✅ Connected to PostgreSQL database');
 
         // Auto-run migrations (Schema Updates)
-        await client.query(`
-            ALTER TABLE expenditures 
-            ADD COLUMN IF NOT EXISTS transaction_id VARCHAR(100),
-            ADD COLUMN IF NOT EXISTS upi_id VARCHAR(100);
+        try {
+            await client.query(`
+                DO $$ 
+                BEGIN 
+                    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'expenditures') THEN
+                        IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'expenditures' AND column_name = 'transaction_id') THEN
+                            ALTER TABLE expenditures ADD COLUMN transaction_id VARCHAR(100);
+                        END IF;
+                        IF NOT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'expenditures' AND column_name = 'upi_id') THEN
+                            ALTER TABLE expenditures ADD COLUMN upi_id VARCHAR(100);
+                        END IF;
+                    END IF;
+                END $$;
+            `);
 
-            ALTER TABLE doubts 
-            ALTER COLUMN subject_id DROP NOT NULL;
+            await client.query(`
+                DO $$ 
+                BEGIN 
+                    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'doubts') THEN
+                        ALTER TABLE doubts ALTER COLUMN subject_id DROP NOT NULL;
+                    END IF;
+                END $$;
+            `);
 
-            ALTER TABLE schools
-            ADD COLUMN IF NOT EXISTS logo TEXT;
-        `);
-        console.log('✅ Database schema verified.');
+            await client.query(`
+                ALTER TABLE schools ADD COLUMN IF NOT EXISTS logo TEXT;
+            `);
+            console.log('✅ Database schema verified.');
+        } catch (migError) {
+            console.warn('⚠️ Some migrations could not be applied automatically:', migError.message);
+        }
 
         // Auto-run migrations if needed (simple check)
         const check = await client.query("SELECT to_regclass('public.users')");

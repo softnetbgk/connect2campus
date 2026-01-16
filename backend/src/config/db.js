@@ -2,20 +2,18 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const getConnectionString = () => {
-    if (process.env.NODE_ENV === 'test') {
-        process.env.DB_ENV_LABEL = 'TESTING';
-        return process.env.TEST_DATABASE_URL;
-    }
+    // For develop branch, the default is always Supabase Testing
     if (process.env.NODE_ENV === 'production') {
-        process.env.DB_ENV_LABEL = 'PRODUCTION';
+        process.env.DB_ENV_LABEL = 'PRODUCTION (AWS/SUPA_PROD)';
         return process.env.PROD_DATABASE_URL;
     }
-    process.env.DB_ENV_LABEL = 'DEVELOPMENT (DEFAULT)';
-    return process.env.DATABASE_URL;
+
+    process.env.DB_ENV_LABEL = 'DEVELOP (SUPABASE TEST)';
+    return process.env.DATABASE_URL; // Now points to myproject_test_db
 };
 
 const connectionString = getConnectionString();
-console.log(`🌐 Database Environment: ${process.env.DB_ENV_LABEL}`);
+console.log(`🌿 Branch: Develop | 🌐 DB: ${process.env.DB_ENV_LABEL}`);
 
 const pool = new Pool({
     connectionString: connectionString || `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
