@@ -1,6 +1,6 @@
 {
-  "appId": "com.school.app",
-  "appName": "SchoolApp",
+  "appId": "com.school.app.test",
+  "appName": "SchoolApp Test",
   "webDir": "dist",
   "plugins": {
     "PushNotifications": {

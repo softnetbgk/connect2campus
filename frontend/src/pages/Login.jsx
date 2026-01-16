@@ -291,12 +291,16 @@ const Login = () => {
 
                             <div className="space-y-3">
                                 <a
-                                    href={`${import.meta.env.VITE_APP_URL || ''}/SchoolApp.apk`}
-                                    download="ConnectToCampus.apk"
+                                    href={import.meta.env.VITE_APP_ENV === 'production'
+                                        ? "https://play.google.com/store/apps/details?id=com.school.app"
+                                        : `${import.meta.env.VITE_APP_URL || window.location.origin}/SchoolApp.apk`}
+                                    target={import.meta.env.VITE_APP_ENV === 'production' ? "_blank" : "_self"}
+                                    rel="noopener noreferrer"
+                                    download={import.meta.env.VITE_APP_ENV !== 'production' ? "ConnectToCampus-Test.apk" : undefined}
                                     className="w-full inline-flex justify-center items-center gap-3 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors text-sm shadow-lg shadow-green-500/20"
                                 >
                                     <Smartphone size={20} />
-                                    Download for Android
+                                    {import.meta.env.VITE_APP_ENV === 'production' ? 'Download from Play Store' : 'Download Test APK'}
                                 </a>
 
                                 <a

@@ -5,12 +5,18 @@ import loginBg from '../assets/login-bg.jpg';
 const DownloadApp = () => {
     const navigate = useNavigate();
 
+    const isProduction = import.meta.env.VITE_APP_ENV === 'production';
+
     const handleDownload = () => {
+        if (isProduction) {
+            window.open("https://play.google.com/store/apps/details?id=com.school.app", "_blank");
+            return;
+        }
         // Create a temporary anchor element to trigger download
         const link = document.createElement('a');
-        const baseUrl = import.meta.env.VITE_APP_URL ? import.meta.env.VITE_APP_URL.replace(/\/$/, '') : '';
+        const baseUrl = import.meta.env.VITE_APP_URL ? import.meta.env.VITE_APP_URL.replace(/\/$/, '') : window.location.origin;
         link.href = `${baseUrl}/SchoolApp.apk`;
-        link.download = 'ConnectToCampus-v9.0.apk';
+        link.download = 'ConnectToCampus-Test.apk';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -44,13 +50,15 @@ const DownloadApp = () => {
                                 <Smartphone size={40} className="text-black" />
                             </div>
                             <h1 className="text-4xl md:text-5xl font-cursive text-white mb-3 drop-shadow-lg">
-                                Download Connect to Campus
+                                {isProduction ? 'Get the App' : 'Download Test App'}
                             </h1>
                             <p className="text-gray-300 text-lg">
                                 Complete School Management System
                             </p>
                             <div className="inline-block mt-4 px-4 py-2 bg-green-500/20 border border-green-500/50 rounded-full">
-                                <p className="text-green-300 text-sm font-bold">Version 9.0 - Newly Built</p>
+                                <p className="text-green-300 text-sm font-bold">
+                                    {isProduction ? 'v1.0 - Official Release' : 'v9.0 - Development Build'}
+                                </p>
                             </div>
                         </div>
 
@@ -79,8 +87,8 @@ const DownloadApp = () => {
                                 onClick={handleDownload}
                                 className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold rounded-xl shadow-lg shadow-yellow-400/30 transform transition-all hover:scale-105 text-lg"
                             >
-                                <Download size={24} />
-                                Download APK (v9.0)
+                                {isProduction ? <Smartphone size={24} /> : <Download size={24} />}
+                                {isProduction ? 'Get it on Play Store' : 'Download APK (v9.0)'}
                             </button>
 
                             <button
@@ -97,35 +105,37 @@ const DownloadApp = () => {
                         </div>
 
                         {/* Installation Instructions */}
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-6">
-                            <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-                                <Shield size={20} className="text-blue-400" />
-                                Installation Instructions
-                            </h3>
-                            <ol className="text-gray-300 space-y-2 text-sm">
-                                <li className="flex gap-2">
-                                    <span className="text-yellow-400 font-bold">1.</span>
-                                    <span>Download the APK file to your Android device</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="text-yellow-400 font-bold">2.</span>
-                                    <span>Go to Settings → Security → Enable "Install from Unknown Sources"</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="text-yellow-400 font-bold">3.</span>
-                                    <span>Open the downloaded APK file and tap "Install"</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="text-yellow-400 font-bold">4.</span>
-                                    <span>Open the app and login with your credentials</span>
-                                </li>
-                            </ol>
-                        </div>
+                        {!isProduction && (
+                            <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-6">
+                                <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                                    <Shield size={20} className="text-blue-400" />
+                                    Installation Instructions
+                                </h3>
+                                <ol className="text-gray-300 space-y-2 text-sm">
+                                    <li className="flex gap-2">
+                                        <span className="text-yellow-400 font-bold">1.</span>
+                                        <span>Download the APK file to your Android device</span>
+                                    </li>
+                                    <li className="flex gap-2">
+                                        <span className="text-yellow-400 font-bold">2.</span>
+                                        <span>Go to Settings → Security → Enable "Install from Unknown Sources"</span>
+                                    </li>
+                                    <li className="flex gap-2">
+                                        <span className="text-yellow-400 font-bold">3.</span>
+                                        <span>Open the downloaded APK file and tap "Install"</span>
+                                    </li>
+                                    <li className="flex gap-2">
+                                        <span className="text-yellow-400 font-bold">4.</span>
+                                        <span>Open the app and login with your credentials</span>
+                                    </li>
+                                </ol>
+                            </div>
+                        )}
 
                         {/* Note */}
                         <div className="mt-6 text-center">
                             <p className="text-gray-400 text-xs">
-                                Note: This app is currently in beta. Play Store version coming soon!
+                                {isProduction ? 'Official release for students and staff.' : 'Note: This is a test build for development purposes.'}
                             </p>
                         </div>
 
@@ -133,7 +143,7 @@ const DownloadApp = () => {
 
                     {/* Footer */}
                     <div className="text-center mt-6">
-                        <p className="text-white/30 text-xs font-cursive tracking-widest">Connect to Campus v9.0</p>
+                        <p className="text-white/30 text-xs font-cursive tracking-widest">Connect to Campus {isProduction ? 'v1.0' : 'v9.0'}</p>
                     </div>
                 </div>
             </div>

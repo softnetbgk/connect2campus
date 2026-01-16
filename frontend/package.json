@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "config:test": "node switch-config.cjs test",
+    "config:prod": "node switch-config.cjs prod"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",

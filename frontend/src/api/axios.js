@@ -1,12 +1,16 @@
 import axios from 'axios';
 
-// Production URL from Environment Variable (Vercel) or Fallback
-const PROD_URL = import.meta.env.VITE_API_URL || 'https://school-software-8wq3.onrender.com/api';
+// Production/Staging API URLs
+const RENDER_API = 'https://school-software-8wq3.onrender.com/api'; // Testing (Connected to Supabase)
+const AWS_API = 'https://api.your-school-aws.com/api'; // Main (Connected to AWS DB) - PLACEHOLDER
 
-// Dynamic URL that works on localhost AND local network IPs (for mobile testing)
+// If a specific URL is provided in env, use it. Otherwise decide based on APP_ENV
+const PROD_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_APP_ENV === 'production' ? AWS_API : RENDER_API);
+
+// Dynamic URL for local development (Laptop)
 const DEV_URL = `http://${window.location.hostname}:5000/api`;
 
-// Use Localhost in Development, Production URL otherwise
+// Use Localhost in Development MODE, else use the resolved PROD_URL
 const baseURL = import.meta.env.MODE === 'development' ? DEV_URL : PROD_URL;
 
 // Debug: Log the API URL being used
