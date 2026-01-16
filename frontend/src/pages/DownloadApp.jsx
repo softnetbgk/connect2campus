@@ -88,7 +88,7 @@ const DownloadApp = () => {
                                 className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold rounded-xl shadow-lg shadow-yellow-400/30 transform transition-all hover:scale-105 text-lg"
                             >
                                 {isProduction ? <Smartphone size={24} /> : <Download size={24} />}
-                                {isProduction ? 'Get it on Play Store' : 'Download APK (v9.0)'}
+                                {isProduction ? 'Get it on Play Store' : 'Download APK'}
                             </button>
 
                             <button
@@ -98,10 +98,6 @@ const DownloadApp = () => {
                                 <ArrowLeft size={16} />
                                 Back to Home
                             </button>
-
-                            <p className="text-gray-400 text-sm mt-1">
-                                Android 5.1+
-                            </p>
                         </div>
 
                         {/* Installation Instructions */}
