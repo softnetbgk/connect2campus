@@ -7,20 +7,6 @@ const DownloadApp = () => {
 
     const isProduction = import.meta.env.VITE_APP_ENV === 'production';
 
-    const handleDownload = () => {
-        if (isProduction) {
-            window.open("https://play.google.com/store/apps/details?id=com.school.app", "_blank");
-            return;
-        }
-        // Create a temporary anchor element to trigger download
-        const link = document.createElement('a');
-        const baseUrl = import.meta.env.VITE_APP_URL ? import.meta.env.VITE_APP_URL.replace(/\/$/, '') : window.location.origin;
-        link.href = `${baseUrl}/SchoolApp.apk`;
-        link.download = 'ConnectToCampus-Test.apk';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
 
     return (
         <div className="relative min-h-screen w-full overflow-hidden">
@@ -83,13 +69,26 @@ const DownloadApp = () => {
 
                         {/* Download Button */}
                         <div className="text-center mb-8 flex flex-col items-center gap-4">
-                            <button
-                                onClick={handleDownload}
-                                className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold rounded-xl shadow-lg shadow-yellow-400/30 transform transition-all hover:scale-105 text-lg"
-                            >
-                                {isProduction ? <Smartphone size={24} /> : <Download size={24} />}
-                                {isProduction ? 'Get it on Play Store' : 'Download APK'}
-                            </button>
+                            {isProduction ? (
+                                <a
+                                    href="https://play.google.com/store/apps/details?id=com.school.app"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold rounded-xl shadow-lg shadow-yellow-400/30 transform transition-all hover:scale-105 text-lg"
+                                >
+                                    <Smartphone size={24} />
+                                    Get it on Play Store
+                                </a>
+                            ) : (
+                                <a
+                                    href="/SchoolApp.apk"
+                                    download="ConnectToCampus-Test.apk"
+                                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold rounded-xl shadow-lg shadow-yellow-400/30 transform transition-all hover:scale-105 text-lg"
+                                >
+                                    <Download size={24} />
+                                    Download APK
+                                </a>
+                            )}
 
                             <button
                                 onClick={() => navigate('/')}
