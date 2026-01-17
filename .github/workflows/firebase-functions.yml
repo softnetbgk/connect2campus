@@ -1,0 +1,31 @@
+name: Deploy to Firebase Functions on merge
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'backend/**'
+      - 'firebase.json'
+      - '.github/workflows/firebase-functions.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: cd backend && npm install
+
+      - name: Deploy to Firebase Functions
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only functions
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SCHOOL_SOFTWARE }}
+          PROJECT_ID: connect-to-campus-b56ac
