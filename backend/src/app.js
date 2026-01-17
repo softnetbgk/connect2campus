@@ -109,9 +109,22 @@ app.get(['/api/download-app', '/download-app'], (req, res) => {
 
 // Health Check (Handles both prefixed and non-prefixed roots)
 app.get(['/api', '/'], (req, res) => {
+    const fs = require('fs');
+    const publicPath = path.join(__dirname, '../public');
+    let publicFiles = [];
+    try {
+        if (fs.existsSync(publicPath)) {
+            publicFiles = fs.readdirSync(publicPath);
+        }
+    } catch (e) { }
+
     res.json({
         message: 'School API is live 🚀',
-        version: '1.2.0',
+        version: '1.2.1-debug',
+        dirname: __dirname,
+        public_exists: fs.existsSync(publicPath),
+        public_path: publicPath,
+        public_files: publicFiles,
         timestamp: new Date().toISOString()
     });
 });
