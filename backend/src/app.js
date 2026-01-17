@@ -108,8 +108,15 @@ app.get('/download-app', (req, res) => {
 });
 
 // Health Check (Handles both prefixed and non-prefixed roots)
-app.get('/api', (req, res) => res.json({ message: 'School API is live (prefixed) 🚀' }));
-app.get('/', (req, res) => res.json({ message: 'School API is live (root) 🚀' }));
+app.get(['/api', '/'], (req, res) => {
+    res.json({
+        message: 'School API is live 🚀',
+        env: process.env.NODE_ENV,
+        db_connected: !!process.env.DATABASE_URL,
+        jwt_ready: !!process.env.JWT_SECRET,
+        timestamp: new Date().toISOString()
+    });
+});
 
 
 // Global Error Handler
