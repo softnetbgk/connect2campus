@@ -53,14 +53,14 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/schools', schoolRoutes);
-app.use('/api/classes', require('./routes/classRoutes'));
-app.use('/api/students', require('./routes/studentRoutes'));
-app.use('/api/teachers', require('./routes/teacherRoutes'));
-app.use('/api/staff', require('./routes/staffRoutes'));
-app.use('/api/fees', require('./routes/feeRoutes'));
+// Routes (Handle both /api prefix and root for Firebase compatibility)
+app.use(['/api/auth', '/auth'], authRoutes);
+app.use(['/api/schools', '/schools'], schoolRoutes);
+app.use(['/api/classes', '/classes'], require('./routes/classRoutes'));
+app.use(['/api/students', '/students'], require('./routes/studentRoutes'));
+app.use(['/api/teachers', '/teachers'], require('./routes/teacherRoutes'));
+app.use(['/api/staff', '/staff'], require('./routes/staffRoutes'));
+app.use(['/api/fees', '/fees'], require('./routes/feeRoutes'));
 app.use('/api/library', require('./routes/libraryRoutes'));
 app.use('/api/salary', require('./routes/salaryRoutes'));
 app.use('/api/holidays', require('./routes/holidayRoutes'));
