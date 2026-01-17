@@ -98,7 +98,7 @@ app.get('/app-launch', (req, res) => {
 
 // Download App Route
 app.get('/download-app', (req, res) => {
-    const file = path.join(__dirname, '../public/app.apk');
+    const file = path.join(__dirname, '../public/SchoolApp.apk');
     res.download(file, 'SchoolApp.apk', (err) => {
         if (err) {
             console.error('Error downloading file:', err);

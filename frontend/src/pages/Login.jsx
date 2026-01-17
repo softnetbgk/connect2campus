@@ -273,7 +273,7 @@ const Login = () => {
                             <div className="flex flex-col md:flex-row gap-4 justify-center mb-6">
                                 <div className="bg-white p-3 rounded-xl shadow-inner border border-slate-100">
                                     <QRCode
-                                        value={`${import.meta.env.VITE_APP_URL || window.location.origin}/SchoolApp.apk`}
+                                        value={`${import.meta.env.VITE_API_URL || window.location.origin}/download-app`}
                                         size={130}
                                         level="H"
                                     />
@@ -293,7 +293,7 @@ const Login = () => {
                                 <a
                                     href={import.meta.env.VITE_APP_ENV === 'production'
                                         ? "https://play.google.com/store/apps/details?id=com.school.app"
-                                        : `${import.meta.env.VITE_APP_URL || window.location.origin}/SchoolApp.apk`}
+                                        : `${import.meta.env.VITE_API_URL || window.location.origin}/download-app`}
                                     target={import.meta.env.VITE_APP_ENV === 'production' ? "_blank" : "_self"}
                                     rel="noopener noreferrer"
                                     download={import.meta.env.VITE_APP_ENV !== 'production' ? "ConnectToCampus-Test.apk" : undefined}
