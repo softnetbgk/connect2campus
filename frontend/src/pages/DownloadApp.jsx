@@ -81,8 +81,8 @@ const DownloadApp = () => {
                                 </a>
                             ) : (
                                 <a
-                                    href={`${import.meta.env.VITE_API_URL}/download-app`}
-                                    download="ConnectToCampus-Test.apk"
+                                    href="/SchoolApp.apk"
+                                    download="ConnectToCampus.apk"
                                     className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold rounded-xl shadow-lg shadow-yellow-400/30 transform transition-all hover:scale-105 text-lg"
                                 >
                                     <Download size={24} />
