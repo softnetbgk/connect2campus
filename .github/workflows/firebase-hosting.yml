@@ -26,6 +26,9 @@ jobs:
 
       - name: Build
         run: cd frontend && npm run build
+        env:
+          VITE_API_URL: 'https://us-central1-connect-to-campus-b56ac.cloudfunctions.net/api'
+          VITE_APP_URL: 'https://connect-to-campus-b56ac.web.app'
 
       - name: Deploy to Firebase
         uses: FirebaseExtended/action-hosting-deploy@v0
