@@ -111,12 +111,11 @@ app.get('/download-app', (req, res) => {
 app.get(['/api', '/'], (req, res) => {
     res.json({
         message: 'School API is live 🚀',
-        env: process.env.NODE_ENV,
-        db_connected: !!process.env.DATABASE_URL,
-        jwt_ready: !!process.env.JWT_SECRET,
+        version: '1.2.0',
         timestamp: new Date().toISOString()
     });
 });
+
 
 
 // Global Error Handler
