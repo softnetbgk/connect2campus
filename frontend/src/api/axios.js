@@ -1,11 +1,6 @@
 import axios from 'axios';
 
-// Production/Staging API URLs
-const RENDER_API = 'https://school-software-8wq3.onrender.com/api'; // Testing (Connected to Supabase)
-const AWS_API = 'https://api.your-school-aws.com/api'; // Main (Connected to AWS DB) - PLACEHOLDER
-
-// If a specific URL is provided in env, use it. Otherwise decide based on APP_ENV
-const PROD_URL = import.meta.env.VITE_API_URL || (import.meta.env.VITE_APP_ENV === 'production' ? AWS_API : RENDER_API);
+const PROD_URL = import.meta.env.VITE_API_URL || RENDER_API;
 
 // Dynamic URL for local development (Laptop)
 const DEV_URL = `http://${window.location.hostname}:5000/api`;
