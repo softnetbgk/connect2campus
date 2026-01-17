@@ -61,13 +61,8 @@ export const AuthProvider = ({ children }) => {
 
     // Broadcast Channel for Multi-tab management (Web only)
     useEffect(() => {
-        // Capacitor import is removed, so this check needs to be removed or handled differently if it's still relevant for web-only.
-        // Assuming this check was primarily for Capacitor's native platform detection.
-        // If this code is only for web, this check is no longer needed.
-        // For now, I'll remove the check as per the instruction's implied simplification.
-        // If the intent was to keep it web-only, a different check would be needed.
-        // Given the context of removing Capacitor, this line becomes irrelevant.
-        // if (Capacitor.isNativePlatform()) return; // Skip for mobile app
+        // Skip BroadcastChannel on mobile app - it causes logout issues
+        if (Capacitor.isNativePlatform()) return;
 
         let channel = null;
         try {
