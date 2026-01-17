@@ -3,9 +3,9 @@ on:
   push:
     branches:
       - develop
-  workflow_dispatch:
     paths:
       - 'frontend/**'
+  workflow_dispatch:
       - '.github/workflows/firebase-hosting.yml'
 
 jobs:
