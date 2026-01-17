@@ -19,7 +19,13 @@ export default defineConfig({
       output: {
         entryFileNames: `assets/[name].[hash].${Date.now()}.js`,
         chunkFileNames: `assets/[name].[hash].${Date.now()}.js`,
-        assetFileNames: `assets/[name].[hash].${Date.now()}.[ext]`
+        assetFileNames: `assets/[name].[hash].${Date.now()}.[ext]`,
+        manualChunks: {
+          // Split leaflet into separate chunk (loaded only when map is used)
+          'leaflet-vendor': ['leaflet', 'react-leaflet'],
+          // Split large UI libraries
+          'lucide': ['lucide-react']
+        }
       }
     },
     terserOptions: {

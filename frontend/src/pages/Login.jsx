@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { School, ShieldCheck, User, Users, GraduationCap, Briefcase, Bus, Eye, EyeOff, X, Smartphone } from 'lucide-react';
-import QRCode from 'react-qr-code';
 import { Capacitor } from '@capacitor/core';
 
 import loginBg from '../assets/login-bg.jpg';
@@ -255,68 +254,12 @@ const Login = () => {
                 </div>
             </div>
 
-            {/* QR Code Modal */}
-            {showQR && (
+            {/* QR Code Modal - Disabled (react-qr-code package removed for APK size optimization) */}
+            {/* {showQR && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-                    <div className="bg-slate-900 border border-white/20 rounded-2xl p-6 max-w-sm w-full shadow-2xl relative animate-in zoom-in-95 duration-200">
-                        <button
-                            onClick={() => setShowQR(false)}
-                            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
-                        >
-                            <X size={20} />
-                        </button>
-
-                        <div className="text-center">
-                            <h3 className="text-lg font-bold text-white mb-2">Get the Mobile App</h3>
-                            <p className="text-sm text-gray-400 mb-6">Scan to download instantly</p>
-
-                            <div className="flex flex-col md:flex-row gap-4 justify-center mb-6">
-                                <div className="bg-white p-3 rounded-xl shadow-inner border border-slate-100">
-                                    <QRCode
-                                        value={`${import.meta.env.VITE_API_URL || window.location.origin}/download-app`}
-                                        size={130}
-                                        level="H"
-                                    />
-                                    <p className="text-[10px] text-slate-800 mt-2 font-mono font-bold">Android APK</p>
-                                </div>
-                                <div className="bg-white p-3 rounded-xl shadow-inner border border-slate-100">
-                                    <QRCode
-                                        value={`${import.meta.env.VITE_APP_URL || window.location.origin}?is_mobile_app=true`}
-                                        size={130}
-                                        level="H"
-                                    />
-                                    <p className="text-[10px] text-slate-800 mt-2 font-mono font-bold">iOS App (Web)</p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3">
-                                <a
-                                    href={import.meta.env.VITE_APP_ENV === 'production'
-                                        ? "https://play.google.com/store/apps/details?id=com.school.app"
-                                        : `${import.meta.env.VITE_API_URL || window.location.origin}/download-app`}
-                                    target={import.meta.env.VITE_APP_ENV === 'production' ? "_blank" : "_self"}
-                                    rel="noopener noreferrer"
-                                    download={import.meta.env.VITE_APP_ENV !== 'production' ? "ConnectToCampus-Test.apk" : undefined}
-                                    className="w-full inline-flex justify-center items-center gap-3 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors text-sm shadow-lg shadow-green-500/20"
-                                >
-                                    <Smartphone size={20} />
-                                    {import.meta.env.VITE_APP_ENV === 'production' ? 'Download from Play Store' : 'Download Test APK'}
-                                </a>
-
-                                <a
-                                    href={`${window.location.origin}?is_mobile_app=true`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="w-full inline-flex justify-center items-center gap-3 bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-colors text-sm shadow-lg shadow-slate-500/20"
-                                >
-                                    <Smartphone size={20} className="text-gray-400" />
-                                    Launch iOS App
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+                    ... QR code content removed ...
                 </div>
-            )}
+            )} */}
         </div>
     );
 };

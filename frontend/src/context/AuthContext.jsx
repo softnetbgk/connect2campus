@@ -1,5 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import api from '../api/axios';
+import { Preferences } from '@capacitor/preferences';
+import { Capacitor } from '@capacitor/core';
 
 const AuthContext = createContext(null);
 
@@ -7,21 +9,54 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Initial load - Restore session from localStorage
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-
-        if (token && storedUser) {
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch (e) {
-                console.error("Failed to parse stored user", e);
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-            }
+    // Storage helpers - use Capacitor Preferences on mobile, localStorage on web
+    const getStorageItem = async (key) => {
+        if (Capacitor.isNativePlatform()) {
+            const { value } = await Preferences.get({ key });
+            return value;
         }
-        setLoading(false);
+        return localStorage.getItem(key);
+    };
+
+    const setStorageItem = async (key, value) => {
+        if (Capacitor.isNativePlatform()) {
+            await Preferences.set({ key, value });
+        } else {
+            localStorage.setItem(key, value);
+        }
+    };
+
+    const removeStorageItem = async (key) => {
+        if (Capacitor.isNativePlatform()) {
+            await Preferences.remove({ key });
+        } else {
+            localStorage.removeItem(key);
+        }
+    };
+
+    // Initial load - Restore session from storage
+    useEffect(() => {
+        const restoreSession = async () => {
+            try {
+                const token = await getStorageItem('token');
+                const storedUser = await getStorageItem('user');
+
+                if (token && storedUser) {
+                    try {
+                        setUser(JSON.parse(storedUser));
+                    } catch (e) {
+                        console.error("Failed to parse stored user", e);
+                        await removeStorageItem('token');
+                        await removeStorageItem('user');
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to restore session", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        restoreSession();
     }, []);
 
     // Broadcast Channel for Multi-tab management (Web only)
@@ -64,18 +99,20 @@ export const AuthProvider = ({ children }) => {
             const response = await api.post('/auth/login', { email, password, role });
             const { token, user } = response.data;
 
-            // Save to localStorage
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(user));
+            // Save to storage (Capacitor Preferences on mobile, localStorage on web)
+            await setStorageItem('token', token);
+            await setStorageItem('user', JSON.stringify(user));
             setUser(user);
 
-            // Broadcast
-            try {
-                const channel = new BroadcastChannel('school_auth_channel');
-                channel.postMessage({ type: 'LOGIN_SUCCESS', userId: user.id });
-                channel.close();
-            } catch (bcError) {
-                console.warn('BroadcastChannel suppressed:', bcError);
+            // Broadcast (web only)
+            if (!Capacitor.isNativePlatform()) {
+                try {
+                    const channel = new BroadcastChannel('school_auth_channel');
+                    channel.postMessage({ type: 'LOGIN_SUCCESS', userId: user.id });
+                    channel.close();
+                } catch (bcError) {
+                    console.warn('BroadcastChannel suppressed:', bcError);
+                }
             }
 
             return { success: true, user };
@@ -130,8 +167,8 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             console.error("Logout API failed", error);
         } finally {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
+            await removeStorageItem('token');
+            await removeStorageItem('user');
             setUser(null);
             if (isAutoLogout) alert("Session timed out due to inactivity.");
         }
