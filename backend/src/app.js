@@ -107,10 +107,10 @@ app.get('/download-app', (req, res) => {
     });
 });
 
-// Basic Health Check Route
-app.get('/', (req, res) => {
-    res.json({ message: 'School Management System API is running 🚀' });
-});
+// Health Check (Handles both prefixed and non-prefixed roots)
+app.get('/api', (req, res) => res.json({ message: 'School API is live (prefixed) 🚀' }));
+app.get('/', (req, res) => res.json({ message: 'School API is live (root) 🚀' }));
+
 
 // Global Error Handler
 app.use((err, req, res, next) => {

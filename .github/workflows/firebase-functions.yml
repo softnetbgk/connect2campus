@@ -25,6 +25,12 @@ jobs:
       - name: Install Dependencies
         run: cd backend && npm ci
 
+      - name: Create .env file
+        run: |
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > backend/.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> backend/.env
+          echo "NODE_ENV=production" >> backend/.env
+
       - name: Deploy to Firebase Functions
         uses: w9jds/firebase-action@master
         with:
@@ -32,3 +38,9 @@ jobs:
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SCHOOL_SOFTWARE }}
           PROJECT_ID: connect-to-campus-b56ac
+          # Pass secrets directly to the deploy command if needed or rely on .env file creation
+          # For consistency with other platforms, we can set them here:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          # Alternatively, use Firebase CLI to set them (this would require a custom step)
+

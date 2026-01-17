@@ -2,14 +2,14 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const getConnectionString = () => {
-    // For develop branch, the default is always Supabase Testing
+    // For develop branch, prioritize production URL if in production mode
     if (process.env.NODE_ENV === 'production') {
         process.env.DB_ENV_LABEL = 'PRODUCTION (AWS/SUPA_PROD)';
-        return process.env.PROD_DATABASE_URL;
+        return process.env.PROD_DATABASE_URL || process.env.DATABASE_URL;
     }
 
     process.env.DB_ENV_LABEL = 'DEVELOP (SUPABASE OLD/ORIGINAL)';
-    return process.env.DATABASE_URL; // Now points to myproject_test_db
+    return process.env.DATABASE_URL;
 };
 
 const connectionString = getConnectionString();
