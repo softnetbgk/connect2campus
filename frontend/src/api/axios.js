@@ -39,10 +39,18 @@ api.interceptors.request.use(
 
         // Get token from storage (Capacitor Preferences on mobile, localStorage on web)
         let token;
-        if (Capacitor.isNativePlatform()) {
-            const { value } = await Preferences.get({ key: 'token' });
-            token = value;
-        } else {
+        try {
+            // Check if running on native platform
+            if (Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) {
+                const { value } = await Preferences.get({ key: 'token' });
+                token = value;
+            } else {
+                // Web browser - use localStorage
+                token = localStorage.getItem('token');
+            }
+        } catch (error) {
+            // Fallback to localStorage if Capacitor check fails
+            console.warn('Capacitor check failed, using localStorage:', error);
             token = localStorage.getItem('token');
         }
 
