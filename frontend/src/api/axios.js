@@ -1,4 +1,7 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
+import { Preferences } from '@capacitor/preferences';
+import { Capacitor } from '@capacitor/core';
 
 const PROD_URL = import.meta.env.VITE_API_URL || RENDER_API;
 
@@ -30,12 +33,19 @@ export const setLoadingCallbacks = (start, stop) => {
 
 // Add a request interceptor to add the JWT token to headers and start loading
 api.interceptors.request.use(
-    (config) => {
+    async (config) => {
         // Start loading
         loadingCallbacks.start();
 
-        // Get token from localStorage
-        const token = localStorage.getItem('token');
+        // Get token from storage (Capacitor Preferences on mobile, localStorage on web)
+        let token;
+        if (Capacitor.isNativePlatform()) {
+            const { value } = await Preferences.get({ key: 'token' });
+            token = value;
+        } else {
+            token = localStorage.getItem('token');
+        }
+
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -70,8 +80,14 @@ api.interceptors.response.use(
 
             // Specific check for Service Disabled (403) or Session Invalid (401)
             if (msg === 'School Service Disabled. Contact Super Admin.' || error.response.status === 401) {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
+                // Clear storage (use Capacitor Preferences on mobile, localStorage on web)
+                if (Capacitor.isNativePlatform()) {
+                    await Preferences.remove({ key: 'token' });
+                    await Preferences.remove({ key: 'user' });
+                } else {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                }
                 // Force reload to login if not already there
                 // Don't redirect if on super-admin-login page
                 if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/super-admin-login')) {
