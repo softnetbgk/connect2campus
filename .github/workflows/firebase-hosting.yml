@@ -5,8 +5,8 @@ on:
       - develop
     paths:
       - 'frontend/**'
-  workflow_dispatch:
       - '.github/workflows/firebase-hosting.yml'
+  workflow_dispatch:
 
 jobs:
   build_and_deploy:

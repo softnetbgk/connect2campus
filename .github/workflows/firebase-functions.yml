@@ -5,9 +5,9 @@ on:
       - develop
     paths:
       - 'backend/**'
-  workflow_dispatch:
       - 'firebase.json'
       - '.github/workflows/firebase-functions.yml'
+  workflow_dispatch:
 
 jobs:
   deploy:
