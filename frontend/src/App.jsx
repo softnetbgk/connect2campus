@@ -83,6 +83,15 @@ const AppContent = () => {
           const result = await PushNotifications.requestPermissions();
           if (result.receive === 'granted') {
             await PushNotifications.register();
+
+            // Create High Importance Channel for "WhatsApp-style" heads-up notifications
+            await PushNotifications.createChannel({
+              id: 'school_notifications',
+              name: 'School Notifications',
+              importance: 5, // HIGH
+              visibility: 1, // PUBLIC
+              vibration: true,
+            });
           }
 
           // Listeners

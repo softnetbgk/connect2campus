@@ -1,5 +1,6 @@
 import React from 'react';
 import { Home, Users, CreditCard, Menu, UserCheck, GraduationCap, ArrowLeft } from 'lucide-react';
+import NotificationBell from '../NotificationBell';
 
 export const MobileHeader = ({ title, onMenuClick, schoolName, onBack, userName, subtitle, logo }) => {
     return (
@@ -35,6 +36,7 @@ export const MobileHeader = ({ title, onMenuClick, schoolName, onBack, userName,
 
                 {/* Right Side Actions */}
                 <div className="flex items-center gap-2 flex-shrink-0">
+                    <NotificationBell />
                     {onMenuClick && (
                         <button
                             onClick={onMenuClick}
