@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
 
-const PROD_URL = import.meta.env.VITE_API_URL || RENDER_API;
+const PROD_URL = import.meta.env.VITE_API_URL;
 
 // Dynamic URL for local development (Laptop)
 const DEV_URL = `http://${window.location.hostname}:5000/api`;
