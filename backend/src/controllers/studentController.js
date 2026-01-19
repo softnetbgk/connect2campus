@@ -828,7 +828,7 @@ exports.getStudentProfile = async (req, res) => {
             FROM students s
             LEFT JOIN classes c ON s.class_id = c.id
             LEFT JOIN sections sec ON s.section_id = sec.id
-            WHERE s.id = $1 AND s.school_id = $2
+            WHERE s.id = $1 AND s.school_id = $2 AND (s.status IS NULL OR s.status != 'Deleted')
         `;
             params = [linkedId, schoolId];
         } else {
@@ -838,7 +838,7 @@ exports.getStudentProfile = async (req, res) => {
             FROM students s
             LEFT JOIN classes c ON s.class_id = c.id
             LEFT JOIN sections sec ON s.section_id = sec.id
-            WHERE s.school_id = $1 AND LOWER(s.email) = LOWER($2)
+            WHERE s.school_id = $1 AND LOWER(s.email) = LOWER($2) AND (s.status IS NULL OR s.status != 'Deleted')
         `;
             params = [schoolId, email];
         }
@@ -856,7 +856,7 @@ exports.getStudentProfile = async (req, res) => {
                 FROM students s
                 LEFT JOIN classes c ON s.class_id = c.id
                 LEFT JOIN sections sec ON s.section_id = sec.id
-                WHERE s.school_id = $1 AND LOWER(s.admission_no) = LOWER($2)
+                WHERE s.school_id = $1 AND LOWER(s.admission_no) = LOWER($2) AND (s.status IS NULL OR s.status != 'Deleted')
             `;
                 result = await pool.query(query, [schoolId, possibleAdmissionNo]);
             }
