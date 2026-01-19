@@ -522,7 +522,7 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
                     )}
                 </div>
                 <div className="flex flex-wrap gap-3 items-center justify-end w-full md:w-auto">
-                    {!isPromotionView && (
+                    {!isPromotionView && viewMode === 'active' && (
                         <>
                             <input
                                 type="search"
@@ -577,7 +577,7 @@ const StudentManagement = ({ config, prefillData, isPromotionView, defaultViewMo
                             <GraduationCap size={20} /> Promote ({selectedStudents.length})
                         </button>
                     )}
-                    {!isPromotionView && (
+                    {!isPromotionView && viewMode === 'active' && (
                         <button
                             onClick={handleAdd}
                             disabled={selectedStudents.length > 0}

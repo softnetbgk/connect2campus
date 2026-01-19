@@ -162,7 +162,7 @@ exports.getMarks = async (req, res) => {
                     et.name as exam_name,
                     et.max_marks
              FROM marks m
-             JOIN students st ON m.student_id = st.id
+             JOIN students st ON m.student_id = st.id AND (st.status IS NULL OR st.status != 'Deleted')
              LEFT JOIN subjects sub ON m.subject_id = sub.id
              JOIN exam_types et ON m.exam_type_id = et.id
              WHERE m.school_id = $1 AND m.class_id = $2 AND m.exam_type_id = $3`;
@@ -545,7 +545,7 @@ exports.getAllMarksheets = async (req, res) => {
              FROM students st
              JOIN classes c ON st.class_id = c.id
              LEFT JOIN sections sec ON st.section_id = sec.id
-             WHERE st.class_id = $1 AND st.school_id = $2`;
+             WHERE st.class_id = $1 AND st.school_id = $2 AND (st.status IS NULL OR st.status != 'Deleted')`;
 
         const params = [class_id, school_id];
 
@@ -764,42 +764,124 @@ exports.getStudentAllMarks = async (req, res) => {
             return res.status(400).json({ message: 'Admission Number is required' });
         }
 
-        // Find Student
+        // First, try to find active student
         const studentRes = await pool.query(
             `SELECT * FROM students 
              WHERE admission_no ILIKE $1 AND school_id = $2 AND (status IS NULL OR status != 'Deleted')`,
             [admission_no.trim(), school_id]
         );
 
-        if (studentRes.rows.length === 0) {
-            return res.status(404).json({ message: `Student not found with admission number: ${admission_no}` });
-        }
-        const student = studentRes.rows[0];
+        if (studentRes.rows.length > 0) {
+            // Active student found - fetch their marks
+            const student = studentRes.rows[0];
 
-        // Fetch ALL Marks with actual max_marks from exam_schedules
-        // Using DISTINCT ON to avoid duplicates when multiple schedule entries exist
-        const marksQuery = `
-             SELECT DISTINCT ON (m.id) 
-                    m.marks_obtained, sub.name as subject_name, et.name as exam_name, 
-                    COALESCE(es.max_marks, et.max_marks, 100) as max_marks
-             FROM marks m
-             JOIN subjects sub ON m.subject_id = sub.id
-             JOIN exam_types et ON m.exam_type_id = et.id
-             LEFT JOIN exam_schedules es ON es.subject_id = m.subject_id 
-                AND es.exam_type_id = m.exam_type_id 
-                AND es.school_id = m.school_id
-                AND (es.class_id = m.class_id OR es.class_id IS NULL)
-                AND (es.section_id = m.section_id OR es.section_id IS NULL)
-             WHERE m.student_id = $1 AND m.school_id = $2
-             ORDER BY m.id, et.id, sub.name
+            // Fetch ALL Marks with actual max_marks from exam_schedules
+            const marksQuery = `
+                 SELECT DISTINCT ON (m.id) 
+                        m.marks_obtained, sub.name as subject_name, et.name as exam_name, 
+                        COALESCE(es.max_marks, et.max_marks, 100) as max_marks
+                 FROM marks m
+                 JOIN subjects sub ON m.subject_id = sub.id
+                 JOIN exam_types et ON m.exam_type_id = et.id
+                 LEFT JOIN exam_schedules es ON es.subject_id = m.subject_id 
+                    AND es.exam_type_id = m.exam_type_id 
+                    AND es.school_id = m.school_id
+                    AND (es.class_id = m.class_id OR es.class_id IS NULL)
+                    AND (es.section_id = m.section_id OR es.section_id IS NULL)
+                 WHERE m.student_id = $1 AND m.school_id = $2
+                 ORDER BY m.id, et.id, sub.name
+            `;
+
+            const marksRes = await pool.query(marksQuery, [student.id, school_id]);
+
+            // Group by Exam
+            const examsMap = {};
+
+            marksRes.rows.forEach(mark => {
+                const examName = mark.exam_name;
+                if (!examsMap[examName]) {
+                    examsMap[examName] = {
+                        exam_name: examName,
+                        total_obtained: 0,
+                        total_max: 0,
+                        subjects: []
+                    };
+                }
+
+                const obtained = parseFloat(mark.marks_obtained || 0);
+                const max = parseFloat(mark.max_marks || 100);
+
+                examsMap[examName].subjects.push({
+                    subject: mark.subject_name,
+                    marks: obtained,
+                    max: max
+                });
+
+                examsMap[examName].total_obtained += obtained;
+                examsMap[examName].total_max += max;
+            });
+
+            // Calculate Percentages
+            const exams = Object.values(examsMap).map(exam => ({
+                ...exam,
+                percentage: exam.total_max > 0 ? ((exam.total_obtained / exam.total_max) * 100).toFixed(2) : 0
+            }));
+
+            return res.json({
+                student: {
+                    name: student.name,
+                    admission_no: student.admission_no,
+                    roll_number: student.roll_number,
+                    class_id: student.class_id,
+                    status: 'Active'
+                },
+                exams: exams
+            });
+        }
+
+        // Active student not found - search in deleted students' marks
+        console.log('[Get Student All Marks] Active student not found, searching deleted records...');
+
+        const deletedMarksQuery = `
+            SELECT DISTINCT ON (m.id)
+                   m.marks_obtained, 
+                   sub.name as subject_name, 
+                   et.name as exam_name,
+                   COALESCE(es.max_marks, et.max_marks, 100) as max_marks,
+                   m.deleted_student_name,
+                   m.deleted_student_admission_no
+            FROM marks m
+            JOIN subjects sub ON m.subject_id = sub.id
+            JOIN exam_types et ON m.exam_type_id = et.id
+            LEFT JOIN exam_schedules es ON es.subject_id = m.subject_id 
+               AND es.exam_type_id = m.exam_type_id 
+               AND es.school_id = m.school_id
+            WHERE m.school_id = $1 
+              AND m.student_id IS NULL 
+              AND m.deleted_student_admission_no ILIKE $2
+            ORDER BY m.id, et.id, sub.name
         `;
 
-        const marksRes = await pool.query(marksQuery, [student.id, school_id]);
+        const deletedMarksRes = await pool.query(deletedMarksQuery, [school_id, admission_no.trim()]);
+
+        if (deletedMarksRes.rows.length === 0) {
+            return res.status(404).json({
+                message: `No records found for admission number: ${admission_no}`,
+                note: 'Student may not exist or may have been deleted without any marks recorded'
+            });
+        }
+
+        // Deleted student marks found
+        const deletedStudentInfo = {
+            name: deletedMarksRes.rows[0].deleted_student_name,
+            admission_no: deletedMarksRes.rows[0].deleted_student_admission_no,
+            status: 'Deleted'
+        };
 
         // Group by Exam
         const examsMap = {};
 
-        marksRes.rows.forEach(mark => {
+        deletedMarksRes.rows.forEach(mark => {
             const examName = mark.exam_name;
             if (!examsMap[examName]) {
                 examsMap[examName] = {
@@ -811,7 +893,6 @@ exports.getStudentAllMarks = async (req, res) => {
             }
 
             const obtained = parseFloat(mark.marks_obtained || 0);
-            // Use exam type max marks if available, else 100
             const max = parseFloat(mark.max_marks || 100);
 
             examsMap[examName].subjects.push({
@@ -831,13 +912,9 @@ exports.getStudentAllMarks = async (req, res) => {
         }));
 
         res.json({
-            student: {
-                name: student.name,
-                admission_no: student.admission_no,
-                roll_number: student.roll_number,
-                class_id: student.class_id
-            },
-            exams: exams
+            student: deletedStudentInfo,
+            exams: exams,
+            note: 'This student has been permanently deleted. Showing preserved academic records.'
         });
 
     } catch (error) {
@@ -845,4 +922,5 @@ exports.getStudentAllMarks = async (req, res) => {
         res.status(500).json({ message: 'Server error fetching result', error: error.message });
     }
 };
+
 

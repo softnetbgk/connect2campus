@@ -207,7 +207,7 @@ exports.getAllocationsByHostel = async (req, res) => {
             SELECT a.*, s.name, r.room_number
             FROM hostel_allocations a
             JOIN hostel_rooms r ON a.room_id = r.id
-            JOIN students s ON a.student_id = s.id
+            JOIN students s ON a.student_id = s.id AND (s.status IS NULL OR s.status != 'Deleted')
             WHERE r.hostel_id = $1 AND a.status = 'Active'
             ORDER BY r.room_number
         `, [hostelId]);
@@ -578,7 +578,7 @@ exports.getPendingDues = async (req, res) => {
             SELECT b.id, b.student_id, s.name, s.admission_no, b.amount, b.month, b.year 
             FROM hostel_mess_bills b 
             JOIN students s ON b.student_id = s.id 
-            WHERE b.status = 'Pending' AND s.school_id = $1
+            WHERE b.status = 'Pending' AND s.school_id = $1 AND (s.status IS NULL OR s.status != 'Deleted')
         `;
         const messParams = [req.user.schoolId];
 
@@ -611,7 +611,7 @@ exports.getPendingDues = async (req, res) => {
             JOIN hostel_allocations a ON s.id = a.student_id
             JOIN hostel_rooms r ON a.room_id = r.id
             LEFT JOIN hostel_payments p ON s.id = p.student_id AND p.payment_type = 'Room Rent'
-            WHERE a.status = 'Active' AND s.school_id = $1
+            WHERE a.status = 'Active' AND s.school_id = $1 AND (s.status IS NULL OR s.status != 'Deleted')
             GROUP BY s.id, r.id, r.cost_per_term
             HAVING COALESCE(SUM(p.amount), 0) < CAST(r.cost_per_term AS NUMERIC)
         `;

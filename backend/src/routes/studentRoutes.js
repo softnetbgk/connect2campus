@@ -21,6 +21,10 @@ router.get('/unassigned', studentController.getUnassignedStudents); // Students 
 router.put('/:id/restore', studentController.restoreStudent);
 router.delete('/:id/permanent', studentController.permanentDeleteStudent);
 
+// Deleted Students Search Routes (Left Students)
+router.get('/deleted/marks', studentController.getDeletedStudentMarks);
+router.get('/deleted/certificates', studentController.getDeletedStudentCertificates);
+
 router.post('/', studentController.addStudent);
 router.get('/', studentController.getStudents);
 router.put('/:id', studentController.updateStudent);

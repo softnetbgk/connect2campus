@@ -38,6 +38,20 @@ const authenticateToken = (req, res, next) => {
                 return res.status(403).json({ message: 'School Service Disabled. Contact Super Admin.' });
             }
 
+            // Check if student account is deleted
+            if (user.role === 'STUDENT') {
+                const studentRes = await pool.query(
+                    'SELECT status FROM students WHERE user_id = $1',
+                    [user.id]
+                );
+
+                if (studentRes.rows.length > 0 && studentRes.rows[0].status === 'Deleted') {
+                    return res.status(403).json({
+                        message: 'Your account has been deactivated. Please contact the school administration.'
+                    });
+                }
+            }
+
             // Always update schoolId from DB to ensure we have the latest assignment
             if (userData.school_id) {
                 user.schoolId = userData.school_id;

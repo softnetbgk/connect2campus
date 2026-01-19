@@ -319,163 +319,183 @@ exports.getUnassignedStudents = async (req, res) => {
 
 
 
-// Permanent Delete Student (DISABLED - Students cannot be permanently deleted)
+// Permanent Delete Student - Preserves Marks and Certificates
 exports.permanentDeleteStudent = async (req, res) => {
-    console.log('[PERMANENT DELETE STUDENT] Attempt blocked - students cannot be permanently deleted');
-
-    return res.status(403).json({
-        message: 'Students cannot be permanently deleted. They are kept in the bin for record-keeping purposes.',
-        error: 'Operation not allowed'
-    });
-
-    /* ORIGINAL CODE DISABLED
     const client = await pool.connect();
     try {
         const { id } = req.params;
         const school_id = req.user.schoolId;
-    
-        // Create a separate client for the potentially risky operation
-        // We'll wrap the SET LOCAL in a try/catch to check if it's supported
-        try {
-            await client.query("SET LOCAL session_replication_role = 'replica';");
-            console.log('[PERMANENT DELETE STUDENT] Replication role set to replica - FK checks disabled');
-        } catch (e) {
-            console.warn('[PERMANENT DELETE STUDENT] Could not set replication role (requires superuser):', e.message);
+
+        await client.query('BEGIN');
+
+        console.log(`[PERMANENT DELETE STUDENT] Starting deletion for student ID: ${id}`);
+
+        // Get student info before deletion
+        const studentRes = await client.query(
+            'SELECT name, email, admission_no FROM students WHERE id = $1 AND school_id = $2',
+            [id, school_id]
+        );
+
+        if (studentRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: 'Student not found' });
         }
-    
+
+        const { name, email, admission_no } = studentRes.rows[0];
+        console.log(`[PERMANENT DELETE STUDENT] Deleting student: ${name}`);
+
+        // Get user_id from users table
+        let user_id = null;
         try {
-            // Get user_id before deletion
-            const userRes = await client.query('SELECT user_id FROM students WHERE id = $1', [id]);
-            const userId = userRes.rows[0]?.user_id;
-    
-            // ... (previous deletions) ...
-    
-            // 1. Delete Marks & Components
-            console.log('[PERMANENT DELETE STUDENT] Deleting marks...');
-            await client.query('DELETE FROM mark_components WHERE mark_id IN (SELECT id FROM marks WHERE student_id = $1)', [id]);
-            await client.query('DELETE FROM marks WHERE student_id = $1', [id]);
-        } catch (err) {
-            // Log but don't fail immediately if replica mode is on. 
-            // If replica failed, this try/catch will catch it.
-            // But we want to CONTINUE if replica mode is on.
-            // Actually, if replica mode is ON, these won't fail due to FKs.
-            console.error('[PERMANENT DELETE STUDENT] Marks deletion error:', err.message);
-        }
-    
-        // ... (Repeating structure for other tables, simplified for brevity in this replacement) ...
-        // I will just replace the top part and bottom part to keep the middle intact if possible, 
-        // but since I'm replacing a large block, I must provide all of it or break it down.
-    
-        // Let's rewrite the logic inside the try block to be cleaner.
-    
-        // 1. Marks
-        try {
-            await client.query('DELETE FROM mark_components WHERE mark_id IN (SELECT id FROM marks WHERE student_id = $1)', [id]);
-            await client.query('DELETE FROM marks WHERE student_id = $1', [id]);
-        } catch (e) { console.error('Marks error:', e.message); }
-    
-        // 2. Attendance
-        try {
-            await client.query('DELETE FROM attendance WHERE student_id = $1', [id]);
-            await client.query('DELETE FROM student_attendance WHERE student_id = $1', [id]);
-        } catch (e) { console.error('Attendance error:', e.message); }
-    
-        // 3. Fees
-        try {
-            await client.query('DELETE FROM fee_payments WHERE student_id = $1', [id]);
-            await client.query('DELETE FROM student_fees WHERE student_id = $1', [id]);
-        } catch (e) { console.error('Fees error:', e.message); }
-    
-        // 4. Hostel/Transport
-        try {
-            await client.query('DELETE FROM hostel_payments WHERE student_id = $1', [id]);
-            await client.query('DELETE FROM hostel_mess_bills WHERE student_id = $1', [id]);
-            await client.query('DELETE FROM hostel_allocations WHERE student_id = $1', [id]);
-        } catch (e) { console.error('Hostel error:', e.message); }
-    
-        // Optional tables
-        try { await client.query('DELETE FROM transport_allocations WHERE student_id = $1', [id]); } catch (e) { }
-        try { await client.query('DELETE FROM leave_requests WHERE student_id = $1', [id]); } catch (e) { }
-    
-        // 5. Academic/Others
-        try { await client.query('DELETE FROM student_promotions WHERE student_id = $1', [id]); } catch (e) { }
-        try { await client.query('DELETE FROM student_certificates WHERE student_id = $1', [id]); } catch (e) { }
-        try { await client.query('DELETE FROM doubts WHERE student_id = $1', [id]); } catch (e) { }
-        try { await client.query('DELETE FROM doubt_replies WHERE doubt_id IN (SELECT id FROM doubts WHERE student_id = $1)', [id]); } catch (e) { }
-        try { await client.query('DELETE FROM library_transactions WHERE student_id = $1', [id]); } catch (e) { }
-        try { await client.query('DELETE FROM notifications WHERE user_id IN (SELECT user_id FROM students WHERE id = $1)', [id]); } catch (e) { }
-    
-        // Potential tables
-        const potentialTables = ['exam_results', 'student_opt_subjects', 'student_documents', 'student_health_records', 'library_issues', 'book_issues'];
-        for (const table of potentialTables) {
-            try { await client.query(`DELETE FROM ${table} WHERE student_id = $1`, [id]); } catch (e) { }
-        }
-    
-    
-        try {
-            // 6. Finally, Delete Student
-            console.log('[PERMANENT DELETE STUDENT] Deleting student record...');
-    
-            const result = await client.query(
-                'DELETE FROM students WHERE id = $1 RETURNING *',
-                [id]
+            const userRes = await client.query(
+                'SELECT id FROM users WHERE email = $1 OR email = $2',
+                [email, `${admission_no.toLowerCase()}@student.school.com`]
             );
-    
-            if (result.rows.length === 0) {
-                await client.query('ROLLBACK');
-                console.log('[PERMANENT DELETE STUDENT] Student not found');
-                return res.status(404).json({ message: 'Student not found' });
+            if (userRes.rows.length > 0) {
+                user_id = userRes.rows[0].id;
             }
-    
-            // 7. Delete associated User account if it exists
-            if (userId) {
-                try {
-                    await client.query('DELETE FROM users WHERE id = $1', [userId]);
-                    console.log('[PERMANENT DELETE STUDENT] Deleted associated user account');
-                } catch (userErr) {
-                    console.error('[PERMANENT DELETE STUDENT] User deletion error (ignored):', userErr.message);
+        } catch (e) {
+            console.log('[PERMANENT DELETE STUDENT] Could not find user account:', e.message);
+        }
+
+        // Get student details for preservation
+        const { name: studentName } = studentRes.rows[0];
+
+        // PRESERVE: marks and certificates by storing student info and nullifying student_id
+        console.log('[PERMANENT DELETE STUDENT] Preserving marks and certificates...');
+
+        try {
+            // Store student info in marks table before nullifying
+            const marksResult = await client.query(
+                `UPDATE marks 
+                 SET deleted_student_name = $1, 
+                     deleted_student_admission_no = $2,
+                     student_id = NULL 
+                 WHERE student_id = $3`,
+                [studentName, admission_no, id]
+            );
+            console.log(`[PERMANENT DELETE STUDENT] Preserved ${marksResult.rowCount} marks records`);
+
+            // Store student info in certificates table before nullifying
+            const certsResult = await client.query(
+                `UPDATE student_certificates 
+                 SET deleted_student_name = $1,
+                     deleted_student_admission_no = $2,
+                     student_id = NULL 
+                 WHERE student_id = $3`,
+                [studentName, admission_no, id]
+            );
+            console.log(`[PERMANENT DELETE STUDENT] Preserved ${certsResult.rowCount} certificate records`);
+        } catch (e) {
+            console.error('[PERMANENT DELETE STUDENT] Error preserving records:', e.message);
+        }
+
+        // DELETE: Everything else
+        const tablesToDelete = [
+            // Note: mark_components are kept because marks are preserved
+            { name: 'attendance', column: 'student_id' },
+            { name: 'student_attendance', column: 'student_id' },
+            { name: 'fee_payments', column: 'student_id' },
+            { name: 'student_fees', column: 'student_id' },
+            { name: 'hostel_payments', column: 'student_id' },
+            { name: 'hostel_mess_bills', column: 'student_id' },
+            { name: 'hostel_allocations', column: 'student_id' },
+            // transport_allocations table doesn't exist in this database
+            { name: 'leave_requests', column: 'student_id' },
+            { name: 'student_promotions', column: 'student_id' },
+            { name: 'doubts', column: 'student_id' },
+            { name: 'doubt_replies', subquery: 'doubt_id IN (SELECT id FROM doubts WHERE student_id = $1)' },
+            { name: 'library_transactions', column: 'student_id' },
+            { name: 'notifications', subquery: 'user_id = $1', useUserId: true }
+        ];
+
+        for (const table of tablesToDelete) {
+            try {
+                let query;
+                let param;
+
+                if (table.subquery) {
+                    query = `DELETE FROM ${table.name} WHERE ${table.subquery}`;
+                    param = table.useUserId ? user_id : id;
+                } else {
+                    query = `DELETE FROM ${table.name} WHERE ${table.column} = $1`;
+                    param = id;
+                }
+
+                const result = await client.query(query, [param]);
+                console.log(`[PERMANENT DELETE STUDENT] Deleted ${result.rowCount} rows from ${table.name}`);
+            } catch (e) {
+                // If table doesn't exist, rollback and restart transaction
+                if (e.code === '42P01') { // undefined_table error
+                    console.log(`[PERMANENT DELETE STUDENT] Table ${table.name} does not exist, skipping...`);
+                    await client.query('ROLLBACK');
+                    await client.query('BEGIN');
+
+                    // Re-preserve marks and certificates after rollback
+                    try {
+                        await client.query(
+                            `UPDATE marks 
+                             SET deleted_student_name = $1, 
+                                 deleted_student_admission_no = $2,
+                                 student_id = NULL 
+                             WHERE student_id = $3`,
+                            [studentName, admission_no, id]
+                        );
+
+                        await client.query(
+                            `UPDATE student_certificates 
+                             SET deleted_student_name = $1,
+                                 deleted_student_admission_no = $2,
+                                 student_id = NULL 
+                             WHERE student_id = $3`,
+                            [studentName, admission_no, id]
+                        );
+                    } catch (preserveError) {
+                        console.log('[PERMANENT DELETE STUDENT] Re-preservation error:', preserveError.message);
+                    }
+                } else {
+                    console.log(`[PERMANENT DELETE STUDENT] Error deleting from ${table.name}:`, e.message);
                 }
             }
-    
-            await client.query('COMMIT');
-            console.log(`[PERMANENT DELETE STUDENT] ✅ Successfully deleted student: ${result.rows[0].name}`);
-            res.json({
-                message: 'Student and all related data permanently deleted',
-                deletedStudent: result.rows[0].name
-            });
-        } catch (err) {
-            // If we are here, Student deletion failed.
-            await client.query('ROLLBACK');
-            console.error('[PERMANENT DELETE STUDENT] Failed at student deletion:', err);
-            return res.status(500).json({
-                message: 'Failed to delete student record',
-                error: err.message,
-                detail: err.detail || 'No detail',
-                constraint: err.constraint || 'Unknown constraint',
-                table: 'students'
-            });
         }
+
+        // Delete student record
+        console.log('[PERMANENT DELETE STUDENT] Deleting student record...');
+        await client.query('DELETE FROM students WHERE id = $1', [id]);
+
+        // Delete user account if exists
+        if (user_id) {
+            try {
+                await client.query('DELETE FROM users WHERE id = $1', [user_id]);
+                console.log('[PERMANENT DELETE STUDENT] Deleted associated user account');
+            } catch (e) {
+                console.log('[PERMANENT DELETE STUDENT] User deletion skipped:', e.message);
+            }
+        }
+
+        await client.query('COMMIT');
+        console.log(`[PERMANENT DELETE STUDENT] ✅ Successfully deleted student: ${name}`);
+
+        res.json({
+            message: `Student "${name}" permanently deleted. Academic records (marks & certificates) preserved.`,
+            preserved: ['marks', 'certificates'],
+            deletedStudent: name
+        });
+
     } catch (error) {
-        try {
-            await client.query('ROLLBACK');
-        } catch (rollbackError) {
-            console.error('[PERMANENT DELETE STUDENT] Rollback error:', rollbackError.message);
-        }
-        console.error("[PERMANENT DELETE STUDENT] ❌ OUTER ERROR:", error);
-        console.error("[PERMANENT DELETE STUDENT] Error message:", error.message);
-        console.error("[PERMANENT DELETE STUDENT] Error detail:", error.detail);
-        console.error("[PERMANENT DELETE STUDENT] Error constraint:", error.constraint);
+        await client.query('ROLLBACK');
+        console.error('[PERMANENT DELETE STUDENT] ❌ Error:', error);
         res.status(500).json({
             message: 'Server error deleting student',
             error: error.message,
-            detail: error.detail || 'Check server logs for more information',
-            constraint: error.constraint || 'Unknown'
+            detail: error.detail || 'Check server logs'
         });
     } finally {
         client.release();
     }
-    */
 };
+
+
 
 // Mark Attendance (Bulk - Optimized for Scale)
 exports.markAttendance = async (req, res) => {
@@ -554,7 +574,7 @@ exports.getAttendanceReport = async (req, res) => {
         CROSS JOIN generate_series($2::date, $3::date, '1 day'::interval) d(date)
         LEFT JOIN attendance a ON s.id = a.student_id AND a.date = d.date::date
         LEFT JOIN month_holidays mh ON mh.holiday_date = d.date::date
-        WHERE s.school_id = $1
+        WHERE s.school_id = $1 AND (s.status IS NULL OR s.status != 'Deleted')
         `;
         const params = [school_id, startDate, endDate];
 
@@ -698,7 +718,7 @@ exports.getAttendanceSummary = async (req, res) => {
         JOIN classes c ON s.class_id = c.id
         JOIN sections sec ON s.section_id = sec.id
         LEFT JOIN attendance a ON s.id = a.student_id AND a.date = $2
-        WHERE s.school_id = $1
+        WHERE s.school_id = $1 AND (s.status IS NULL OR s.status != 'Deleted')
         GROUP BY c.name, sec.name
         ORDER BY c.name, sec.name
     `;
@@ -725,7 +745,7 @@ exports.getDailyAttendance = async (req, res) => {
         SELECT s.id, s.name, s.roll_number, s.contact_number, COALESCE(a.status, 'Unmarked') as status
         FROM students s
         LEFT JOIN attendance a ON s.id = a.student_id AND a.date = $2
-        WHERE s.school_id = $1 AND s.class_id = $3
+        WHERE s.school_id = $1 AND s.class_id = $3 AND (s.status IS NULL OR s.status != 'Deleted')
     `;
 
         const params = [school_id, date, class_id];
@@ -946,5 +966,106 @@ exports.getMyFees = async (req, res) => {
     } catch (error) {
         console.error('[getMyFees] Critical Error:', error);
         res.status(500).json({ message: 'Server error fetching fees', error: error.message });
+    }
+};
+
+// Get Deleted Students' Marks (Left Students)
+exports.getDeletedStudentMarks = async (req, res) => {
+    try {
+        const { admission_no, academic_year_id, search } = req.query;
+        const school_id = req.user.schoolId;
+
+        let query = `
+            SELECT m.*, et.name as exam_name, et.max_marks,
+                   s.name as subject_name,
+                   m.deleted_student_name as student_name, 
+                   m.deleted_student_admission_no as admission_no,
+                   ay.year_label
+            FROM marks m
+            LEFT JOIN exam_types et ON m.exam_type_id = et.id
+            LEFT JOIN subjects s ON m.subject_id = s.id
+            LEFT JOIN academic_years ay ON m.academic_year_id = ay.id
+            WHERE m.school_id = $1 
+            AND m.student_id IS NULL 
+            AND m.deleted_student_name IS NOT NULL
+        `;
+
+        const params = [school_id];
+        let paramIndex = 2;
+
+        if (admission_no) {
+            query += ` AND m.deleted_student_admission_no = $${paramIndex}`;
+            params.push(admission_no);
+            paramIndex++;
+        }
+
+        if (academic_year_id) {
+            query += ` AND m.academic_year_id = $${paramIndex}`;
+            params.push(academic_year_id);
+            paramIndex++;
+        }
+
+        if (search) {
+            query += ` AND (m.deleted_student_name ILIKE $${paramIndex} OR m.deleted_student_admission_no ILIKE $${paramIndex})`;
+            params.push(`%${search}%`);
+            paramIndex++;
+        }
+
+        query += ` ORDER BY ay.start_date DESC, m.deleted_student_name`;
+
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching deleted student marks:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Get Deleted Students' Certificates (Left Students)
+exports.getDeletedStudentCertificates = async (req, res) => {
+    try {
+        const { admission_no, academic_year_id, search } = req.query;
+        const school_id = req.user.schoolId;
+
+        let query = `
+            SELECT sc.*, 
+                   sc.deleted_student_name as student_name, 
+                   sc.deleted_student_admission_no as admission_no,
+                   ay.year_label
+            FROM student_certificates sc
+            LEFT JOIN academic_years ay ON sc.academic_year_id = ay.id
+            WHERE sc.school_id = $1 
+            AND sc.student_id IS NULL 
+            AND sc.deleted_student_name IS NOT NULL
+        `;
+
+        const params = [school_id];
+        let paramIndex = 2;
+
+        if (admission_no) {
+            query += ` AND sc.deleted_student_admission_no = $${paramIndex}`;
+            params.push(admission_no);
+            paramIndex++;
+        }
+
+        if (academic_year_id) {
+            query += ` AND sc.academic_year_id = $${paramIndex}`;
+            params.push(academic_year_id);
+            paramIndex++;
+        }
+
+        if (search) {
+            query += ` AND (sc.deleted_student_name ILIKE $${paramIndex} OR sc.deleted_student_admission_no ILIKE $${paramIndex})`;
+            params.push(`%${search}%`);
+            paramIndex++;
+        }
+
+        query += ` ORDER BY ay.start_date DESC, sc.deleted_student_name`;
+
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching deleted student certificates:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 };

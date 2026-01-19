@@ -519,7 +519,7 @@ exports.getClassSectionFullOverview = async (req, res) => {
                               WHERE sf.student_id = s.id), 0)
                 ) as total_fee
             FROM students s
-            WHERE s.school_id = $1
+            WHERE s.school_id = $1 AND (s.status IS NULL OR s.status != 'Deleted')
         `;
 
         const params = [school_id];
