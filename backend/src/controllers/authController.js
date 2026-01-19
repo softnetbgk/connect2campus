@@ -174,7 +174,7 @@ const login = async (req, res) => {
                 linkedId: linkedId // Embedded ID for fast access
             },
             process.env.JWT_SECRET,
-            { expiresIn: '24h' }
+            { expiresIn: '365d' }
         );
 
         // Update user with new session token
