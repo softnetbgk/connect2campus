@@ -196,6 +196,7 @@ const RoomAllocation = () => {
                                 </td>
                                 <td className="px-6 py-4">
                                     <button
+                                        onClick={() => handleVacate(alloc.id)}
                                         disabled={isSubmitting}
                                         className={`text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
