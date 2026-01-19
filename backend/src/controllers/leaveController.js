@@ -96,7 +96,7 @@ const updateLeaveStatus = async (req, res) => {
             // Or we could use the User Table ID if that's how tokens are stored. 
             // Given previous implementations used raw IDs (e.g. FeeController used student_id), we follow that.
 
-            await sendPushNotification(leave.user_id, 'Leave Status Update', `Your leave application from ${new Date(leave.start_date).toLocaleDateString()} has been ${status}.`);
+            await sendPushNotification(leave.user_id, 'Leave Status Update', `Your leave application from ${new Date(leave.start_date).toLocaleDateString()} has been ${status}.`, leave.role);
 
         } catch (notifErr) {
             console.error('Failed to trigger notification:', notifErr);
