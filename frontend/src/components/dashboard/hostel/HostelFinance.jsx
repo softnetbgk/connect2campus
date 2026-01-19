@@ -316,7 +316,14 @@ const HostelFinance = () => {
                         <AlertCircle size={20} className="text-orange-500" />
                         <h3 className="font-bold text-lg text-slate-800">Pending Hostel Dues (List)</h3>
                     </div>
-                    <button className="text-indigo-600 font-medium text-sm">
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toggleList();
+                        }}
+                        className="text-indigo-600 font-medium text-sm hover:underline"
+                    >
                         {showList ? 'Hide List' : 'View Full List'}
                     </button>
                 </div>

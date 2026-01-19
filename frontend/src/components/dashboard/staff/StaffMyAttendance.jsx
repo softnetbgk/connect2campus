@@ -10,6 +10,8 @@ const StaffMyAttendance = () => {
     const [loading, setLoading] = useState(false);
     const [startYear, setStartYear] = useState(new Date().getFullYear());
 
+    const [events, setEvents] = useState([]);
+
     useEffect(() => {
         const fetchSchoolStartYear = async () => {
             try {
@@ -22,7 +24,17 @@ const StaffMyAttendance = () => {
             }
         };
         fetchSchoolStartYear();
+        fetchEvents();
     }, []);
+
+    const fetchEvents = async () => {
+        try {
+            const res = await api.get('/calendar/events');
+            setEvents(res.data);
+        } catch (error) {
+            console.error('Failed to load events');
+        }
+    };
 
     // Generate dates for the selected month
     const daysInMonth = new Date(year, month, 0).getDate();
@@ -129,9 +141,15 @@ const StaffMyAttendance = () => {
                         let label = '';
                         let border = 'border-slate-100';
 
-                        if (!status) {
-                            // Empty
-                        } else {
+                        // Check for Sunday
+                        const isSunday = new Date(year, month - 1, date).getDay() === 0;
+
+                        if (isSunday) {
+                            bg = 'bg-rose-100 text-rose-700 border-rose-200';
+                            label = 'S';
+                        }
+
+                        if (status) {
                             border = 'border shadow-sm';
                             const s = status.toLowerCase();
                             if (s === 'present') {
@@ -147,21 +165,93 @@ const StaffMyAttendance = () => {
                                 bg = 'bg-amber-50 text-amber-600 border-amber-200';
                                 label = 'LV';
                             } else if (s === 'holiday') {
-                                bg = 'bg-purple-100 text-purple-700 border-purple-200';
-                                label = 'H';
+                                if (!isSunday) {
+                                    bg = 'bg-purple-100 text-purple-700 border-purple-200';
+                                    label = 'H';
+                                }
+                            } else if (s === 'sunday') {
+                                bg = 'bg-rose-100 text-rose-700 border-rose-200';
+                                label = 'S';
                             } else {
-                                bg = 'bg-gray-100 text-gray-700';
-                                label = status[0];
+                                if (!isSunday) {
+                                    if (s === 'unmarked') {
+                                        bg = 'bg-gray-50 text-gray-400';
+                                        label = '';
+                                    } else {
+                                        // Hide generic label to avoid "U"
+                                        bg = 'bg-gray-50 text-gray-500';
+                                        label = '';
+                                    }
+                                }
                             }
+                        } else if (isSunday) {
+                            bg = 'bg-rose-100 text-rose-700 border-rose-200';
+                            label = 'S';
+                        }
+
+                        // Check if there is an event for this date to show its name
+                        const eventForDay = events.find(e => {
+                            const d = new Date(e.start_date);
+                            return d.getDate() === date && d.getMonth() === month - 1 && d.getFullYear() === year && e.title.toLowerCase() !== 'sunday';
+                        });
+
+                        if (eventForDay) {
+                            if (!bg || bg.includes('gray-50')) {
+                                bg = 'bg-purple-100 text-purple-700 border-purple-200';
+                            }
+                            label = eventForDay.title;
                         }
 
                         return (
-                            <div key={date} className={`aspect-square rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${bg} ${border}`}>
+                            <div key={date} className={`aspect-square rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${bg} ${border} p-1`}>
                                 <span className="text-sm font-bold">{date}</span>
-                                {label && <span className="text-[10px] font-black uppercase">{label}</span>}
+                                {label && (
+                                    <span className={`text-[9px] font-black uppercase text-center leading-tight line-clamp-2 ${label.length > 5 ? 'text-[8px]' : ''}`}>
+                                        {label}
+                                    </span>
+                                )}
                             </div>
                         );
                     })}
+                </div>
+            </div>
+
+            {/* Events / Holidays List */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                    <span className="w-1 h-5 bg-rose-500 rounded-full"></span>
+                    Holidays & Events
+                </h3>
+                <div className="space-y-3">
+                    {(() => {
+                        const monthEvents = events.filter(e => {
+                            const d = new Date(e.start_date);
+                            // Filter out generic Sunday events if they exist
+                            if (e.title.toLowerCase() === 'sunday') return false;
+                            return d.getMonth() === month - 1 && d.getFullYear() === year;
+                        }).sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+
+                        if (monthEvents.length === 0) {
+                            return <div className="text-slate-400 text-sm text-center py-4">No events or holidays for this month.</div>;
+                        }
+
+                        return monthEvents.map(event => (
+                            <div key={event.id} className="flex items-start gap-4 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
+                                <div className="text-center bg-rose-50 rounded-lg p-2 min-w-[50px] border border-rose-100">
+                                    <span className="block text-[10px] font-bold text-rose-400 uppercase">
+                                        {new Date(event.start_date).toLocaleString('default', { month: 'short' })}
+                                    </span>
+                                    <span className="block text-lg font-black text-rose-600">
+                                        {new Date(event.start_date).getDate()}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-slate-800 text-sm">{event.title}</h4>
+                                    <p className="text-xs text-slate-500 mt-0.5">{event.event_type} {event.description ? `- ${event.description}` : ''}</p>
+                                </div>
+                            </div>
+                        ));
+                    })()}
                 </div>
             </div>
         </div>

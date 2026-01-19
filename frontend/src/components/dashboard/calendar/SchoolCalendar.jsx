@@ -134,6 +134,9 @@ const SchoolCalendar = () => {
             const isSunday = date.getDay() === 0;
 
             const dayEvents = events.filter(e => {
+                // Filter out generic Sunday events
+                if (e.title.toLowerCase() === 'sunday') return false;
+
                 // Robust date matching: comparison based on Local Date parts to match the Calendar grid
                 const eDate = new Date(e.start_date);
                 const eYear = eDate.getFullYear();
@@ -161,7 +164,7 @@ const SchoolCalendar = () => {
                             }`}>
                             {i}
                         </span>
-                        {/* {isSunday && <span className="text-[10px] font-bold text-rose-400 uppercase">Sunday</span>} */}
+                        {isSunday && <span className="text-[10px] font-bold text-rose-400 uppercase">S</span>}
                     </div>
 
                     <div className="mt-1 space-y-1 overflow-y-auto max-h-[calc(100%-24px)] custom-scrollbar">
@@ -177,7 +180,7 @@ const SchoolCalendar = () => {
                             </div>
                         ))}
                     </div>
-                </div>
+                </div >
             );
         }
         return days;
@@ -250,6 +253,9 @@ const SchoolCalendar = () => {
                     <div className="space-y-3">
                         {(() => {
                             const monthsEvents = events.filter(e => {
+                                // Filter out generic Sunday events
+                                if (e.title.toLowerCase() === 'sunday') return false;
+
                                 const d = new Date(e.start_date);
                                 return d.getMonth() === currentDate.getMonth() &&
                                     d.getFullYear() === currentDate.getFullYear();
