@@ -54,8 +54,9 @@ const StudentFees = ({ student, schoolName }) => {
                     <div class="footer">
                         <p>This is a computer-generated receipt.</p>
                         <p>Generated on: ${new Date().toLocaleString()}</p>
-                        <div style="margin-top: 20px;">
+                        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
                             <button onclick="window.print()" style="padding: 10px 20px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Print Receipt</button>
+                            <button onclick="window.close()" style="padding: 10px 20px; background: #dc2626; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Close</button>
                         </div>
                     </div>
                 </div>

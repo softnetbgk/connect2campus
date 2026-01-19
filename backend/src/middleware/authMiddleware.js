@@ -41,8 +41,8 @@ const authenticateToken = (req, res, next) => {
             // Check if student account is deleted
             if (user.role === 'STUDENT') {
                 const studentRes = await pool.query(
-                    'SELECT status FROM students WHERE user_id = $1',
-                    [user.id]
+                    'SELECT status FROM students WHERE school_id = $1 AND LOWER(email) = LOWER($2)',
+                    [userData.school_id, user.email]
                 );
 
                 if (studentRes.rows.length > 0 && studentRes.rows[0].status === 'Deleted') {
