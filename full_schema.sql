@@ -9,7 +9,9 @@ CREATE TABLE IF NOT EXISTS schools (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     school_code VARCHAR(50),
     is_active BOOLEAN DEFAULT TRUE,
-    logo TEXT
+    logo TEXT,
+    contact_number VARCHAR(20),
+    status VARCHAR(50) DEFAULT 'ACTIVE'
 );
 
 -- 2. Create Users Table
@@ -86,4 +88,15 @@ CREATE TABLE IF NOT EXISTS academic_years (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT unique_school_year UNIQUE(school_id, year_label),
     CONSTRAINT valid_date_range CHECK (end_date > start_date)
+);
+
+-- 7. Create Notifications Table
+CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    type VARCHAR(50) DEFAULT 'INFO',
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
