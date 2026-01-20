@@ -39,7 +39,7 @@ app.use(helmet({
 const allowedOrigins = process.env.NODE_ENV === 'production'
     ? [
         'https://connecttocampus-c98e4.web.app', // Firebase (Testing)
-        process.env.FRONTEND_URL, // AWS S3/CloudFront (Production)
+        'http://school-app-frontend-prod.s3-website-us-east-1.amazonaws.com', // AWS S3 (Production)
         'capacitor://localhost', // Mobile App (iOS)
         'http://localhost', // Mobile App (Android)
     ].filter(Boolean) // Remove undefined values
