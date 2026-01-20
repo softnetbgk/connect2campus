@@ -17,16 +17,47 @@ app.set('trust proxy', 1);
 // Middleware
 app.use(compression()); // Gzip compression (Faster Response)
 
-// Configure Helmet with relaxed CSP for production
+// Configure Helmet with production-grade security headers
 app.use(helmet({
-    contentSecurityPolicy: false, // Disable CSP to allow cross-origin requests
-    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", "data:", "https:"],
+        }
+    } : false,
+    crossOriginEmbedderPolicy: false, // Allow cross-origin requests for mobile apps
+    hsts: {
+        maxAge: 31536000, // 1 year
+        includeSubDomains: true,
+        preload: true
+    }
 }));
 
-// Configure CORS to allow all origins (for development and production)
+// Configure CORS with environment-based whitelist
+const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? [
+        'https://connecttocampus-c98e4.web.app', // Firebase (Testing)
+        process.env.FRONTEND_URL, // AWS S3/CloudFront (Production)
+        'capacitor://localhost', // Mobile App (iOS)
+        'http://localhost', // Mobile App (Android)
+    ].filter(Boolean) // Remove undefined values
+    : ['http://localhost:5173', 'http://localhost:5174', 'capacitor://localhost', 'http://localhost'];
+
 app.use(cors({
-    origin: true, // Allow ALL origins (Fix for Mobile App)
-    credentials: true, // Allow credentials
+    origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, Postman)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost')) {
+            callback(null, true);
+        } else {
+            console.warn(`🚫 Blocked CORS request from: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));

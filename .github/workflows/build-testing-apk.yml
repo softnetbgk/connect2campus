@@ -1,0 +1,88 @@
+name: Build Testing APK (Develop)
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/build-testing-apk.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Testing APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Testing Web App
+        env:
+          VITE_API_URL: https://us-central1-connect-to-campus-b56ac.cloudfunctions.net/api
+          VITE_APP_URL: https://connect-to-campus-b56ac.web.app
+          NODE_ENV: development
+        run: |
+          npm run build
+          echo "Build size:"
+          du -sh dist/
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x android/gradlew
+
+      - name: Build Debug APK
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Rename APK
+        run: |
+          cd android/app/build/outputs/apk/debug
+          mv app-debug.apk SchoolApp-Testing.apk
+          ls -lh SchoolApp-Testing.apk
+          echo "APK Size: $(du -h SchoolApp-Testing.apk | cut -f1)"
+
+      - name: Upload Testing APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SchoolApp-Testing
+          path: frontend/android/app/build/outputs/apk/debug/SchoolApp-Testing.apk
+          retention-days: 30
+
+      - name: Comment on Commit
+        uses: peter-evans/commit-comment@v3
+        with:
+          body: |
+            ## ✅ Testing APK Build Successful!
+            
+            📦 **Download**: Check artifacts above
+            🔧 **Environment**: Firebase (Testing)
+            📊 **Size**: ~3MB (Debug build)
+            
+            **Note**: This is a testing APK connected to Firebase + Supabase. Not for Play Store.
