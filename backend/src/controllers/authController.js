@@ -203,7 +203,11 @@ const login = async (req, res) => {
 
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ message: 'Server error during login' });
+        // DEBUG: Return actual error to client to see why 500 happens on App
+        res.status(500).json({
+            message: 'Server error: ' + error.message,
+            stack: process.env.NODE_ENV === 'production' ? error.stack : undefined
+        });
     }
 };
 
