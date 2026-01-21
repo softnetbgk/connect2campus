@@ -110,7 +110,9 @@ app.use(['/api/doubts', '/doubts'], require('./routes/doubtRoutes'));
 app.use(['/api/notifications', '/notifications'], require('./routes/notificationRoutes'));
 app.use(['/api/ai', '/ai'], require('./routes/aiRoutes'));
 app.use(['/api/grades', '/grades'], require('./routes/gradeRoutes'));
+app.use(['/api/grades', '/grades'], require('./routes/gradeRoutes'));
 app.use(['/api/academic-years', '/academic-years'], require('./routes/academicYearRoutes'));
+app.use(['/api/debug', '/debug'], require('./routes/debugRoutes'));
 
 // --- ADMS / Biometric Device Default Routes ---
 // Many devices (Secureye, ZKTeco) hardcode these paths if "Request URL" isn't configurable.
