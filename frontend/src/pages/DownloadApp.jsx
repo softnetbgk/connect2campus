@@ -69,26 +69,15 @@ const DownloadApp = () => {
 
                         {/* Download Button */}
                         <div className="text-center mb-8 flex flex-col items-center gap-4">
-                            {isProduction ? (
-                                <a
-                                    href="https://play.google.com/store/apps/details?id=com.school.app"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold rounded-xl shadow-lg shadow-yellow-400/30 transform transition-all hover:scale-105 text-lg"
-                                >
-                                    <Smartphone size={24} />
-                                    Get it on Play Store
-                                </a>
-                            ) : (
-                                <a
-                                    href="/SchoolApp.apk?v=1.3"
-                                    download="SchoolApp.apk"
-                                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold rounded-xl shadow-lg shadow-yellow-400/30 transform transition-all hover:scale-105 text-lg"
-                                >
-                                    <Download size={24} />
-                                    Download APK
-                                </a>
-                            )}
+                            {/* Force APK Download for now until Play Store launch */}
+                            <a
+                                href="/SchoolApp.apk?v=1.3"
+                                download="SchoolApp.apk"
+                                className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold rounded-xl shadow-lg shadow-yellow-400/30 transform transition-all hover:scale-105 text-lg"
+                            >
+                                <Download size={24} />
+                                Download APK
+                            </a>
 
                             <button
                                 onClick={() => navigate('/')}
