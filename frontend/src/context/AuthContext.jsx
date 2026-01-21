@@ -62,7 +62,8 @@ export const AuthProvider = ({ children }) => {
     // Broadcast Channel for Multi-tab management (Web only)
     useEffect(() => {
         // Skip BroadcastChannel on mobile app - it causes logout issues
-        if (Capacitor.isNativePlatform()) return;
+        // FORCE DISABLED for debugging: BroadcastChannel might be causing loop
+        if (true || Capacitor.isNativePlatform()) return;
 
         let channel = null;
         try {
@@ -99,8 +100,8 @@ export const AuthProvider = ({ children }) => {
             await setStorageItem('user', JSON.stringify(user));
             setUser(user);
 
-            // Broadcast (web only)
-            if (!Capacitor.isNativePlatform()) {
+            // Broadcast (web only) - FORCE DISABLED
+            if (false && !Capacitor.isNativePlatform()) {
                 try {
                     const channel = new BroadcastChannel('school_auth_channel');
                     channel.postMessage({ type: 'LOGIN_SUCCESS', userId: user.id });

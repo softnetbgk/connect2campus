@@ -96,6 +96,7 @@ api.interceptors.response.use(
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
                 }
+
                 // Force reload to login if not already there
                 // Don't redirect if on super-admin-login page
                 if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/super-admin-login')) {
