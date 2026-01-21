@@ -27,7 +27,7 @@ const Login = () => {
         { id: 'TEACHER', label: 'Teacher', icon: Users },
         { id: 'STUDENT', label: 'Student', icon: GraduationCap },
         { id: 'STAFF', label: 'Staff Member', icon: Briefcase },
-    ];
+    ].filter(r => !isMobileApp || r.id !== 'SCHOOL_ADMIN');
 
     const isLoggingInRef = React.useRef(false);
     const abortControllerRef = React.useRef(null);
