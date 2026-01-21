@@ -17,9 +17,11 @@ console.log(`🌿 Environment: ${process.env.NODE_ENV || 'development'} | 🌐 D
 
 const pool = new Pool({
     connectionString: connectionString || `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
-    ssl: process.env.NODE_ENV === 'production'
-        ? { rejectUnauthorized: true, require: true } // Strict SSL for production (AWS RDS)
-        : { rejectUnauthorized: false }, // Relaxed SSL for development (Supabase)
+    // Dynamic SSL Configuration based on Environment Variable
+    // Default to 'require' (Secure) unless explicitly set to 'disable' (Local/Supabase)
+    ssl: process.env.DB_SSL_MODE === 'disable'
+        ? { rejectUnauthorized: false }
+        : { rejectUnauthorized: true },
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,

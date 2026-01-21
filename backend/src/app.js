@@ -38,7 +38,7 @@ app.use(helmet({
 // Configure CORS with environment-based whitelist
 const allowedOrigins = process.env.NODE_ENV === 'production'
     ? [
-        'https://connecttocampus-c98e4.web.app', // Firebase (Testing)
+        'https://connect-to-campus-b56ac.web.app', // Firebase (Testing)
         process.env.FRONTEND_URL, // AWS S3/CloudFront (Production)
         'capacitor://localhost', // Mobile App (iOS)
         'http://localhost', // Mobile App (Android)
@@ -124,7 +124,8 @@ app.all('/iclock/options', (req, res) => res.send('OK'));    // Configuration ch
 // The APK points here. We redirect it to wherever the frontend is currently hosted.
 // If we change hosting, we just update this URL. No APK rebuild needed!
 app.get('/app-launch', (req, res) => {
-    res.redirect('https://connecttocampus-c98e4.web.app');
+    // Redirect to the currently active frontend hosting URL
+    res.redirect('https://connect-to-campus-b56ac.web.app');
 });
 
 // Download App Route
