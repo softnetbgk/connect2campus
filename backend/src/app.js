@@ -155,6 +155,43 @@ app.get(['/canary', '/api/canary'], (req, res) => {
 const { login } = require('./controllers/authController');
 app.post(['/test-login', '/api/test-login'], login);
 
+// DEBUG LOGIN (GET Replaces POST for easy Browser Testing)
+app.get('/debug-force-login', async (req, res) => {
+    try {
+        const email = req.query.email || 'admin@school.com'; // Default or Query
+        const password = req.query.password || '123456';
+
+        // 1. Check DB Connection
+        const { pool } = require('./config/db');
+        const userRes = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+
+        if (userRes.rows.length === 0) return res.json({ status: 'User Not Found', email });
+
+        const user = userRes.rows[0];
+
+        // 2. Check Bcrypt
+        const bcrypt = require('bcrypt');
+        const match = await bcrypt.compare(password, user.password);
+
+        // 3. Check JWT
+        const jwt = require('jsonwebtoken');
+        const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET || 'secret');
+
+        res.json({
+            status: 'Login Logic OK',
+            email: user.email,
+            password_valid: match,
+            token_generated: !!token
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'Login Logic CRASHED',
+            message: error.message,
+            stack: error.stack
+        });
+    }
+});
+
 // Health Check (Handles both prefixed and non-prefixed roots)
 app.get(['/api', '/'], (req, res) => {
     res.json({
