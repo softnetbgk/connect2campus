@@ -141,6 +141,15 @@ app.get(['/api/download-app', '/download-app'], (req, res) => {
     });
 });
 
+// GLOBAL CANARY (Bypasses Routers)
+app.get('/api/canary', (req, res) => {
+    res.json({
+        status: 'Global Canary Alive',
+        env: process.env.NODE_ENV,
+        db_ssl: process.env.DB_SSL_MODE
+    });
+});
+
 // Health Check (Handles both prefixed and non-prefixed roots)
 app.get(['/api', '/'], (req, res) => {
     res.json({
