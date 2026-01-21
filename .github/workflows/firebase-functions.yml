@@ -30,6 +30,7 @@ jobs:
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > backend/.env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> backend/.env
           echo "NODE_ENV=production" >> backend/.env
+          echo "DB_SSL_MODE=disable" >> backend/.env
 
       - name: Deploy to Firebase Functions
         uses: w9jds/firebase-action@master
