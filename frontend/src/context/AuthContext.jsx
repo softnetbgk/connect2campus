@@ -132,12 +132,12 @@ export const AuthProvider = ({ children }) => {
             } else if (error.response.status === 403) {
                 // Authorization error
                 errorMessage = '⛔ Access denied. Role mismatch or insufficient permissions.';
-            } else if (error.response.status === 500) {
-                // Server error
-                errorMessage = '🔧 Server error. Please try again later or contact support.';
             } else if (error.response?.data?.message) {
-                // Use server's error message if available
+                // Use server's error message if available (CRITICAL FOR DEBUGGING 500 ERRORS)
                 errorMessage = error.response.data.message;
+            } else if (error.response.status === 500) {
+                // Fallback only if no message provided
+                errorMessage = '🔧 Server error. Please try again later or contact support.';
             }
 
             return {
