@@ -7,6 +7,15 @@ const DownloadApp = () => {
 
     const isProduction = import.meta.env.VITE_APP_ENV === 'production';
 
+    // Dynamic Download URL Logic
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const PROD_URL = 'https://us-central1-connect-to-campus-b56ac.cloudfunctions.net/api';
+
+    // If local, use local backend (port 5000). If prod/LAN, use configured env or prod fallback
+    const downloadUrl = isLocal
+        ? 'http://localhost:5000/api/download-app'
+        : `${import.meta.env.VITE_API_URL || PROD_URL}/download-app`;
+
 
     return (
         <div className="relative min-h-screen w-full overflow-hidden">
@@ -71,12 +80,12 @@ const DownloadApp = () => {
                         <div className="text-center mb-8 flex flex-col items-center gap-4">
                             {/* Force APK Download for now until Play Store launch */}
                             <a
-                                href="/SchoolApp.apk?v=1.3"
+                                href={downloadUrl}
                                 download="SchoolApp.apk"
                                 className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold rounded-xl shadow-lg shadow-yellow-400/30 transform transition-all hover:scale-105 text-lg"
                             >
                                 <Download size={24} />
-                                Download APK
+                                Download Live APK
                             </a>
 
                             <button
