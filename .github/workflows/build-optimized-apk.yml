@@ -1,12 +1,13 @@
 name: Build Production APK (Play Store)
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/build-optimized-apk.yml'
+  # Temporarily disabled - will re-enable after web is complete
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'frontend/**'
+  #     - '.github/workflows/build-optimized-apk.yml'
   workflow_dispatch:
 
 jobs:
