@@ -127,7 +127,7 @@ app.all('/iclock/options', (req, res) => res.send('OK'));    // Configuration ch
 // If we change hosting, we just update this URL. No APK rebuild needed!
 app.get('/app-launch', (req, res) => {
     // Redirect to the currently active frontend hosting URL
-    res.redirect('https://connect-to-campus-b56ac.web.app');
+    res.redirect(`https://connect-to-campus-b56ac.web.app?t=${Date.now()}`);
 });
 
 // Download App Route
