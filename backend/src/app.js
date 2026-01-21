@@ -142,13 +142,18 @@ app.get(['/api/download-app', '/download-app'], (req, res) => {
 });
 
 // GLOBAL CANARY (Bypasses Routers)
-app.get('/api/canary', (req, res) => {
+app.get(['/canary', '/api/canary'], (req, res) => {
     res.json({
         status: 'Global Canary Alive',
+        path: req.path,
         env: process.env.NODE_ENV,
         db_ssl: process.env.DB_SSL_MODE
     });
 });
+
+// DIRECT LOGIN TEST (Bypass Router)
+const { login } = require('./controllers/authController');
+app.post(['/test-login', '/api/test-login'], login);
 
 // Health Check (Handles both prefixed and non-prefixed roots)
 app.get(['/api', '/'], (req, res) => {
