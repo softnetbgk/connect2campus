@@ -236,7 +236,7 @@ const Login = () => {
 
                         <div className="text-center mt-2">
                             <p className="text-white/30 text-[10px] font-cursive tracking-widest">Connect to Campus</p>
-                            <p className="text-white/10 text-[8px] mt-1 font-mono">v1.2 (Latest)</p>
+                            <p className="text-red-400 text-[10px] mt-1 font-mono font-bold">DEBUG BUILD v9.1</p>
                         </div>
                     </form>
 

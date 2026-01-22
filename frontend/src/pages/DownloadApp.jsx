@@ -80,12 +80,12 @@ const DownloadApp = () => {
                         <div className="text-center mb-8 flex flex-col items-center gap-4">
                             {/* Force APK Download for now until Play Store launch */}
                             <a
-                                href={downloadUrl}
+                                href={`${downloadUrl}?v=${new Date().getTime()}`}
                                 download="SchoolApp_Debug.apk"
                                 className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 text-black font-bold rounded-xl shadow-lg shadow-yellow-400/30 transform transition-all hover:scale-105 text-lg"
                             >
                                 <Download size={24} />
-                                Download Live APK
+                                Download Live APK (Debug v2)
                             </a>
 
                             <button
