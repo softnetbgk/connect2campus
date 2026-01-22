@@ -86,6 +86,11 @@ api.interceptors.response.use(
 
             const msg = error.response.data?.message;
 
+            // Debug for native
+            if (Capacitor.isNativePlatform()) {
+                toast.error(`Debug: API Error ${error.response.status}. Msg: ${msg}`);
+            }
+
             // Specific check for Service Disabled (403) or Session Invalid (401)
             if (msg === 'School Service Disabled. Contact Super Admin.' || error.response.status === 401) {
                 // Clear storage (use Capacitor Preferences on mobile, localStorage on web)

@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import api from '../api/axios';
+import toast from 'react-hot-toast';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
 
@@ -43,11 +44,21 @@ export const AuthProvider = ({ children }) => {
 
                 if (token && storedUser) {
                     try {
-                        setUser(JSON.parse(storedUser));
+                        const parsedUser = JSON.parse(storedUser);
+                        setUser(parsedUser);
+                        // DEBUG: Session Restore
+                        if (Capacitor.isNativePlatform()) {
+                            toast.success(`Debug: Session Restored. Role: ${parsedUser.role}`);
+                        }
                     } catch (e) {
                         console.error("Failed to parse stored user", e);
                         await removeStorageItem('token');
                         await removeStorageItem('user');
+                    }
+                } else {
+                    // DEBUG: No Session
+                    if (Capacitor.isNativePlatform()) {
+                        // toast('Debug: No session found on startup', { icon: 'ℹ️' });
                     }
                 }
             } catch (error) {
@@ -62,8 +73,7 @@ export const AuthProvider = ({ children }) => {
     // Broadcast Channel for Multi-tab management (Web only)
     useEffect(() => {
         // Skip BroadcastChannel on mobile app - it causes logout issues
-        // FORCE DISABLED for debugging: BroadcastChannel might be causing loop
-        if (true || Capacitor.isNativePlatform()) return;
+        if (Capacitor.isNativePlatform()) return;
 
         let channel = null;
         try {
@@ -100,8 +110,13 @@ export const AuthProvider = ({ children }) => {
             await setStorageItem('user', JSON.stringify(user));
             setUser(user);
 
-            // Broadcast (web only) - FORCE DISABLED
-            if (false && !Capacitor.isNativePlatform()) {
+            // DEBUG: Login Success
+            if (Capacitor.isNativePlatform()) {
+                toast.success(`Debug: Login OK. Token Saved. Role: ${user.role}`);
+            }
+
+            // Broadcast (web only)
+            if (!Capacitor.isNativePlatform()) {
                 try {
                     const channel = new BroadcastChannel('school_auth_channel');
                     channel.postMessage({ type: 'LOGIN_SUCCESS', userId: user.id });
@@ -150,6 +165,11 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async (isAutoLogout = false, isRemote = false) => {
         try {
+            // DEBUG: Logout Called
+            if (Capacitor.isNativePlatform()) {
+                toast.error(`Debug: Logout Called. Auto:${isAutoLogout}, Remote:${isRemote}`);
+            }
+
             if (!isRemote && !isAutoLogout) {
                 // Broadcast
                 try {
